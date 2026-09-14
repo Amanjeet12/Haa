@@ -4,18 +4,15 @@ import {
   NavigationContainer,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import Settings from 'lucide-react-native/icons/settings';
 import React, { useMemo } from 'react';
-import { Pressable } from 'react-native';
 
-import { HomeScreen } from '../screens/HomeScreen';
 import { LocationScreen } from '../screens/LocationScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { PinScreen } from '../screens/PinScreen';
-import { SettingsScreen } from '../screens/SettingsScreen';
 import { useAppTheme } from '../theme';
 import { RootStackParamList } from '../types/navigation';
+import { MainTabs } from './MainTabs';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -67,27 +64,8 @@ export function RootNavigator() {
         </Stack.Group>
         <Stack.Screen
           name="Home"
-          component={HomeScreen}
-          options={({ navigation }) => ({
-            title: 'Haa Health',
-            // React Navigation requires headerRight to be a render callback.
-            // eslint-disable-next-line react/no-unstable-nested-components
-            headerRight: () => (
-              <Pressable
-                accessibilityLabel="Open settings"
-                accessibilityRole="button"
-                hitSlop={12}
-                onPress={() => navigation.navigate('Settings')}
-              >
-                <Settings color={theme.colors.text} size={22} />
-              </Pressable>
-            ),
-          })}
-        />
-        <Stack.Screen
-          name="Settings"
-          component={SettingsScreen}
-          options={{ title: 'Settings' }}
+          component={MainTabs}
+          options={{ headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>

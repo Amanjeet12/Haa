@@ -1,4 +1,4 @@
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import Activity from 'lucide-react-native/icons/activity';
 import CalendarDays from 'lucide-react-native/icons/calendar-days';
 import ChevronRight from 'lucide-react-native/icons/chevron-right';
@@ -8,10 +8,10 @@ import { StyleSheet, View } from 'react-native';
 
 import { AppButton, AppText, BrandMark, Card, Screen } from '../components';
 import { useAppTheme } from '../theme';
-import { RootStackParamList } from '../types/navigation';
+import { MainTabParamList } from '../types/navigation';
 import { formatDisplayDate } from '../utils/formatters';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+type Props = BottomTabScreenProps<MainTabParamList, 'Home'>;
 
 const healthMetrics = [
   { label: 'Heart rate', value: '--', unit: 'bpm' },
@@ -49,7 +49,7 @@ export function HomeScreen({ navigation }: Props) {
         </AppText>
         <AppButton
           label="Get started"
-          onPress={() => navigation.navigate('Settings')}
+          onPress={() => navigation.navigate('Profile')}
           icon={<ChevronRight color={theme.colors.onPrimary} size={19} />}
         />
       </Card>
