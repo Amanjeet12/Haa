@@ -1,97 +1,77 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Haa Health
 
-# Getting Started
+React Native foundation for the Haa Health mobile app. The project includes an
+onboarding, location, phone login, and PIN flow; native Android and iOS shells;
+TypeScript; typed stack navigation; persisted appearance preferences; shared
+design tokens; reusable UI components; and API/storage utilities.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## Requirements
 
-## Step 1: Start Metro
+- Node.js 22.11 or newer
+- JDK 17 and Android Studio for Android
+- macOS with Xcode and CocoaPods for iOS
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+Follow the React Native environment guide before the first native build:
+https://reactnative.dev/docs/set-up-your-environment
 
-To start the Metro dev server, run the following command from the root of your React Native project:
-
-```sh
-# Using npm
-npm start
-
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
+## Install
 
 ```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
+npm install
 ```
 
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+Native Android libraries are autolinked by React Native. For iOS, run this on a
+Mac after installing or changing native packages:
 
 ```sh
 bundle install
+cd ios && bundle exec pod install && cd ..
 ```
 
-Then, and every time you update your native dependencies, run:
+## Run
+
+Start Metro in one terminal:
 
 ```sh
-bundle exec pod install
+npm start
 ```
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+Then launch a platform build in another terminal:
 
 ```sh
-# Using npm
+npm run android
 npm run ios
-
-# OR using Yarn
-yarn ios
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+## Quality checks
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+```sh
+npm run typecheck
+npm run lint
+npm test -- --runInBand
+npm run format:check
+```
 
-## Step 3: Modify your app
+## Project structure
 
-Now that you have successfully run the app, let's make changes!
+```text
+src/
+  api/          Fetch client and API errors
+  assets/       Shared application images
+  components/   Theme-aware reusable UI
+  config/       App constants and storage keys
+  navigation/   Typed navigation container
+  screens/      App screens
+  services/     Native device services such as geolocation
+  storage/      Typed persistence helpers
+  theme/        Color, spacing, radius, and typography tokens
+  types/        Shared TypeScript types
+  utils/        Pure utility functions
+```
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+Android icons live under `android/app/src/main/res/mipmap-*`. iOS icons belong in
+`ios/Haa_Health/Images.xcassets/AppIcon.appiconset`. Replace the generated
+placeholder icons with approved brand artwork before a store build.
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+Foreground location access is declared in AndroidManifest.xml and Info.plist.
+The app asks for permission only when the user taps **Use current location**.
