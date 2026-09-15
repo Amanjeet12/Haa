@@ -14,3 +14,8 @@ export type MainTabParamList = {
   Reports: undefined;
   Profile: undefined;
 };
+
+export type HomeStackParamList = {
+  HomeLanding: undefined;
+  Labs: undefined;
+};

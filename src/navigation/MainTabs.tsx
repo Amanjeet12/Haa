@@ -1,4 +1,5 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import CalendarDays from 'lucide-react-native/icons/calendar-days';
 import FileText from 'lucide-react-native/icons/file-text';
 import House from 'lucide-react-native/icons/house';
@@ -9,10 +10,10 @@ import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EmptyTabScreen } from '../screens/EmptyTabScreen';
-import { HomeScreen } from '../screens/HomeScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { AppTheme, useAppTheme } from '../theme';
 import { MainTabParamList } from '../types/navigation';
+import { HomeNavigator } from './HomeNavigator';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -88,6 +89,11 @@ export function MainTabs() {
           transform: route.name === 'Cart' ? [{ translateY: 4 }] : undefined,
         },
         tabBarStyle: {
+          display:
+            route.name === 'Home' &&
+            getFocusedRouteNameFromRoute(route) === 'Labs'
+              ? 'none'
+              : 'flex',
           // Keep the labels above Android's navigation buttons/gesture area.
           // A fixed height gets covered when edge-to-edge mode is enabled.
           height: 64 + tabBarBottomPadding,
@@ -108,7 +114,7 @@ export function MainTabs() {
         ),
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Home" component={HomeNavigator} />
       <Tab.Screen name="Bookings">
         {() => (
           <EmptyTabScreen

@@ -10,6 +10,7 @@ import ShoppingBasket from 'lucide-react-native/icons/shopping-basket';
 import Sparkles from 'lucide-react-native/icons/sparkles';
 import X from 'lucide-react-native/icons/x';
 import React, { useMemo, useState } from 'react';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   Image,
   Modal,
@@ -25,6 +26,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { images } from '../assets/images';
 import { AppText, Screen } from '../components';
 import { useAppTheme } from '../theme';
+import { HomeStackParamList } from '../types/navigation';
 
 type ServiceLocation = {
   id: string;
@@ -66,7 +68,9 @@ const serviceLocations: ServiceLocation[] = [
   },
 ];
 
-export function HomeScreen() {
+type HomeScreenProps = NativeStackScreenProps<HomeStackParamList, 'HomeLanding'>;
+
+export function HomeScreen({ navigation }: HomeScreenProps) {
   const { theme } = useAppTheme();
   const [locationOpen, setLocationOpen] = useState(false);
   const [locationQuery, setLocationQuery] = useState('');
@@ -209,6 +213,8 @@ export function HomeScreen() {
               Compare trusted labs on price, parameters and report time.
             </AppText>
             <Pressable
+              accessibilityRole="button"
+              onPress={() => navigation.navigate('Labs')}
               style={[
                 styles.heroButton,
                 { backgroundColor: theme.colors.primary },
