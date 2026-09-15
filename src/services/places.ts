@@ -66,6 +66,7 @@ export async function getPlaceSuggestions(
   input: string,
   sessionToken: string,
   signal?: AbortSignal,
+  citiesOnly = false,
 ): Promise<PlaceSuggestion[]> {
   const response = await fetch(`${placesApiBaseUrl}/places:autocomplete`, {
     method: 'POST',
@@ -78,6 +79,7 @@ export async function getPlaceSuggestions(
     },
     body: JSON.stringify({
       input,
+      ...(citiesOnly ? { includedPrimaryTypes: ['(cities)'] } : {}),
       includedRegionCodes: ['in'],
       languageCode: 'en',
       regionCode: 'IN',
@@ -105,6 +107,14 @@ export async function getPlaceSuggestions(
       },
     ];
   });
+}
+
+export function getCitySuggestions(
+  input: string,
+  sessionToken: string,
+  signal?: AbortSignal,
+) {
+  return getPlaceSuggestions(input, sessionToken, signal, true);
 }
 
 export async function getPlaceDetails(

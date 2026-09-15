@@ -7,7 +7,7 @@ import { useAppTheme } from '../../theme';
 import { AppText } from '../AppText';
 
 type Props = { query: string; selected: string; appliedCount: number; onFilterPress: () => void; onQueryChange: (value: string) => void; onSelect: (value: string) => void };
-const filters = ['All labs', 'NABL Accredited', 'ISO Certified', 'ICMR Approved'];
+const filters = ['All labs', 'NABL Accredited', 'ISO Certified', 'ICMR Approved', 'CAP Accredited', 'NABH Certified'];
 
 export function LabFilters({ query, selected, appliedCount, onFilterPress, onQueryChange, onSelect }: Props) {
   const { theme } = useAppTheme();

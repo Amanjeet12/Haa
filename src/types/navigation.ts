@@ -18,4 +18,7 @@ export type MainTabParamList = {
 export type HomeStackParamList = {
   HomeLanding: undefined;
   Labs: undefined;
+  CitySearch: undefined;
+  LabDetails: { lab: Lab };
 };
+import type { Lab } from '../components/labs';

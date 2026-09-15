@@ -9,15 +9,15 @@ import Search from 'lucide-react-native/icons/search';
 import ShoppingBasket from 'lucide-react-native/icons/shopping-basket';
 import Sparkles from 'lucide-react-native/icons/sparkles';
 import X from 'lucide-react-native/icons/x';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   Image,
+  ActivityIndicator,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
-  TextInput,
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -27,6 +27,9 @@ import { images } from '../assets/images';
 import { AppText, Screen } from '../components';
 import { useAppTheme } from '../theme';
 import { HomeStackParamList } from '../types/navigation';
+import { useAppDispatch, useAppSelector } from '../store';
+import { fetchZones, setSelectedZone } from '../store/zonesSlice';
+import { zoneAvailabilityLabel } from '../api/zones';
 
 type ServiceLocation = {
   id: string;
@@ -35,58 +38,43 @@ type ServiceLocation = {
   eta: string;
 };
 
-const serviceLocations: ServiceLocation[] = [
-  {
-    id: 'indiranagar',
-    name: 'Indiranagar, Bengaluru',
-    detail: 'Indiranagar, Domlur and nearby areas',
-    eta: 'Labs and delivery available',
-  },
-  {
-    id: 'koramangala',
-    name: 'Koramangala, Bengaluru',
-    detail: 'Koramangala, HSR Layout and Ejipura',
-    eta: 'Labs and delivery available',
-  },
-  {
-    id: 'whitefield',
-    name: 'Whitefield, Bengaluru',
-    detail: 'Whitefield, Brookefield and Marathahalli',
-    eta: 'Labs available today',
-  },
-  {
-    id: 'jayanagar',
-    name: 'Jayanagar, Bengaluru',
-    detail: 'Jayanagar, JP Nagar and Banashankari',
-    eta: 'Labs and delivery available',
-  },
-  {
-    id: 'hebbal',
-    name: 'Hebbal, Bengaluru',
-    detail: 'Hebbal, Yelahanka and Thanisandra',
-    eta: 'Labs available today',
-  },
-];
-
 type HomeScreenProps = NativeStackScreenProps<HomeStackParamList, 'HomeLanding'>;
 
 export function HomeScreen({ navigation }: HomeScreenProps) {
   const { theme } = useAppTheme();
+  const dispatch = useAppDispatch();
+  const zones = useAppSelector(state => state.zones.items);
+  const selectedZone = useAppSelector(state => state.zones.selected);
+  const zonesStatus = useAppSelector(state => state.zones.status);
+  const locationsError = useAppSelector(state => state.zones.error);
   const [locationOpen, setLocationOpen] = useState(false);
-  const [locationQuery, setLocationQuery] = useState('');
-  const [selectedLocation, setSelectedLocation] = useState(serviceLocations[0]);
-  const filteredLocations = useMemo(() => {
-    const query = locationQuery.trim().toLowerCase();
-    return query
-      ? serviceLocations.filter(item =>
-          `${item.name} ${item.detail}`.toLowerCase().includes(query),
-        )
-      : serviceLocations;
-  }, [locationQuery]);
+  const serviceLocations = useMemo(
+    () =>
+      zones.map(zone => ({
+        id: String(zone.zone_id),
+        name: zone.zone_name,
+        detail: `Haa Health service zone #${zone.zone_id}`,
+        eta: zoneAvailabilityLabel(zone),
+      })),
+    [zones],
+  );
+  const selectedLocation = serviceLocations.find(
+    item => item.id === String(selectedZone?.zone_id),
+  );
+  const locationsLoading = zonesStatus === 'loading' || zonesStatus === 'idle';
+  const filteredLocations = serviceLocations;
+
+  const loadZones = useCallback(() => {
+    dispatch(fetchZones());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (zonesStatus === 'idle') loadZones();
+  }, [loadZones, zonesStatus]);
 
   const chooseLocation = (location: ServiceLocation) => {
-    setSelectedLocation(location);
-    setLocationQuery('');
+    const zone = zones.find(item => String(item.zone_id) === location.id);
+    if (zone) dispatch(setSelectedZone(zone));
     setLocationOpen(false);
   };
 
@@ -162,14 +150,14 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                 style={styles.addressTitle}
                 weight="800"
               >
-                {selectedLocation.name}
+                {selectedLocation?.name ?? 'Choose your location'}
               </AppText>
               <AppText
                 color={theme.colors.textMuted}
                 numberOfLines={1}
                 style={styles.addressDetail}
               >
-                {selectedLocation.eta}
+                {selectedLocation?.eta ?? 'Select an available service zone'}
               </AppText>
             </View>
             <ChevronDown color={theme.colors.textMuted} size={18} />
@@ -396,34 +384,66 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                 <X color={theme.colors.text} size={20} />
               </Pressable>
             </View>
-            <View
+            <Pressable
+              onPress={() => {
+                setLocationOpen(false);
+                navigation.navigate('CitySearch');
+              }}
               style={[
                 styles.locationSearch,
                 { backgroundColor: theme.colors.surfaceMuted },
               ]}
             >
               <Search color={theme.colors.textMuted} size={18} />
-              <TextInput
-                autoFocus
-                onChangeText={setLocationQuery}
-                placeholder="Search area or neighbourhood"
-                placeholderTextColor={theme.colors.textMuted}
-                style={[
-                  styles.locationInput,
-                  {
-                    color: theme.colors.text,
-                    fontFamily: theme.typography.fontFamily.regular,
-                  },
-                ]}
-                value={locationQuery}
-              />
-            </View>
+              <AppText
+                color={theme.colors.textMuted}
+                style={styles.locationInput}
+              >
+                Search city name
+              </AppText>
+            </Pressable>
             <ScrollView
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
-              {filteredLocations.map(location => {
-                const selected = location.id === selectedLocation.id;
+              {locationsLoading ? (
+                <View style={styles.locationState}>
+                  <ActivityIndicator color={theme.colors.primary} />
+                  <AppText
+                    color={theme.colors.textMuted}
+                    style={styles.locationStateText}
+                  >
+                    Loading available zones…
+                  </AppText>
+                </View>
+              ) : null}
+              {locationsError ? (
+                <View style={styles.locationState}>
+                  <AppText style={styles.noLocationsTitle} weight="700">
+                    Could not load locations
+                  </AppText>
+                  <AppText
+                    color={theme.colors.textMuted}
+                    style={styles.locationStateText}
+                  >
+                    {locationsError}
+                  </AppText>
+                  <Pressable
+                    onPress={loadZones}
+                    style={[
+                      styles.retryButton,
+                      { backgroundColor: theme.colors.primary },
+                    ]}
+                  >
+                    <AppText color="#FFFFFF" style={styles.retryText} weight="700">
+                      Try again
+                    </AppText>
+                  </Pressable>
+                </View>
+              ) : null}
+              {!locationsLoading && !locationsError
+                ? filteredLocations.map(location => {
+                const selected = location.id === selectedLocation?.id;
                 return (
                   <Pressable
                     key={location.id}
@@ -476,8 +496,11 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                     <ChevronRight color={theme.colors.textMuted} size={18} />
                   </Pressable>
                 );
-              })}
-              {!filteredLocations.length ? (
+                  })
+                : null}
+              {!locationsLoading &&
+              !locationsError &&
+              !filteredLocations.length ? (
                 <View style={styles.noLocations}>
                   <MapPin color={theme.colors.textMuted} size={28} />
                   <AppText style={styles.noLocationsTitle} weight="700">
@@ -487,7 +510,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                     color={theme.colors.textMuted}
                     style={styles.noLocationsBody}
                   >
-                    Try another Bengaluru neighbourhood.
+                    Try another service zone.
                   </AppText>
                 </View>
               ) : null}
@@ -808,7 +831,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 13,
     marginBottom: 8,
   },
-  locationInput: { flex: 1, height: '100%', fontSize: 13 },
+  locationInput: { flex: 1, fontSize: 13, lineHeight: 17 },
   locationOption: {
     minHeight: 78,
     flexDirection: 'row',
@@ -837,4 +860,19 @@ const styles = StyleSheet.create({
   noLocations: { alignItems: 'center', paddingVertical: 38 },
   noLocationsTitle: { marginTop: 10, fontSize: 15, lineHeight: 20 },
   noLocationsBody: { marginTop: 2, fontSize: 11, lineHeight: 15 },
+  locationState: { alignItems: 'center', paddingVertical: 38 },
+  locationStateText: {
+    marginTop: 7,
+    paddingHorizontal: 24,
+    textAlign: 'center',
+    fontSize: 10,
+    lineHeight: 14,
+  },
+  retryButton: {
+    marginTop: 13,
+    borderRadius: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+  },
+  retryText: { fontSize: 10, lineHeight: 13 },
 });

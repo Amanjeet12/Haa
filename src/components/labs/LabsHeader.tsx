@@ -1,4 +1,5 @@
 import ChevronLeft from 'lucide-react-native/icons/chevron-left';
+import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import MapPin from 'lucide-react-native/icons/map-pin';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -8,11 +9,19 @@ import { AppText } from '../AppText';
 
 type Props = {
   location: string;
+  labCount: number | null;
+  loadingLabs: boolean;
   onBack: () => void;
   onChangeLocation: () => void;
 };
 
-export function LabsHeader({ location, onBack, onChangeLocation }: Props) {
+export function LabsHeader({
+  location,
+  labCount,
+  loadingLabs,
+  onBack,
+  onChangeLocation,
+}: Props) {
   const { theme } = useAppTheme();
   return (
     <>
@@ -27,9 +36,16 @@ export function LabsHeader({ location, onBack, onChangeLocation }: Props) {
         <View style={[styles.pin, { backgroundColor: theme.colors.primarySoft }]}><MapPin color={theme.colors.primary} size={16} /></View>
         <View style={styles.locationCopy}>
           <AppText style={styles.locationName} weight="700">{location}</AppText>
-          <AppText color={theme.colors.textMuted} style={styles.locationDetail}>5 labs available within 6 km</AppText>
+          <AppText color={theme.colors.textMuted} style={styles.locationDetail}>
+            {loadingLabs
+              ? 'Checking available labs…'
+              : `${labCount ?? 0} ${labCount === 1 ? 'lab' : 'labs'} available`}
+          </AppText>
         </View>
-        <Pressable hitSlop={10} onPress={onChangeLocation}><AppText color={theme.colors.primary} style={styles.change} weight="700">Change</AppText></Pressable>
+        <Pressable hitSlop={10} onPress={onChangeLocation} style={styles.changeButton}>
+          <AppText color={theme.colors.primary} style={styles.change} weight="700">Change</AppText>
+          <ChevronDown color={theme.colors.primary} size={13} strokeWidth={2.5} />
+        </Pressable>
       </View>
     </>
   );
@@ -46,4 +62,5 @@ const styles = StyleSheet.create({
   locationName: { fontSize: 12, lineHeight: 16 },
   locationDetail: { fontSize: 9, lineHeight: 12 },
   change: { fontSize: 9, lineHeight: 12 },
+  changeButton: { flexDirection: 'row', alignItems: 'center', gap: 2 },
 });

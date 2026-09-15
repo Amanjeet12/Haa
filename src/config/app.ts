@@ -6,4 +6,5 @@ export const appConfig = {
 export const storageKeys = {
   themePreference: '@haa-health/theme-preference',
   authSession: '@haa-health/auth-session',
+  selectedZoneId: '@haa-health/selected-zone-id',
 } as const;

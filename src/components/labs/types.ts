@@ -1,5 +1,3 @@
-export type Accreditation = 'NABL' | 'CAP';
-
 export type Lab = {
   id: string;
   name: string;
@@ -7,9 +5,12 @@ export type Lab = {
   reviews: number;
   price: number;
   reportTime: string;
-  accreditations: Accreditation[];
+  certifications: string[];
   specialties: string[];
   verified?: boolean;
   partner?: boolean;
   accent: string;
+  image?: string;
+  banner?: string;
+  address?: string;
 };

@@ -91,7 +91,9 @@ export function MainTabs() {
         tabBarStyle: {
           display:
             route.name === 'Home' &&
-            getFocusedRouteNameFromRoute(route) === 'Labs'
+            ['Labs', 'CitySearch', 'LabDetails'].includes(
+              getFocusedRouteNameFromRoute(route) ?? '',
+            )
               ? 'none'
               : 'flex',
           // Keep the labels above Android's navigation buttons/gesture area.

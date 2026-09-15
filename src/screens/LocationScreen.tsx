@@ -25,6 +25,8 @@ import {
 } from '../services/places';
 import { useAppTheme } from '../theme';
 import { RootStackParamList } from '../types/navigation';
+import { useAppDispatch } from '../store';
+import { fetchZones } from '../store/zonesSlice';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Location'>;
 
@@ -42,6 +44,7 @@ const selectedRegionDelta = {
 
 export function LocationScreen({ navigation }: Props) {
   const { theme } = useAppTheme();
+  const dispatch = useAppDispatch();
   const inputRef = useRef<React.ElementRef<typeof TextInput>>(null);
   const mapRef = useRef<MapView>(null);
   const sessionTokenRef = useRef(createPlacesSessionToken());
@@ -56,6 +59,7 @@ export function LocationScreen({ navigation }: Props) {
   );
   const [showsUserLocation, setShowsUserLocation] = useState(false);
   const [error, setError] = useState('');
+  const [isResolvingZone, setIsResolvingZone] = useState(false);
 
   useEffect(() => {
     const searchText = query.trim();
@@ -115,9 +119,26 @@ export function LocationScreen({ navigation }: Props) {
     );
   };
 
-  const continueWithSearch = () => {
+  const continueWithSearch = async () => {
     if (selectedPlace) {
-      navigation.navigate('Login');
+      setIsResolvingZone(true);
+      setError('');
+      const result = await dispatch(
+        fetchZones({
+          lat: selectedPlace.latitude,
+          lng: selectedPlace.longitude,
+        }),
+      );
+      setIsResolvingZone(false);
+      if (fetchZones.fulfilled.match(result)) {
+        navigation.navigate('Login');
+      } else {
+        setError(
+          typeof result.payload === 'string'
+            ? result.payload
+            : 'We could not check service availability. Please try again.',
+        );
+      }
     } else {
       if (query.trim()) {
         setError('Select a location from the suggestions first.');
@@ -366,6 +387,7 @@ export function LocationScreen({ navigation }: Props) {
               ? 'Continue with this location'
               : 'Enter location manually'
           }
+          loading={isResolvingZone}
           onPress={continueWithSearch}
           variant="secondary"
         />

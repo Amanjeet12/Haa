@@ -3,6 +3,8 @@ import React from 'react';
 
 import { HomeScreen } from '../screens/HomeScreen';
 import { LabsScreen } from '../screens/LabsScreen';
+import { CitySearchScreen } from '../screens/CitySearchScreen';
+import { LabDetailsScreen } from '../screens/LabDetailsScreen';
 import { HomeStackParamList } from '../types/navigation';
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
@@ -12,6 +14,8 @@ export function HomeNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="HomeLanding" component={HomeScreen} />
       <Stack.Screen name="Labs" component={LabsScreen} />
+      <Stack.Screen name="CitySearch" component={CitySearchScreen} />
+      <Stack.Screen name="LabDetails" component={LabDetailsScreen} />
     </Stack.Navigator>
   );
 }
