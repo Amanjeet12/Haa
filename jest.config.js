@@ -5,6 +5,6 @@ module.exports = {
     '^lucide-react-native/icons/.*$': '<rootDir>/__mocks__/lucideIcon.js',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|@react-navigation|react-native-screens|react-native-safe-area-context|react-native-svg|lucide-react-native)/)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|@react-navigation|@reduxjs|react-redux|redux|immer|reselect|react-native-screens|react-native-safe-area-context|react-native-svg|lucide-react-native)/)',
   ],
 };

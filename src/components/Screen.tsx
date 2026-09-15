@@ -11,11 +11,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '../theme';
 
 type ScreenProps = PropsWithChildren<{
+  backgroundColor?: string;
   contentContainerStyle?: StyleProp<ViewStyle>;
   scrollProps?: Omit<ScrollViewProps, 'contentContainerStyle'>;
 }>;
 
 export function Screen({
+  backgroundColor,
   children,
   contentContainerStyle,
   scrollProps,
@@ -24,8 +26,11 @@ export function Screen({
 
   return (
     <SafeAreaView
-      edges={['bottom', 'left', 'right']}
-      style={[styles.safeArea, { backgroundColor: theme.colors.background }]}
+      edges={['top', 'left', 'right']}
+      style={[
+        styles.safeArea,
+        { backgroundColor: backgroundColor ?? theme.colors.background },
+      ]}
     >
       <ScrollView
         keyboardShouldPersistTaps="handled"

@@ -1,5 +1,6 @@
 import Check from 'lucide-react-native/icons/check';
 import Moon from 'lucide-react-native/icons/moon';
+import LogOut from 'lucide-react-native/icons/log-out';
 import Smartphone from 'lucide-react-native/icons/smartphone';
 import Sun from 'lucide-react-native/icons/sun';
 import React, { ReactNode } from 'react';
@@ -7,6 +8,9 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText, Card, Screen } from '../components';
 import { ThemePreference, useAppTheme } from '../theme';
+import { AppButton } from '../components';
+import { signOut } from '../store/authSlice';
+import { useAppDispatch, useAppSelector } from '../store';
 
 const themeOptions: Array<{
   value: ThemePreference;
@@ -36,6 +40,8 @@ const themeOptions: Array<{
 
 export function SettingsScreen() {
   const { theme, preference, setPreference } = useAppTheme();
+  const dispatch = useAppDispatch();
+  const { session, status } = useAppSelector(state => state.auth);
 
   return (
     <Screen>
@@ -86,6 +92,27 @@ export function SettingsScreen() {
           );
         })}
       </Card>
+
+      {session ? (
+        <View style={styles.accountSection}>
+          <AppText variant="subtitle" weight="800">
+            Account
+          </AppText>
+          <AppText
+            color={theme.colors.textMuted}
+            style={styles.accountDescription}
+          >
+            Signed in as {session.customer.name} · {session.customer.phone}
+          </AppText>
+          <AppButton
+            fullWidth
+            icon={<LogOut color={theme.colors.onPrimary} size={18} />}
+            label="Log out"
+            loading={status === 'loading'}
+            onPress={() => dispatch(signOut())}
+          />
+        </View>
+      ) : null}
     </Screen>
   );
 }
@@ -114,4 +141,6 @@ const styles = StyleSheet.create({
   optionCopy: {
     flex: 1,
   },
+  accountSection: { marginTop: 28 },
+  accountDescription: { marginTop: 4, marginBottom: 14 },
 });

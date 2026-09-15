@@ -8,18 +8,30 @@ import { Keyboard, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { AppButton, AppText, AuthScaffold, HaaLogo } from '../components';
 import { useAppTheme } from '../theme';
 import { RootStackParamList } from '../types/navigation';
+import { clearAuthError, signIn } from '../store/authSlice';
+import { useAppDispatch, useAppSelector } from '../store';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Pin'>;
 
 export function PinScreen({ navigation, route }: Props) {
   const { theme } = useAppTheme();
+  const dispatch = useAppDispatch();
+  const { error, status } = useAppSelector(state => state.auth);
   const pinInputRef = useRef<React.ElementRef<typeof TextInput>>(null);
   const [pin, setPin] = useState('');
 
-  const continueWithPin = () => {
+  const continueWithPin = async () => {
+    if (status === 'loading') {
+      return;
+    }
+
     if (pin.length === 4) {
       Keyboard.dismiss();
-      navigation.replace('Home');
+      try {
+        await dispatch(signIn({ phone: route.params.phone, pin })).unwrap();
+      } catch {
+        pinInputRef.current?.focus();
+      }
     } else {
       pinInputRef.current?.focus();
     }
@@ -103,7 +115,10 @@ export function PinScreen({ navigation, route }: Props) {
           caretHidden
           keyboardType="number-pad"
           maxLength={4}
-          onChangeText={value => setPin(value.replace(/\D/g, '').slice(0, 4))}
+          onChangeText={value => {
+            dispatch(clearAuthError());
+            setPin(value.replace(/\D/g, '').slice(0, 4));
+          }}
           onSubmitEditing={continueWithPin}
           secureTextEntry
           style={styles.hiddenInput}
@@ -118,6 +133,17 @@ export function PinScreen({ navigation, route }: Props) {
         </AppText>
       </View>
 
+      {error ? (
+        <AppText
+          accessibilityRole="alert"
+          color={theme.colors.danger}
+          style={styles.error}
+          variant="caption"
+        >
+          {error}
+        </AppText>
+      ) : null}
+
       <View style={styles.spacerBottom} />
 
       <View style={styles.actions}>
@@ -126,6 +152,7 @@ export function PinScreen({ navigation, route }: Props) {
           icon={<ArrowRight color={theme.colors.onPrimary} size={17} />}
           iconPosition="end"
           label="Continue securely"
+          loading={status === 'loading'}
           onPress={continueWithPin}
         />
         <AppButton
@@ -201,6 +228,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 16,
   },
+  error: { marginTop: 12 },
   spacerBottom: {
     flex: 1,
     minHeight: 40,

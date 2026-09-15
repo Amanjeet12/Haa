@@ -26,6 +26,14 @@ export async function apiRequest<T>(
   );
 
   try {
+    if (__DEV__) {
+      console.log('[API request]', {
+        url,
+        method: options.method ?? 'GET',
+        body: options.body,
+      });
+    }
+
     const response = await fetch(url, {
       ...options,
       signal: controller.signal,
@@ -41,6 +49,15 @@ export async function apiRequest<T>(
       ? await response.json()
       : await response.text();
 
+    if (__DEV__) {
+      console.log('[API response]', {
+        url,
+        status: response.status,
+        ok: response.ok,
+        body: payload,
+      });
+    }
+
     if (!response.ok) {
       throw new ApiError(
         'The request could not be completed.',
@@ -50,6 +67,11 @@ export async function apiRequest<T>(
     }
 
     return payload as T;
+  } catch (error) {
+    if (__DEV__) {
+      console.error('[API error]', { url, error });
+    }
+    throw error;
   } finally {
     clearTimeout(timeoutId);
   }

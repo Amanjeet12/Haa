@@ -1,9 +1,11 @@
 import React from 'react';
 import { StatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Provider } from 'react-redux';
 
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { ThemeProvider, useAppTheme } from './src/theme/ThemeProvider';
+import { store } from './src/store';
 
 function AppContent() {
   const { theme } = useAppTheme();
@@ -21,11 +23,13 @@ function AppContent() {
 
 function App() {
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <AppContent />
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <Provider store={store}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <AppContent />
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </Provider>
   );
 }
 

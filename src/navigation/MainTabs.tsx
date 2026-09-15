@@ -84,7 +84,7 @@ export function MainTabs() {
         tabBarLabelStyle: {
           fontFamily: theme.typography.fontFamily.medium,
           fontSize: 10,
-          marginTop: 1,
+          marginTop: 3,
           transform: route.name === 'Cart' ? [{ translateY: 4 }] : undefined,
         },
         tabBarStyle: {
@@ -152,6 +152,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingBottom: 2,
   },
   cartButton: {
     width: 40,
