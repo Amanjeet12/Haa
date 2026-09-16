@@ -30,6 +30,16 @@ jest.mock('react-native-razorpay', () => ({
   default: { open: jest.fn(() => Promise.resolve({})) },
 }));
 
+jest.mock('react-native-blob-util', () => ({
+  __esModule: true,
+  default: {
+    fs: { dirs: { DocumentDir: '/documents', DownloadDir: '/downloads' } },
+    config: jest.fn(() => ({
+      fetch: jest.fn(() => Promise.resolve({ path: () => '/downloads/report.pdf' })),
+    })),
+  },
+}));
+
 jest.mock('react-native-maps', () => {
   const React = require('react');
   const { View } = require('react-native');

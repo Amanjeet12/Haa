@@ -5,6 +5,7 @@ export type RootStackParamList = {
   Pin: { phone: string };
   Home: undefined;
   Settings: undefined;
+  BookingDetails: { booking: import('../api/bookings').CustomerBooking };
 };
 
 export type MainTabParamList = {
