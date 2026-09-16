@@ -17,6 +17,8 @@ import { restoreSession } from '../store/authSlice';
 import { useAppDispatch, useAppSelector } from '../store';
 import { MainTabs } from './MainTabs';
 import { BookingDetailsScreen } from '../screens/BookingDetailsScreen';
+import { AppearancePreferencesScreen } from '../screens/AppearancePreferencesScreen';
+import { FamilyMemberFormScreen } from '../screens/FamilyMemberFormScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -95,6 +97,16 @@ export function RootNavigator() {
             <Stack.Screen
               name="BookingDetails"
               component={BookingDetailsScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="AppearancePreferences"
+              component={AppearancePreferencesScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="FamilyMemberForm"
+              component={FamilyMemberFormScreen}
               options={{ headerShown: false }}
             />
           </>

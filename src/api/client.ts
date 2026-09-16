@@ -34,12 +34,14 @@ export async function apiRequest<T>(
       });
     }
 
+    const isFormData =
+      typeof FormData !== 'undefined' && options.body instanceof FormData;
     const response = await fetch(url, {
       ...options,
       signal: controller.signal,
       headers: {
         Accept: 'application/json',
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...options.headers,
       },
     });

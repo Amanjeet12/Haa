@@ -6,6 +6,8 @@ export type RootStackParamList = {
   Home: undefined;
   Settings: undefined;
   BookingDetails: { booking: import('../api/bookings').CustomerBooking };
+  AppearancePreferences: undefined;
+  FamilyMemberForm: { member?: import('../api/familyMembers').FamilyMember } | undefined;
 };
 
 export type MainTabParamList = {

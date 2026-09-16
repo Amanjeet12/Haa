@@ -9,10 +9,10 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SettingsScreen } from '../screens/SettingsScreen';
 import { CartScreen } from '../screens/CartScreen';
 import { BookingsScreen } from '../screens/BookingsScreen';
 import { ReportsScreen } from '../screens/ReportsScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
 import { AppTheme, useAppTheme } from '../theme';
 import { MainTabParamList } from '../types/navigation';
 import { HomeNavigator } from './HomeNavigator';
@@ -130,7 +130,7 @@ export function MainTabs() {
       <Tab.Screen name="Reports" component={ReportsScreen} />
       <Tab.Screen
         name="Profile"
-        component={SettingsScreen}
+        component={ProfileScreen}
         options={{ title: 'Profile' }}
       />
     </Tab.Navigator>
