@@ -8,6 +8,8 @@ export type RootStackParamList = {
   BookingDetails: { booking: import('../api/bookings').CustomerBooking };
   AppearancePreferences: undefined;
   FamilyMemberForm: { member?: import('../api/familyMembers').FamilyMember } | undefined;
+  Addresses: undefined;
+  AddressForm: { address?: import('../api/addresses').CustomerAddress } | undefined;
 };
 
 export type MainTabParamList = {

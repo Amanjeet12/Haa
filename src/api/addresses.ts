@@ -28,6 +28,27 @@ export type CustomerAddressDetails = {
   };
 };
 
+export type AddressInput = {
+  billing_address: {
+    isDefault: boolean;
+    addressType: string;
+    flatNo: string;
+    buildingName: string;
+    landmark: string;
+    address: string;
+    location: {
+      title: string;
+      city: string;
+      type: string;
+      address: string;
+      pincode: string;
+      latitude: number;
+      longitude: number;
+    };
+  };
+  shipping_address: null;
+};
+
 export type CustomerAddress = {
   address_id: number;
   customer_id: number;
@@ -52,6 +73,56 @@ export async function getCustomerAddresses(token: string) {
     throw new Error(response.msg || 'Unable to fetch addresses.');
   }
   return response.data;
+}
+
+type AddressMutationResponse = {
+  success: number | string;
+  msg: string;
+  data?: CustomerAddress;
+};
+
+export async function createCustomerAddress(token: string, input: AddressInput) {
+  const response = await apiRequest<AddressMutationResponse>(
+    `${apiBaseUrl}/customer/address`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(input),
+    },
+  );
+  if (Number(response.success) !== 1) {
+    throw new Error(response.msg || 'Unable to create address.');
+  }
+  return response.data;
+}
+
+export async function updateCustomerAddress(
+  token: string,
+  addressId: number,
+  input: AddressInput,
+) {
+  const response = await apiRequest<AddressMutationResponse>(
+    `${apiBaseUrl}/customer/address/${addressId}`,
+    {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(input),
+    },
+  );
+  if (Number(response.success) !== 1) {
+    throw new Error(response.msg || 'Unable to update address.');
+  }
+  return response.data;
+}
+
+export async function deleteCustomerAddress(token: string, addressId: number) {
+  const response = await apiRequest<AddressMutationResponse>(
+    `${apiBaseUrl}/customer/address/${addressId}`,
+    { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (Number(response.success) !== 1) {
+    throw new Error(response.msg || 'Unable to delete address.');
+  }
 }
 
 export function addressTitle(address: CustomerAddress) {

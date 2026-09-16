@@ -19,6 +19,8 @@ import { MainTabs } from './MainTabs';
 import { BookingDetailsScreen } from '../screens/BookingDetailsScreen';
 import { AppearancePreferencesScreen } from '../screens/AppearancePreferencesScreen';
 import { FamilyMemberFormScreen } from '../screens/FamilyMemberFormScreen';
+import { AddressesScreen } from '../screens/AddressesScreen';
+import { AddressFormScreen } from '../screens/AddressFormScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -107,6 +109,16 @@ export function RootNavigator() {
             <Stack.Screen
               name="FamilyMemberForm"
               component={FamilyMemberFormScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="Addresses"
+              component={AddressesScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="AddressForm"
+              component={AddressFormScreen}
               options={{ headerShown: false }}
             />
           </>

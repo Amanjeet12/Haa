@@ -23,6 +23,10 @@ type PlaceDetailsResponse = {
     latitude?: number;
     longitude?: number;
   };
+  addressComponents?: Array<{
+    longText?: string;
+    types?: string[];
+  }>;
 };
 
 export type PlaceSuggestion = {
@@ -38,6 +42,8 @@ export type SelectedPlace = {
   address: string;
   latitude: number;
   longitude: number;
+  city?: string;
+  pincode?: string;
 };
 
 function requireApiKey() {
@@ -128,7 +134,8 @@ export async function getPlaceDetails(
     {
       headers: {
         'X-Goog-Api-Key': requireApiKey(),
-        'X-Goog-FieldMask': 'id,displayName,formattedAddress,location',
+        'X-Goog-FieldMask':
+          'id,displayName,formattedAddress,location,addressComponents',
       },
     },
   );
@@ -147,5 +154,13 @@ export async function getPlaceDetails(
     address: place.formattedAddress ?? place.displayName?.text ?? '',
     latitude,
     longitude,
+    city: place.addressComponents?.find(component =>
+      component.types?.some(type =>
+        ['locality', 'postal_town', 'administrative_area_level_3'].includes(type),
+      ),
+    )?.longText,
+    pincode: place.addressComponents?.find(component =>
+      component.types?.includes('postal_code'),
+    )?.longText,
   };
 }

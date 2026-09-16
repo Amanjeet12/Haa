@@ -15,7 +15,6 @@ import {
   View,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
-import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
@@ -127,9 +126,9 @@ export function FamilyMemberFormScreen({ navigation, route }: Props) {
   };
 
   return (
-    <LinearGradient colors={[theme.colors.gradientStart, theme.isDark ? theme.colors.background : '#FBF8F6', theme.colors.gradientEnd]} locations={[0, .48, 1]} style={styles.flex}>
+    <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
       <SafeAreaView edges={['top', 'bottom']} style={styles.flex}>
-        <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+        <View style={[styles.header, { backgroundColor: theme.colors.background, borderBottomColor: theme.colors.border }]}>
           <Pressable onPress={navigation.goBack} style={[styles.back, { backgroundColor: theme.colors.surface }]}><ChevronLeft color={theme.colors.text} size={20} /></Pressable>
           <AppText style={styles.headerTitle} weight="800">{member ? 'Edit family member' : 'Add family member'}</AppText>
           <View style={styles.headerSpacer} />
@@ -161,7 +160,7 @@ export function FamilyMemberFormScreen({ navigation, route }: Props) {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -169,7 +168,7 @@ function Field(props: { label: string; value: string; onChangeText: (value: stri
 function Choice({ label, options, value, onChange }: { label: string; options: string[]; value: string; onChange: (value: string) => void }) { const { theme } = useAppTheme(); return <View style={styles.field}><AppText style={styles.label} weight="700">{label}</AppText><View style={styles.choices}>{options.map(option => <Pressable key={option} onPress={() => onChange(option)} style={[styles.choice, { borderColor: value === option ? theme.colors.primary : theme.colors.border, backgroundColor: value === option ? theme.colors.primarySoft : theme.colors.surface }]}><AppText color={value === option ? theme.colors.primary : theme.colors.textMuted} style={styles.choiceText} weight="700">{option}</AppText></Pressable>)}</View></View>; }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 }, header: { height: 54, flexDirection: 'row', alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16 }, back: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', elevation: 2 }, headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, lineHeight: 22 }, headerSpacer: { width: 36 }, content: { padding: 16, paddingBottom: 34 },
+  flex: { flex: 1 }, header: { height: 56, flexDirection: 'row', alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, paddingHorizontal: 14 }, back: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', elevation: 2 }, headerTitle: { flex: 1, textAlign: 'center', fontSize: 17, lineHeight: 21 }, headerSpacer: { width: 36 }, content: { padding: 16, paddingBottom: 34 },
   photoWrap: { alignSelf: 'center', marginTop: 4 }, photo: { width: 86, height: 86, borderRadius: 43, borderWidth: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }, photoImage: { width: '100%', height: '100%' }, photoInitial: { fontSize: 28, lineHeight: 32 }, camera: { position: 'absolute', right: 0, bottom: 0, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' }, photoHint: { marginTop: 7, textAlign: 'center', fontSize: 9, lineHeight: 12 },
   form: { borderWidth: 1, borderRadius: 18, marginTop: 18, padding: 13 }, field: { marginBottom: 15 }, label: { marginBottom: 7, fontSize: 11, lineHeight: 14 }, input: { height: 48, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, fontSize: 12 }, choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, choice: { minHeight: 36, borderWidth: 1, borderRadius: 10, paddingHorizontal: 11, alignItems: 'center', justifyContent: 'center' }, choiceText: { fontSize: 9, lineHeight: 12, textTransform: 'capitalize' }, defaultRow: { flexDirection: 'row', alignItems: 'center', gap: 10 }, checkbox: { width: 22, height: 22, borderRadius: 7, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }, check: { fontSize: 12, lineHeight: 14 }, grow: { flex: 1 }, defaultTitle: { fontSize: 10, lineHeight: 13 }, defaultText: { marginTop: 2, fontSize: 8, lineHeight: 11 }, error: { marginTop: 10, textAlign: 'center', fontSize: 10, lineHeight: 14 }, save: { minHeight: 50, borderRadius: 14, marginTop: 14, alignItems: 'center', justifyContent: 'center' }, saveText: { fontSize: 12, lineHeight: 16 }, delete: { minHeight: 48, borderRadius: 14, borderWidth: 1, marginTop: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 }, deleteText: { fontSize: 10, lineHeight: 13 },
 });
