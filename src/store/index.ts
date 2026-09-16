@@ -5,6 +5,7 @@ import { authReducer } from './authSlice';
 import { storageKeys } from '../config/app';
 import { writeJson } from '../storage/storage';
 import { setSelectedZone, zonesReducer } from './zonesSlice';
+import { cartReducer } from './cartSlice';
 
 const zoneListener = createListenerMiddleware();
 zoneListener.startListening({
@@ -15,7 +16,7 @@ zoneListener.startListening({
 });
 
 export const store = configureStore({
-  reducer: { auth: authReducer, zones: zonesReducer },
+  reducer: { auth: authReducer, zones: zonesReducer, cart: cartReducer },
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware().prepend(zoneListener.middleware),
 });

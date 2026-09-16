@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EmptyTabScreen } from '../screens/EmptyTabScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { CartScreen } from '../screens/CartScreen';
 import { AppTheme, useAppTheme } from '../theme';
 import { MainTabParamList } from '../types/navigation';
 import { HomeNavigator } from './HomeNavigator';
@@ -91,9 +92,13 @@ export function MainTabs() {
         tabBarStyle: {
           display:
             route.name === 'Home' &&
-            ['Labs', 'CitySearch', 'LabDetails'].includes(
-              getFocusedRouteNameFromRoute(route) ?? '',
-            )
+            [
+              'Labs',
+              'CitySearch',
+              'LabDetails',
+              'AddPatientTests',
+              'ReviewBooking',
+            ].includes(getFocusedRouteNameFromRoute(route) ?? '')
               ? 'none'
               : 'flex',
           // Keep the labels above Android's navigation buttons/gesture area.
@@ -126,15 +131,7 @@ export function MainTabs() {
           />
         )}
       </Tab.Screen>
-      <Tab.Screen name="Cart">
-        {() => (
-          <EmptyTabScreen
-            title="Cart"
-            description="Review care services before checkout."
-            icon={<ShoppingCart color={theme.colors.primary} size={25} />}
-          />
-        )}
-      </Tab.Screen>
+      <Tab.Screen name="Cart" component={CartScreen} />
       <Tab.Screen name="Reports">
         {() => (
           <EmptyTabScreen
