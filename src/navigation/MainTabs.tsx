@@ -9,10 +9,10 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { EmptyTabScreen } from '../screens/EmptyTabScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { CartScreen } from '../screens/CartScreen';
 import { BookingsScreen } from '../screens/BookingsScreen';
+import { ReportsScreen } from '../screens/ReportsScreen';
 import { AppTheme, useAppTheme } from '../theme';
 import { MainTabParamList } from '../types/navigation';
 import { HomeNavigator } from './HomeNavigator';
@@ -127,15 +127,7 @@ export function MainTabs() {
       <Tab.Screen name="Home" component={HomeNavigator} />
       <Tab.Screen name="Bookings" component={BookingsScreen} />
       <Tab.Screen name="Cart" component={CartScreen} />
-      <Tab.Screen name="Reports">
-        {() => (
-          <EmptyTabScreen
-            title="Reports"
-            description="View your test results and health reports."
-            icon={<FileText color={theme.colors.primary} size={25} />}
-          />
-        )}
-      </Tab.Screen>
+      <Tab.Screen name="Reports" component={ReportsScreen} />
       <Tab.Screen
         name="Profile"
         component={SettingsScreen}

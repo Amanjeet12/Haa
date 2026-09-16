@@ -116,16 +116,16 @@ export function BookingsScreen() {
             </Pressable>
           </View>
           <AppText color={theme.colors.primary} style={styles.eyebrow} weight="800">
-            — YOUR CARE TIMELINE
+            — YOUR BOOKINGS
           </AppText>
           <AppText style={styles.title} weight="800">
-            Bookings and{' '}
+            Care and{' '}
             <AppText color={theme.colors.primary} style={styles.title} weight="800">
-              reports.
+              appointments.
             </AppText>
           </AppText>
           <AppText color={theme.colors.textMuted} style={styles.subtitle}>
-            Follow every appointment from confirmation to secure report.
+            Track every home collection from confirmation to completion.
           </AppText>
 
           {!token ? (
@@ -302,9 +302,9 @@ const styles = StyleSheet.create({
   eyebrow: { fontSize: 9, lineHeight: 12, letterSpacing: 0.8, marginBottom: 4 },
   title: { fontSize: 25, lineHeight: 29, letterSpacing: -0.8 },
   subtitle: { marginTop: 4, maxWidth: 310, fontSize: 10, lineHeight: 14 },
-  section: { marginTop: 12 },
+  section: { marginTop: 20 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 9 },
-  sectionTitle: { fontSize: 15, lineHeight: 19 },
+  sectionTitle: { fontSize: 18, lineHeight: 22 },
   count: { fontSize: 9, lineHeight: 12 },
   card: { borderWidth: 1, borderRadius: 20, padding: 12, marginBottom: 12, elevation: 3, shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
   cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
