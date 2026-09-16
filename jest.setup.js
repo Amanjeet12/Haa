@@ -25,6 +25,11 @@ jest.mock('react-native-config', () => ({
   GOOGLE_MAPS_API_KEY: 'test-google-maps-key',
 }));
 
+jest.mock('react-native-razorpay', () => ({
+  __esModule: true,
+  default: { open: jest.fn(() => Promise.resolve({})) },
+}));
+
 jest.mock('react-native-maps', () => {
   const React = require('react');
   const { View } = require('react-native');

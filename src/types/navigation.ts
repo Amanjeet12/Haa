@@ -22,5 +22,7 @@ export type HomeStackParamList = {
   LabDetails: { lab: Lab };
   AddPatientTests: { beneficiaryId: string };
   ReviewBooking: undefined;
+  BookingSuccess: { bookingNo: string };
+  BookingFailed: { bookingNo: string; reason?: string };
 };
 import type { Lab } from '../components/labs';

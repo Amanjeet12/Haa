@@ -98,6 +98,8 @@ export function MainTabs() {
               'LabDetails',
               'AddPatientTests',
               'ReviewBooking',
+              'BookingSuccess',
+              'BookingFailed',
             ].includes(getFocusedRouteNameFromRoute(route) ?? '')
               ? 'none'
               : 'flex',

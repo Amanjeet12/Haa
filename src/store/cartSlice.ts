@@ -90,19 +90,22 @@ const cartSlice = createSlice({
     },
     initializeCartFamilyMember(
       state,
-      action: PayloadAction<{ beneficiary: CartBeneficiary; legacyId: string }>,
+      action: PayloadAction<{
+        beneficiary: CartBeneficiary;
+        legacyIds: string[];
+      }>,
     ) {
-      if (state.familyInitialized) return;
-      const { beneficiary, legacyId } = action.payload;
+      const { beneficiary, legacyIds } = action.payload;
+      const obsoleteIds = new Set([...legacyIds, beneficiary.id]);
       state.beneficiaries = [
         beneficiary,
         ...state.beneficiaries.filter(
-          item => item.id !== legacyId && item.id !== beneficiary.id,
+          item => !obsoleteIds.has(item.id),
         ),
       ];
       state.items.forEach(item => {
         const migratedIds = item.beneficiaryIds.map(id =>
-          id === legacyId ? beneficiary.id : id,
+          obsoleteIds.has(id) ? beneficiary.id : id,
         );
         item.beneficiaryIds = [
           ...new Set(migratedIds.length ? migratedIds : [beneficiary.id]),

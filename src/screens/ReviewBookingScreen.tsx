@@ -1,5 +1,4 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import Check from 'lucide-react-native/icons/check';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import ChevronLeft from 'lucide-react-native/icons/chevron-left';
 import FlaskConical from 'lucide-react-native/icons/flask-conical';
@@ -10,6 +9,8 @@ import ShieldCheck from 'lucide-react-native/icons/shield-check';
 import Star from 'lucide-react-native/icons/star';
 import Trash from 'lucide-react-native/icons/trash';
 import WandSparkles from 'lucide-react-native/icons/wand-sparkles';
+import UserRound from 'lucide-react-native/icons/user-round';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -20,6 +21,9 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import RazorpayCheckout, {
+  PaymentFailure,
+} from 'react-native-razorpay';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -33,6 +37,7 @@ import {
   getCustomerAddresses,
 } from '../api/addresses';
 import { getLabSlots, LabSlot } from '../api/labSlots';
+import { createBooking } from '../api/bookings';
 import {
   getRecommendedLabs,
   RecommendedLab,
@@ -49,6 +54,7 @@ import {
   assignTestBeneficiaries,
   CartBeneficiary,
   CartTest,
+  clearCart,
   initializeCartFamilyMember,
   removeCartBeneficiary,
   removeTestFromCart,
@@ -57,8 +63,9 @@ import {
   switchCartLab,
   upsertCartBeneficiary,
 } from '../store/cartSlice';
+import { requestBookingLogin } from '../store/authSlice';
 import { useAppTheme } from '../theme';
-import { HomeStackParamList } from '../types/navigation';
+import { HomeStackParamList, RootStackParamList } from '../types/navigation';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'ReviewBooking'>;
 
@@ -127,6 +134,8 @@ export function ReviewBookingScreen({ navigation }: Props) {
   const [recommendation, setRecommendation] = useState<RecommendedLab | null>(
     null,
   );
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
   const total = cart.items.reduce(
     (sum, item) =>
       sum +
@@ -261,19 +270,114 @@ export function ReviewBookingScreen({ navigation }: Props) {
   const selectedAddress =
     addresses.find(item => item.address_id === selectedAddressId) ?? null;
 
-  useEffect(() => {
-    dispatch(
-      upsertCartBeneficiary({
-        id: patientId,
-        name: patientName,
-        detail: customer?.phone
-          ? `${customer.phone}  |  Self`
-          : 'Guest booking · Self',
-        profilePhoto: normalizeProfilePhoto(customer?.profilePhoto ?? null),
-      }),
+  const proceedToPayment = async () => {
+    if (!authToken || !customer) {
+      setBookingError('Please log in before continuing to payment.');
+      return;
+    }
+    if (!selectedSlotId) {
+      setBookingError('Select an available collection slot.');
+      return;
+    }
+    if (!selectedAddress) {
+      setBookingError('Select a collection address.');
+      return;
+    }
+
+    const items = cart.items.flatMap(item =>
+      item.beneficiaryIds.map(beneficiaryId => ({
+        lab_test_id: item.labTest.lab_test_id,
+        slot_id: selectedSlotId,
+        family_member_id: beneficiaryId.startsWith('member-')
+          ? Number(beneficiaryId.slice('member-'.length))
+          : Number.NaN,
+      })),
     );
+    if (!items.length || items.some(item => !item.family_member_id)) {
+      setBookingError('Select a saved patient for every test.');
+      return;
+    }
+
+    const details = selectedAddress.billing_address;
+    const location = details.location;
+    const lat = location?.latitude ?? location?.lat;
+    const lng = location?.longitude ?? location?.lng;
+    if (lat === undefined || lng === undefined) {
+      setBookingError('The selected address is missing map coordinates.');
+      return;
+    }
+
+    setBookingLoading(true);
+    setBookingError(null);
+    try {
+      const payment = await createBooking(authToken, {
+        booking_date: selectedBookingDate,
+        collection_address: {
+          lat,
+          lng,
+          city: location?.city ?? details.city ?? '',
+          name: customer.name,
+          type:
+            location?.type ??
+            details.addressType ??
+            details.address_type ??
+            'Home',
+          phone: customer.phone,
+          address: addressLine(selectedAddress),
+        },
+        items,
+      });
+
+      try {
+        await RazorpayCheckout.open({
+          key: payment.key_id,
+          amount: payment.razorpay_order.amount,
+          currency: payment.razorpay_order.currency,
+          order_id: payment.razorpay_order.id,
+          name: 'Haa Health',
+          description: `Booking ${payment.booking_order.booking_no}`,
+          prefill: {
+            name: customer.name,
+            email: customer.email ?? undefined,
+            contact: customer.phone,
+          },
+          theme: { color: theme.colors.primary },
+        });
+        dispatch(clearCart());
+        navigation.replace('BookingSuccess', {
+          bookingNo: payment.booking_order.booking_no,
+        });
+      } catch (error) {
+        const failure = error as PaymentFailure;
+        navigation.replace('BookingFailed', {
+          bookingNo: payment.booking_order.booking_no,
+          reason: failure.description ?? 'Payment was cancelled or failed.',
+        });
+      }
+    } catch (error) {
+      setBookingError(
+        error instanceof Error ? error.message : 'Unable to create booking.',
+      );
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const primaryBeneficiary = {
+      id: patientId,
+      name: patientName,
+      detail: customer?.phone
+        ? `${customer.phone}  |  Self`
+        : 'Guest booking · Self',
+      profilePhoto: normalizeProfilePhoto(customer?.profilePhoto ?? null),
+    };
+    if (!authToken) {
+      dispatch(upsertCartBeneficiary(primaryBeneficiary));
+    }
     dispatch(setCartBeneficiaryTarget(patientId));
   }, [
+    authToken,
     customer?.phone,
     customer?.profilePhoto,
     dispatch,
@@ -300,35 +404,45 @@ export function ReviewBookingScreen({ navigation }: Props) {
       .then(fetchedMembers => {
         if (!active) return;
         setMembers(fetchedMembers);
-        const defaultMember =
-          fetchedMembers.find(
-            member => member.relation.trim().toLowerCase() === 'self',
-          ) ??
-          fetchedMembers.find(member => member.isDefault) ??
-          fetchedMembers[0];
-        if (defaultMember) {
-          dispatch(
-            initializeCartFamilyMember({
-              legacyId: patientId,
-              beneficiary: {
-                id: `member-${defaultMember.member_id}`,
-                name: defaultMember.name,
-                detail: `${defaultMember.phone ?? ''}  ·  ${
-                  defaultMember.age
-                } yrs  ·  ${defaultMember.gender}  ·  ${
-                  defaultMember.relation
-                }`,
-                profilePhoto: defaultMember.profilePhoto,
-              },
-            }),
-          );
-        }
+        const selfMember = fetchedMembers.find(
+          member => member.relation.trim().toLowerCase() === 'self',
+        );
+        const primaryBeneficiary: CartBeneficiary = selfMember
+          ? {
+              id: `member-${selfMember.member_id}`,
+              name: selfMember.name,
+              detail: `${selfMember.age} yrs  ·  ${selfMember.gender}  ·  Self`,
+              profilePhoto: selfMember.profilePhoto,
+            }
+          : {
+              id: patientId,
+              name: patientName,
+              detail: customer?.phone
+                ? `${customer.phone}  ·  Self`
+                : 'Self',
+              profilePhoto: normalizeProfilePhoto(
+                customer?.profilePhoto ?? null,
+              ),
+            };
+        dispatch(
+          initializeCartFamilyMember({
+            legacyIds: ['guest-primary', patientId],
+            beneficiary: primaryBeneficiary,
+          }),
+        );
       })
       .catch(() => undefined);
     return () => {
       active = false;
     };
-  }, [authToken, dispatch, patientId]);
+  }, [
+    authToken,
+    customer?.phone,
+    customer?.profilePhoto,
+    dispatch,
+    patientId,
+    patientName,
+  ]);
 
   const loadFamilyMembers = async () => {
     setMembersOpen(true);
@@ -443,7 +557,55 @@ export function ReviewBookingScreen({ navigation }: Props) {
             title="Patient details"
             subtitle="Assign tests to the person being tested"
           >
-            {bookingPatients.map(beneficiary => (
+            {!customer && (
+              <View
+                style={[
+                  styles.loginRequired,
+                  {
+                    backgroundColor: theme.colors.surfaceMuted,
+                    borderColor: theme.colors.border,
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.loginRequiredIcon,
+                    { backgroundColor: theme.colors.primarySoft },
+                  ]}
+                >
+                  <UserRound color={theme.colors.primary} size={20} />
+                </View>
+                <View style={styles.loginRequiredCopy}>
+                  <AppText style={styles.loginRequiredTitle} weight="800">
+                    You’re not logged in
+                  </AppText>
+                  <AppText
+                    color={theme.colors.textMuted}
+                    style={styles.loginRequiredText}
+                  >
+                    Log in to add patient details and complete this booking.
+                  </AppText>
+                </View>
+                <Pressable
+                  onPress={() => {
+                    dispatch(requestBookingLogin());
+                    navigation
+                      .getParent()
+                      ?.getParent<NativeStackNavigationProp<RootStackParamList>>()
+                      ?.navigate('Login');
+                  }}
+                  style={[
+                    styles.loginButton,
+                    { backgroundColor: theme.colors.primary },
+                  ]}
+                >
+                  <AppText color="#FFFFFF" style={styles.loginButtonText} weight="800">
+                    Login
+                  </AppText>
+                </Pressable>
+              </View>
+            )}
+            {customer && bookingPatients.map(beneficiary => (
               <PatientGroup
                 key={beneficiary.id}
                 beneficiary={beneficiary}
@@ -608,7 +770,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
                 </Pressable>
               </>
             )}
-            <Pressable
+            {customer && <Pressable
               onPress={loadFamilyMembers}
               style={[styles.addMember, { borderColor: theme.colors.primary }]}
             >
@@ -632,7 +794,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
                 </AppText>
               </View>
               <ChevronDown color={theme.colors.textMuted} size={14} />
-            </Pressable>
+            </Pressable>}
           </StepCard>
           {recommendation && (
             <SmartChoiceCard
@@ -906,23 +1068,29 @@ export function ReviewBookingScreen({ navigation }: Props) {
             <AppText style={styles.total} weight="800">
               ₹{total}
             </AppText>
-            <AppText color="#078A73" style={styles.noFees} weight="700">
-              No collection fee
+            <AppText
+              color={bookingError ? theme.colors.danger : '#078A73'}
+              numberOfLines={2}
+              style={bookingError ? styles.bookingError : styles.noFees}
+              weight="700"
+            >
+              {bookingError ?? 'No collection fee'}
             </AppText>
           </View>
           <Pressable
-            disabled={!cart.items.length}
+            disabled={!cart.items.length || bookingLoading}
+            onPress={proceedToPayment}
             style={[
               styles.pay,
               {
-                backgroundColor: cart.items.length
+                backgroundColor: cart.items.length && !bookingLoading
                   ? theme.colors.primary
                   : theme.colors.border,
               },
             ]}
           >
             <AppText color="#FFFFFF" style={styles.payText} weight="800">
-              Proceed to pay →
+              {bookingLoading ? 'Creating booking…' : 'Proceed to pay →'}
             </AppText>
           </Pressable>
         </View>
@@ -1254,9 +1422,6 @@ function StepCard({
             {subtitle}
           </AppText>
         </View>
-        <View style={styles.complete}>
-          <Check color="#078A73" size={12} />
-        </View>
       </View>
       {children}
     </View>
@@ -1398,14 +1563,34 @@ const styles = StyleSheet.create({
   stepNumberText: { fontSize: 8, lineHeight: 10 },
   stepTitle: { fontSize: 14, lineHeight: 18 },
   stepSubtitle: { marginTop: 2, fontSize: 8, lineHeight: 11 },
-  complete: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#DCF7EF',
+  loginRequired: {
+    minHeight: 82,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  loginRequiredIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  loginRequiredCopy: { flex: 1 },
+  loginRequiredTitle: { fontSize: 11, lineHeight: 14 },
+  loginRequiredText: { marginTop: 3, fontSize: 8, lineHeight: 11 },
+  loginButton: {
+    minWidth: 62,
+    height: 34,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loginButtonText: { fontSize: 9, lineHeight: 12 },
   patientGroup: {
     borderWidth: 1,
     borderRadius: 16,
@@ -1641,6 +1826,7 @@ const styles = StyleSheet.create({
   totalLabel: { fontSize: 7, lineHeight: 9 },
   total: { fontSize: 17, lineHeight: 20 },
   noFees: { fontSize: 6, lineHeight: 8 },
+  bookingError: { maxWidth: 150, marginTop: 2, fontSize: 7, lineHeight: 9 },
   pay: {
     height: 43,
     borderRadius: 12,

@@ -12,6 +12,7 @@ type AuthState = {
   status: 'checking' | 'idle' | 'loading';
   error: string | null;
   loggedOut: boolean;
+  returnToReviewBooking: boolean;
 };
 
 const initialState: AuthState = {
@@ -19,6 +20,7 @@ const initialState: AuthState = {
   status: 'checking',
   error: null,
   loggedOut: false,
+  returnToReviewBooking: false,
 };
 
 function apiErrorMessage(error: unknown) {
@@ -96,6 +98,12 @@ const authSlice = createSlice({
     clearAuthError: state => {
       state.error = null;
     },
+    requestBookingLogin: state => {
+      state.returnToReviewBooking = true;
+    },
+    clearBookingLoginReturn: state => {
+      state.returnToReviewBooking = false;
+    },
   },
   extraReducers: builder => {
     builder
@@ -128,5 +136,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearAuthError } = authSlice.actions;
+export const { clearAuthError, requestBookingLogin, clearBookingLoginReturn } =
+  authSlice.actions;
 export const authReducer = authSlice.reducer;
