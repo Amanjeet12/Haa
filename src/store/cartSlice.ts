@@ -146,6 +146,24 @@ const cartSlice = createSlice({
         state.targetBeneficiaryId = state.beneficiaries[0]?.id ?? null;
       }
     },
+    switchCartLab(
+      state,
+      action: PayloadAction<{ labName: string; tests: LabTestItem[] }>,
+    ) {
+      const beneficiariesByTestId = new Map<number, string[]>();
+      state.items.forEach(item => {
+        const existing = beneficiariesByTestId.get(item.labTest.test_id) ?? [];
+        beneficiariesByTestId.set(item.labTest.test_id, [
+          ...new Set([...existing, ...item.beneficiaryIds]),
+        ]);
+      });
+      state.items = action.payload.tests.map(test => ({
+        labTest: test,
+        beneficiaryIds: beneficiariesByTestId.get(test.test_id) ?? [],
+      }));
+      state.labId = action.payload.tests[0]?.lab_id ?? null;
+      state.labName = action.payload.labName;
+    },
     clearCart() {
       return initialState;
     },
@@ -161,6 +179,7 @@ export const {
   removeTestForBeneficiary,
   removeCartBeneficiary,
   setCartBeneficiaryTarget,
+  switchCartLab,
   upsertCartBeneficiary,
 } = cartSlice.actions;
 export const cartReducer = cartSlice.reducer;

@@ -5,8 +5,11 @@ import ChevronLeft from 'lucide-react-native/icons/chevron-left';
 import FlaskConical from 'lucide-react-native/icons/flask-conical';
 import MapPin from 'lucide-react-native/icons/map-pin';
 import Plus from 'lucide-react-native/icons/plus';
+import ArrowRight from 'lucide-react-native/icons/arrow-right';
 import ShieldCheck from 'lucide-react-native/icons/shield-check';
+import Star from 'lucide-react-native/icons/star';
 import Trash from 'lucide-react-native/icons/trash';
+import WandSparkles from 'lucide-react-native/icons/wand-sparkles';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -31,6 +34,10 @@ import {
 } from '../api/addresses';
 import { getLabSlots, LabSlot } from '../api/labSlots';
 import {
+  getRecommendedLabs,
+  RecommendedLab,
+} from '../api/recommendedLabs';
+import {
   getFamilyMembers,
   FamilyMember,
   normalizeProfilePhoto,
@@ -47,6 +54,7 @@ import {
   removeTestFromCart,
   removeTestForBeneficiary,
   setCartBeneficiaryTarget,
+  switchCartLab,
   upsertCartBeneficiary,
 } from '../store/cartSlice';
 import { useAppTheme } from '../theme';
@@ -116,6 +124,9 @@ export function ReviewBookingScreen({ navigation }: Props) {
   );
   const [addressesOpen, setAddressesOpen] = useState(false);
   const [addressesLoading, setAddressesLoading] = useState(false);
+  const [recommendation, setRecommendation] = useState<RecommendedLab | null>(
+    null,
+  );
   const total = cart.items.reduce(
     (sum, item) =>
       sum +
@@ -147,6 +158,47 @@ export function ReviewBookingScreen({ navigation }: Props) {
     [],
   );
   const selectedBookingDate = toLocalDateKey(dates[selectedDay]);
+  const selectedTestIds = useMemo(
+    () => [...new Set(cart.items.map(item => item.labTest.test_id))],
+    [cart.items],
+  );
+  const selectedTestIdsKey = selectedTestIds.join(',');
+  const currentSelectionPrice = cart.items.reduce(
+    (sum, item) => sum + Number(item.labTest.offer_price),
+    0,
+  );
+
+  useEffect(() => {
+    if (!zone?.zone_id || !cart.labId || !selectedTestIdsKey) {
+      setRecommendation(null);
+      return;
+    }
+    let active = true;
+    setRecommendation(null);
+    getRecommendedLabs(
+      zone.zone_id,
+      cart.labId,
+      selectedTestIdsKey.split(',').map(Number),
+    )
+      .then(labs => {
+        if (!active) return;
+        const alternatives = labs.filter(
+          lab =>
+            lab.lab_id !== cart.labId &&
+            lab.total_test_final_amount < currentSelectionPrice,
+        );
+        const best = alternatives.sort(
+          (a, b) => a.total_test_final_amount - b.total_test_final_amount,
+        )[0];
+        setRecommendation(best ?? null);
+      })
+      .catch(() => {
+        if (active) setRecommendation(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [cart.labId, currentSelectionPrice, selectedTestIdsKey, zone?.zone_id]);
 
   useEffect(() => {
     if (!cart.labId) {
@@ -582,6 +634,22 @@ export function ReviewBookingScreen({ navigation }: Props) {
               <ChevronDown color={theme.colors.textMuted} size={14} />
             </Pressable>
           </StepCard>
+          {recommendation && (
+            <SmartChoiceCard
+              currentLabName={cart.labName ?? 'Selected lab'}
+              currentPrice={currentSelectionPrice}
+              selectedTestCount={selectedTestIds.length}
+              recommendation={recommendation}
+              onSwitch={() =>
+                dispatch(
+                  switchCartLab({
+                    labName: recommendation.lab_name,
+                    tests: recommendation.tests,
+                  }),
+                )
+              }
+            />
+          )}
           <StepCard
             number="02"
             title="Select date & slot"
@@ -1034,6 +1102,116 @@ function TestImage({ uri }: { uri: string | null }) {
   );
 }
 
+function SmartChoiceCard({
+  currentLabName,
+  currentPrice,
+  selectedTestCount,
+  recommendation,
+  onSwitch,
+}: {
+  currentLabName: string;
+  currentPrice: number;
+  selectedTestCount: number;
+  recommendation: RecommendedLab;
+  onSwitch: () => void;
+}) {
+  const { theme } = useAppTheme();
+  const saving = Math.max(
+    currentPrice - recommendation.total_test_final_amount,
+    0,
+  );
+  const savingPercent = currentPrice
+    ? Math.round((saving / currentPrice) * 100)
+    : 0;
+  const city = recommendation.address?.city ?? recommendation.zone?.zone_name;
+
+  return (
+    <View
+      style={[
+        styles.recommendationCard,
+        { backgroundColor: theme.colors.surface, borderColor: '#F4B7BE' },
+      ]}
+    >
+      <View style={styles.recommendationHeader}>
+        <WandSparkles color="#FFFFFF" size={20} />
+        <AppText color="#FFFFFF" style={styles.recommendationHeaderText} weight="800">
+          SMART CHOICE RECOMMENDATION
+        </AppText>
+      </View>
+      <View style={styles.recommendationBody}>
+        <AppText color="#94A3B8" style={styles.recommendationEyebrow} weight="800">
+          YOUR SELECTION
+        </AppText>
+        <View style={styles.recommendationSummary}>
+          <View style={styles.grow}>
+            <AppText style={styles.recommendationLabName} weight="800">
+              {currentLabName}
+            </AppText>
+            <AppText color="#94A3B8" style={styles.recommendationTestCount} weight="700">
+              {selectedTestCount} selected {selectedTestCount === 1 ? 'test' : 'tests'}
+            </AppText>
+          </View>
+          <AppText style={styles.recommendationPrice} weight="800">
+            ₹{currentPrice}
+          </AppText>
+        </View>
+        <View style={styles.versusRow}>
+          <View style={styles.versusLine} />
+          <View style={styles.versusCircle}>
+            <AppText color="#94A3B8" style={styles.versusText} weight="800">VS</AppText>
+          </View>
+          <View style={styles.versusLine} />
+        </View>
+        <View style={styles.recommendedLab}>
+          {saving > 0 && (
+            <View style={styles.savingPill}>
+              <AppText color="#FFFFFF" style={styles.savingText} weight="800">
+                Save ₹{saving}{savingPercent ? ` (${savingPercent}%)` : ''}
+              </AppText>
+            </View>
+          )}
+          <AppText color="#D81F32" style={styles.topRated} weight="800">
+            TOP RATED
+          </AppText>
+          <View style={styles.recommendedNameRow}>
+            <AppText style={styles.recommendedName} weight="800">
+              {recommendation.lab_name}
+            </AppText>
+            <View style={styles.recommendedPriceBlock}>
+              <AppText style={styles.recommendedPrice} weight="800">
+                ₹{recommendation.total_test_final_amount}
+              </AppText>
+              {recommendation.total_test_normal_amount > recommendation.total_test_final_amount && (
+                <AppText color="#94A3B8" style={styles.strikePrice}>
+                  ₹{recommendation.total_test_normal_amount}
+                </AppText>
+              )}
+            </View>
+          </View>
+          <View style={styles.recommendedMeta}>
+            <Star color="#FFC107" fill="#FFC107" size={17} />
+            <AppText color="#64748B" style={styles.recommendedMetaText} weight="700">
+              Recommended
+            </AppText>
+            {!!city && <AppText color="#64748B">•</AppText>}
+            {!!city && (
+              <AppText color="#D81F32" style={styles.recommendedMetaText} weight="700">
+                {city}
+              </AppText>
+            )}
+          </View>
+        </View>
+        <Pressable onPress={onSwitch} style={styles.switchRecommendation}>
+          <AppText color="#D81F32" style={styles.switchRecommendationText} weight="800">
+            Switch to Recommended
+          </AppText>
+          <ArrowRight color="#D81F32" size={20} />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 function StepCard({
   number,
   title,
@@ -1133,6 +1311,77 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
   },
+  recommendationCard: {
+    borderWidth: 1,
+    borderRadius: 20,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  recommendationHeader: {
+    minHeight: 48,
+    backgroundColor: '#001A31',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+  },
+  recommendationHeaderText: { fontSize: 10, lineHeight: 13, letterSpacing: 0.8 },
+  recommendationBody: { padding: 14 },
+  recommendationEyebrow: { fontSize: 8, lineHeight: 10, letterSpacing: 0.8 },
+  recommendationSummary: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 11 },
+  recommendationLabName: { fontSize: 14, lineHeight: 18 },
+  recommendationTestCount: { marginTop: 4, fontSize: 9, lineHeight: 12 },
+  recommendationPrice: { fontSize: 15, lineHeight: 19 },
+  versusRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 10 },
+  versusLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: '#D7DCE2' },
+  versusCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: '#D7DCE2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  versusText: { fontSize: 9, lineHeight: 12 },
+  recommendedLab: {
+    borderWidth: 1,
+    borderColor: '#F4B7BE',
+    borderRadius: 14,
+    backgroundColor: '#FFF7F8',
+    padding: 13,
+    paddingTop: 16,
+  },
+  savingPill: {
+    position: 'absolute',
+    right: 12,
+    top: -14,
+    backgroundColor: '#D81F32',
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  savingText: { fontSize: 8, lineHeight: 10 },
+  topRated: { fontSize: 8, lineHeight: 10, letterSpacing: 1 },
+  recommendedNameRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 12 },
+  recommendedName: { flex: 1, fontSize: 12, lineHeight: 16 },
+  recommendedPriceBlock: { alignItems: 'flex-end' },
+  recommendedPrice: { fontSize: 13, lineHeight: 16 },
+  strikePrice: { marginTop: 2, fontSize: 8, lineHeight: 10, textDecorationLine: 'line-through' },
+  recommendedMeta: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 7 },
+  recommendedMetaText: { fontSize: 8, lineHeight: 11 },
+  switchRecommendation: {
+    minHeight: 44,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#D81F32',
+    borderRadius: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  switchRecommendationText: { fontSize: 10, lineHeight: 13 },
   stepHeader: {
     flexDirection: 'row',
     alignItems: 'center',
