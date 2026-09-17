@@ -33,8 +33,8 @@ export function LabTestCard({ item, selected, onPress, onBook }: Props) {
       ]}
     >
       <View style={styles.top}>
-        <View style={styles.typeBadge}>
-          <AppText color="#078A73" style={styles.typeText} weight="800">
+        <View style={[styles.typeBadge, { backgroundColor: theme.isDark ? '#123A34' : '#DCF7EF' }]}>
+          <AppText color={theme.isDark ? '#5EEAD4' : '#078A73'} style={styles.typeText} weight="800">
             {healthPackage ? 'HEALTH PACKAGE' : 'INDIVIDUAL TEST'}
           </AppText>
         </View>
@@ -110,16 +110,17 @@ export function LabTestCard({ item, selected, onPress, onBook }: Props) {
 }
 
 function Info({ label, value }: { label: string; value: string }) {
+  const { theme } = useAppTheme();
   return (
-    <View style={styles.info}>
-      <AppText color="#64748B" style={styles.infoLabel}>
+    <View style={[styles.info, { backgroundColor: theme.colors.surfaceMuted }]}>
+      <AppText color={theme.colors.textMuted} style={styles.infoLabel}>
         {label}
       </AppText>
       <View style={styles.infoValueRow}>
         {label === 'Sample' ? (
-          <Droplets color="#08233D" size={11} />
+          <Droplets color={theme.colors.text} size={11} />
         ) : label === 'Report' ? (
-          <Clock3 color="#08233D" size={11} />
+          <Clock3 color={theme.colors.text} size={11} />
         ) : null}
         <AppText style={styles.infoValue} weight="700">
           {value}
@@ -146,7 +147,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   typeBadge: {
-    backgroundColor: '#DCF7EF',
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -160,7 +160,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 52,
     borderRadius: 10,
-    backgroundColor: '#F1F5F9',
     padding: 8,
   },
   infoLabel: { fontSize: 7, lineHeight: 9 },

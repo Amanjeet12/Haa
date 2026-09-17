@@ -22,7 +22,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '../components';
-import { useAppTheme } from '../theme';
+import { screenGradientColors, screenGradientLocations, useAppTheme } from '../theme';
 import { RootStackParamList } from '../types/navigation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BookingDetails'>;
@@ -107,12 +107,8 @@ export function BookingDetailsScreen({ navigation, route }: Props) {
   };
   return (
     <LinearGradient
-      colors={[
-        theme.colors.gradientStart,
-        theme.isDark ? theme.colors.background : '#FBF8F6',
-        theme.colors.gradientEnd,
-      ]}
-      locations={[0, 0.48, 1]}
+      colors={screenGradientColors(theme)}
+      locations={screenGradientLocations}
       style={styles.flex}
     >
       <SafeAreaView edges={['top', 'bottom']} style={styles.flex}>

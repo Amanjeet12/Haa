@@ -25,7 +25,7 @@ import { images } from '../assets/images';
 import { AppText } from '../components';
 import { useAppDispatch, useAppSelector } from '../store';
 import { signOut } from '../store/authSlice';
-import { useAppTheme } from '../theme';
+import { screenGradientColors, screenGradientLocations, useAppTheme } from '../theme';
 import { MainTabParamList, RootStackParamList } from '../types/navigation';
 
 export function ProfileScreen() {
@@ -77,12 +77,8 @@ export function ProfileScreen() {
 
   return (
     <LinearGradient
-      colors={[
-        theme.colors.gradientStart,
-        theme.isDark ? theme.colors.background : '#FBF8F6',
-        theme.colors.gradientEnd,
-      ]}
-      locations={[0, 0.48, 1]}
+      colors={screenGradientColors(theme)}
+      locations={screenGradientLocations}
       style={styles.flex}
     >
       <SafeAreaView edges={['top']} style={styles.flex}>
@@ -127,12 +123,12 @@ export function ProfileScreen() {
           >
             — YOUR HAA HEALTH ACCOUNT
           </AppText>
-          <AppText style={styles.title} weight="800">
+          <AppText style={styles.title} weight="500">
             Your{' '}
             <AppText
               color={theme.colors.primary}
               style={styles.title}
-              weight="800"
+              weight="500"
             >
               profile.
             </AppText>

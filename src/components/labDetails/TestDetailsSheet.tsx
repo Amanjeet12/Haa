@@ -71,8 +71,8 @@ export function TestDetailsSheet({
               { paddingBottom: bottomInset + 82 },
             ]}
           >
-            <View style={styles.typeBadge}>
-              <AppText color="#078A73" style={styles.typeText} weight="800">
+            <View style={[styles.typeBadge, { backgroundColor: theme.isDark ? '#123A34' : '#DCF7EF' }]}>
+              <AppText color={theme.isDark ? '#5EEAD4' : '#078A73'} style={styles.typeText} weight="800">
                 {item.test.test_type === 'health_package'
                   ? 'HEALTH PACKAGE'
                   : 'INDIVIDUAL TEST'}
@@ -132,9 +132,9 @@ export function TestDetailsSheet({
             <AppText style={styles.sectionTitle} weight="800">
               Before your test
             </AppText>
-            <View style={styles.warning}>
-              <Clock3 color="#9A6700" size={14} />
-              <AppText color="#7C5800" style={styles.warningText}>
+            <View style={[styles.warning, { backgroundColor: theme.isDark ? '#3A2E16' : '#FFF2C9' }]}>
+              <Clock3 color={theme.isDark ? '#FBBF24' : '#9A6700'} size={14} />
+              <AppText color={theme.isDark ? '#FDE68A' : '#7C5800'} style={styles.warningText}>
                 {fasting
                   ? `Fasting is required for ${
                       item.test.requirements?.fasting_duration ?? ''
@@ -154,7 +154,7 @@ export function TestDetailsSheet({
                 },
               ]}
             >
-              <View style={styles.providerLogo}>
+              <View style={[styles.providerLogo, { backgroundColor: theme.colors.primarySoft }]}>
                 <FlaskConical color={theme.colors.primary} size={20} />
               </View>
               <View style={styles.providerCopy}>
@@ -188,7 +188,12 @@ export function TestDetailsSheet({
           <View
             style={[
               styles.actionBar,
-              { bottom: bottomInset, backgroundColor: theme.colors.text },
+              {
+                bottom: bottomInset,
+                backgroundColor: theme.isDark
+                  ? theme.colors.surface
+                  : theme.colors.text,
+              },
             ]}
           >
             <View>
@@ -241,10 +246,11 @@ function Info({
   label: string;
   value: string;
 }) {
+  const { theme } = useAppTheme();
   return (
-    <View style={styles.info}>
+    <View style={[styles.info, { backgroundColor: theme.colors.surfaceMuted }]}>
       <View style={styles.infoIcon}>{icon}</View>
-      <AppText color="#64748B" style={styles.infoLabel}>
+      <AppText color={theme.colors.textMuted} style={styles.infoLabel}>
         {label}
       </AppText>
       <AppText style={styles.infoValue} weight="700">
@@ -292,7 +298,6 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 23 },
   typeBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#DCF7EF',
     borderRadius: 7,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -312,7 +317,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 64,
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
     padding: 9,
   },
   infoIcon: { height: 15 },
@@ -338,7 +342,6 @@ const styles = StyleSheet.create({
   markerText: { flex: 1, fontSize: 10, lineHeight: 11 },
   warning: {
     borderRadius: 10,
-    backgroundColor: '#FFF2C9',
     padding: 11,
     flexDirection: 'row',
     gap: 7,
@@ -357,7 +360,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 10,
-    backgroundColor: '#FFF0F2',
     alignItems: 'center',
     justifyContent: 'center',
   },

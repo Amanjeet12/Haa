@@ -62,7 +62,7 @@ import {
   upsertCartBeneficiary,
 } from '../store/cartSlice';
 import { requestBookingLogin } from '../store/authSlice';
-import { useAppTheme } from '../theme';
+import { screenGradientColors, screenGradientLocations, useAppTheme } from '../theme';
 import { HomeStackParamList, RootStackParamList } from '../types/navigation';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'ReviewBooking'>;
@@ -555,12 +555,8 @@ export function ReviewBookingScreen({ navigation }: Props) {
 
   return (
     <LinearGradient
-      colors={[
-        theme.colors.gradientStart,
-        theme.isDark ? theme.colors.background : '#FBF8F6',
-        theme.colors.gradientEnd,
-      ]}
-      locations={[0, 0.48, 1]}
+      colors={screenGradientColors(theme)}
+      locations={screenGradientLocations}
       style={styles.flex}
     >
       <SafeAreaView edges={['top']} style={styles.flex}>
@@ -927,7 +923,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
               })}
             </View>
             {slotsLoading ? (
-              <View style={styles.slotStatus}>
+              <View style={[styles.slotStatus, { backgroundColor: theme.colors.surfaceMuted }]}>
                 <ActivityIndicator color={theme.colors.primary} size="small" />
                 <AppText
                   color={theme.colors.textMuted}
@@ -937,7 +933,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
                 </AppText>
               </View>
             ) : slotsError ? (
-              <View style={styles.slotStatus}>
+              <View style={[styles.slotStatus, { backgroundColor: theme.colors.surfaceMuted }]}>
                 <AppText
                   color={theme.colors.textMuted}
                   style={styles.slotStatusText}
@@ -960,14 +956,14 @@ export function ReviewBookingScreen({ navigation }: Props) {
                         styles.time,
                         {
                           borderColor: active
-                            ? '#078A73'
+                            ? theme.colors.success
                             : bookable
-                            ? '#8BD8C8'
+                            ? theme.isDark ? '#2F7669' : '#8BD8C8'
                             : theme.colors.border,
                           backgroundColor: active
-                            ? '#078A73'
+                            ? theme.colors.success
                             : bookable
-                            ? '#EEFAF6'
+                            ? theme.isDark ? '#123A34' : '#EEFAF6'
                             : theme.colors.surface,
                           opacity: bookable ? 1 : 0.45,
                         },
@@ -978,7 +974,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
                           active
                             ? '#FFFFFF'
                             : bookable
-                            ? '#078A73'
+                            ? theme.isDark ? '#5EEAD4' : '#078A73'
                             : theme.colors.textMuted
                         }
                         style={styles.timeText}
@@ -991,7 +987,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
                           active
                             ? '#FFFFFF'
                             : bookable
-                            ? '#078A73'
+                            ? theme.isDark ? '#5EEAD4' : '#078A73'
                             : theme.colors.textMuted
                         }
                         style={styles.slotCount}
@@ -1010,7 +1006,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
                 })}
               </View>
             ) : (
-              <View style={styles.slotStatus}>
+              <View style={[styles.slotStatus, { backgroundColor: theme.colors.surfaceMuted }]}>
                 <AppText
                   color={theme.colors.textMuted}
                   style={styles.slotStatusText}
@@ -1032,7 +1028,12 @@ export function ReviewBookingScreen({ navigation }: Props) {
                 { backgroundColor: theme.colors.surfaceMuted },
               ]}
             >
-              <View style={styles.locationIcon}>
+              <View
+                style={[
+                  styles.locationIcon,
+                  { backgroundColor: theme.colors.primarySoft },
+                ]}
+              >
                 <MapPin color={theme.colors.primary} size={17} />
               </View>
               <View style={styles.grow}>
@@ -1503,9 +1504,16 @@ function StepCard({
     >
       <View style={styles.stepHeader}>
         <View
-          style={[styles.stepNumber, { backgroundColor: theme.colors.text }]}
+          style={[
+            styles.stepNumber,
+            { backgroundColor: theme.colors.primarySoft },
+          ]}
         >
-          <AppText color="#FFFFFF" style={styles.stepNumberText} weight="800">
+          <AppText
+            color={theme.colors.primary}
+            style={styles.stepNumberText}
+            weight="800"
+          >
             {number}
           </AppText>
         </View>
@@ -1903,7 +1911,6 @@ const styles = StyleSheet.create({
     minHeight: 48,
     marginTop: 10,
     borderRadius: 10,
-    backgroundColor: '#F7F8FA',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1923,7 +1930,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: '#FFF0F2',
     alignItems: 'center',
     justifyContent: 'center',
   },

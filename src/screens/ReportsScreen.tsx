@@ -20,7 +20,7 @@ import { CustomerBooking, getCustomerBookings } from '../api/bookings';
 import { images } from '../assets/images';
 import { AppText } from '../components';
 import { useAppSelector } from '../store';
-import { useAppTheme } from '../theme';
+import { screenGradientColors, screenGradientLocations, useAppTheme } from '../theme';
 import { RootStackParamList } from '../types/navigation';
 
 export function ReportsScreen() {
@@ -56,12 +56,8 @@ export function ReportsScreen() {
 
   return (
     <LinearGradient
-      colors={[
-        theme.colors.gradientStart,
-        theme.isDark ? theme.colors.background : '#FBF8F6',
-        theme.colors.gradientEnd,
-      ]}
-      locations={[0, 0.48, 1]}
+      colors={screenGradientColors(theme)}
+      locations={screenGradientLocations}
       style={styles.flex}
     >
       <SafeAreaView edges={['top']} style={styles.flex}>
@@ -111,12 +107,12 @@ export function ReportsScreen() {
           >
             — YOUR HEALTH RECORDS
           </AppText>
-          <AppText style={styles.title} weight="800">
+          <AppText style={styles.title} weight="500">
             Reports and{' '}
             <AppText
               color={theme.colors.primary}
               style={styles.title}
-              weight="800"
+              weight="500"
             >
               results.
             </AppText>
@@ -151,7 +147,7 @@ export function ReportsScreen() {
           ) : (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <AppText style={styles.sectionTitle} weight="800">
+                <AppText style={styles.sectionTitle} weight="600">
                   Previous bookings
                 </AppText>
                 <AppText color={theme.colors.textMuted} style={styles.count}>

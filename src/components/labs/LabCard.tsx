@@ -63,14 +63,14 @@ export function LabCard({ lab, onPress }: { lab: Lab; onPress?: () => void }) {
             ) : (
               <FlaskConical color={theme.colors.primary} size={20} />
             )}
-            <AppText numberOfLines={1} style={styles.logoText} weight="800">
+            <AppText color="#08233D" numberOfLines={1} style={styles.logoText} weight="800">
               {lab.name.split(' ')[0]}
             </AppText>
           </View>
           {lab.verified || lab.partner ? (
             <View style={styles.verified}>
-              <BadgeCheck color={theme.colors.text} size={12} />
-              <AppText style={styles.verifiedText} weight="700">
+              <BadgeCheck color="#08233D" size={12} />
+              <AppText color="#08233D" style={styles.verifiedText} weight="700">
                 {lab.partner ? 'Premium Partner' : 'HAA Verified'}
               </AppText>
             </View>

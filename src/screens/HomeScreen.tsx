@@ -2,12 +2,10 @@ import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import ChevronRight from 'lucide-react-native/icons/chevron-right';
 import CircleQuestionMark from 'lucide-react-native/icons/circle-question-mark';
 import Clock3 from 'lucide-react-native/icons/clock-3';
-import FlaskConical from 'lucide-react-native/icons/flask-conical';
 import Globe from 'lucide-react-native/icons/globe';
 import MapPin from 'lucide-react-native/icons/map-pin';
 import Search from 'lucide-react-native/icons/search';
 import ShoppingBasket from 'lucide-react-native/icons/shopping-basket';
-import Sparkles from 'lucide-react-native/icons/sparkles';
 import X from 'lucide-react-native/icons/x';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -27,7 +25,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { images } from '../assets/images';
 import { AppText, Screen } from '../components';
-import { useAppTheme } from '../theme';
+import {
+  screenGradientColors,
+  screenGradientLocations,
+  useAppTheme,
+} from '../theme';
 import { HomeStackParamList, RootStackParamList } from '../types/navigation';
 import { useAppDispatch, useAppSelector } from '../store';
 import { fetchZones, setSelectedZone } from '../store/zonesSlice';
@@ -86,12 +88,10 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   return (
     <>
       <LinearGradient
-        colors={[
-          theme.colors.gradientStart,
-          theme.isDark ? theme.colors.background : '#FBF8F6',
-          theme.colors.gradientEnd,
-        ]}
-        locations={[0, 0.48, 1]}
+        colors={screenGradientColors(theme)}
+        end={{ x: 0, y: 1 }}
+        locations={screenGradientLocations}
+        start={{ x: 0, y: 0 }}
         style={styles.screenGradient}
       >
         <Screen
@@ -218,9 +218,9 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             <AppText color="#FF8690" style={styles.eyebrow} weight="800">
               — DIAGNOSTICS, DONE DIFFERENTLY
             </AppText>
-            <AppText color="#FFFFFF" style={styles.heroTitle} weight="800">
+            <AppText color="#FFFFFF" style={styles.heroTitle} weight="500">
               The same test.{`\n`}
-              <AppText color="#FF7884" style={styles.heroTitle} weight="800">
+              <AppText color="#FF7884" style={styles.heroTitle} weight="500">
                 Clearer choices.
               </AppText>
             </AppText>
@@ -253,9 +253,27 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             </AppText>
           </View>
           <LinearGradient
-            colors={['#092943', '#0A2035']}
+            colors={['#071F35', '#123B50', '#6A3543']}
+            end={{ x: 1, y: 1 }}
             style={styles.careCard}
           >
+            <ImageBackground
+              source={images.careImage}
+              resizeMode="cover"
+              style={styles.careImage}
+              imageStyle={styles.careImageCorners}
+            />
+            <LinearGradient
+              colors={[
+                'rgba(4,25,43,0.96)',
+                'rgba(6,35,56,0.72)',
+                'rgba(40,23,35,0.2)',
+              ]}
+              end={{ x: 1, y: 0.5 }}
+              locations={[0, 0.58, 1]}
+              start={{ x: 0, y: 0.5 }}
+              style={styles.careImageOverlay}
+            />
             <View style={styles.careCopy}>
               <AppText color="#FF8B94" style={styles.eyebrow} weight="800">
                 AT-HOME LABS
@@ -272,10 +290,6 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                 </AppText>
               </View>
             </View>
-            <View style={styles.careArt}>
-              <FlaskConical color="#9FB5C7" size={62} strokeWidth={1.3} />
-              <Sparkles color="#FF6675" size={24} />
-            </View>
           </LinearGradient>
 
           <View style={styles.serviceRow}>
@@ -284,7 +298,11 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
               eyebrow="QUICK COMMERCE"
               title="Essentials nearby."
               status="Coming soon"
-              gradient={['#FFFFFF', '#E9FAF6']}
+              gradient={
+                theme.isDark
+                  ? [theme.colors.surface, '#14282A']
+                  : ['#FFFFFF', '#E9FAF6']
+              }
               statusBackground={theme.colors.surfaceMuted}
               statusColor={theme.colors.textMuted}
               disabled
@@ -294,7 +312,11 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
               eyebrow="GLOBAL STORE"
               title="Always available."
               status="Coming soon"
-              gradient={['#FFFFFF', '#FFF0F4']}
+              gradient={
+                theme.isDark
+                  ? [theme.colors.surface, '#291A24']
+                  : ['#FFFFFF', '#FFF0F4']
+              }
               statusBackground={theme.colors.surfaceMuted}
               statusColor={theme.colors.textMuted}
               disabled
@@ -567,7 +589,6 @@ function ServiceCard(props: ServiceCardProps) {
       start={{ x: 0, y: 0 }}
       style={[
         styles.serviceCard,
-        props.disabled && styles.serviceCardDisabled,
         {
           borderColor: theme.colors.border,
           shadowColor: theme.colors.shadow,
@@ -714,6 +735,21 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 15,
   },
+  careImage: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
+  careImageCorners: { borderRadius: 18 },
+  careImageOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
   careCopy: { flex: 1, zIndex: 1 },
   careTitle: { marginTop: 7, fontSize: 19, lineHeight: 19 },
   careBody: { marginTop: 7, fontSize: 9, lineHeight: 12 },
@@ -726,12 +762,6 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   pillText: { fontSize: 8, lineHeight: 10 },
-  careArt: {
-    width: '35%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
   serviceRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
   serviceCard: {
     flex: 1,
@@ -744,7 +774,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 10,
   },
-  serviceCardDisabled: { opacity: 0.68 },
   serviceIcon: {
     width: 31,
     height: 31,

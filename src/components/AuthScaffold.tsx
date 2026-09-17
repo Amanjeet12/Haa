@@ -10,7 +10,11 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useAppTheme } from '../theme';
+import {
+  screenGradientColors,
+  screenGradientLocations,
+  useAppTheme,
+} from '../theme';
 
 type AuthScaffoldProps = PropsWithChildren<{
   contentContainerStyle?: StyleProp<ViewStyle>;
@@ -24,12 +28,10 @@ export function AuthScaffold({
 
   return (
     <LinearGradient
-      colors={[
-        theme.colors.gradientStart,
-        theme.isDark ? theme.colors.background : '#FBF8F6',
-        theme.colors.gradientEnd,
-      ]}
-      locations={[0, 0.48, 1]}
+      colors={screenGradientColors(theme)}
+      end={{ x: 0, y: 1 }}
+      locations={screenGradientLocations}
+      start={{ x: 0, y: 0 }}
       style={styles.gradient}
     >
       <SafeAreaView style={styles.safeArea}>

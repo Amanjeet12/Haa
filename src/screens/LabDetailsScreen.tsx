@@ -341,7 +341,9 @@ export function LabDetailsScreen({ navigation, route }: Props) {
             styles.bottomBar,
             {
               bottom: Math.max(insets.bottom, 48),
-              backgroundColor: theme.colors.text,
+              backgroundColor: theme.isDark
+                ? theme.colors.surface
+                : theme.colors.text,
             },
           ]}
         >

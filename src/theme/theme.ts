@@ -27,6 +27,33 @@ export type AppTheme = {
   typography: typeof typography;
 };
 
+export const screenGradientLocations = [0, 0.16, 0.32, 0.5, 0.68, 0.84, 1];
+
+export function screenGradientColors(
+  theme: AppTheme,
+): [string, string, string, string, string, string, string] {
+  if (theme.isDark) {
+    return [
+      theme.colors.background,
+      theme.colors.background,
+      theme.colors.background,
+      theme.colors.background,
+      theme.colors.background,
+      theme.colors.background,
+      theme.colors.background,
+    ];
+  }
+  return [
+    theme.colors.gradientStart,
+    '#FDF1F2',
+    '#FDF3F3',
+    '#FBF8F6',
+    '#F5F5F4',
+    '#F1F3F3',
+    theme.colors.gradientEnd,
+  ];
+}
+
 export const lightTheme: AppTheme = {
   isDark: false,
   colors: {
@@ -56,7 +83,7 @@ export const darkTheme: AppTheme = {
   ...lightTheme,
   isDark: true,
   colors: {
-    background: palette.slate950,
+    background: '#0E111A',
     surface: palette.slate900,
     surfaceMuted: '#172033',
     primary: '#FF5261',
@@ -70,7 +97,7 @@ export const darkTheme: AppTheme = {
     danger: '#F87171',
     onPrimary: palette.slate950,
     shadow: '#000000',
-    gradientStart: '#24141B',
-    gradientEnd: palette.slate950,
+    gradientStart: '#281A20',
+    gradientEnd: '#0E111A',
   },
 };
