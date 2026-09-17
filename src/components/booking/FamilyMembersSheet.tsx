@@ -1,4 +1,5 @@
 import Check from 'lucide-react-native/icons/check';
+import Plus from 'lucide-react-native/icons/plus';
 import UserRound from 'lucide-react-native/icons/user-round';
 import X from 'lucide-react-native/icons/x';
 import React from 'react';
@@ -26,6 +27,7 @@ type Props = {
   onClose: () => void;
   onRetry: () => void;
   onSelect: (member: FamilyMember) => void;
+  onCreate: () => void;
 };
 export function FamilyMembersSheet({
   visible,
@@ -36,6 +38,7 @@ export function FamilyMembersSheet({
   onClose,
   onRetry,
   onSelect,
+  onCreate,
 }: Props) {
   const { theme } = useAppTheme();
   return (
@@ -166,6 +169,25 @@ export function FamilyMembersSheet({
                   </AppText>
                 </View>
               )}
+              <Pressable
+                onPress={onCreate}
+                style={[
+                  styles.create,
+                  {
+                    backgroundColor: theme.colors.primarySoft,
+                    borderColor: theme.colors.primary,
+                  },
+                ]}
+              >
+                <Plus color={theme.colors.primary} size={16} />
+                <AppText
+                  color={theme.colors.primary}
+                  style={styles.createText}
+                  weight="800"
+                >
+                  Create family member
+                </AppText>
+              </Pressable>
             </ScrollView>
           )}
         </SafeAreaView>
@@ -272,4 +294,16 @@ const styles = StyleSheet.create({
     borderRadius: 9,
   },
   retryText: { fontSize: 9, lineHeight: 12 },
+  create: {
+    minHeight: 44,
+    marginTop: 12,
+    marginBottom: 18,
+    borderWidth: 1,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  createText: { fontSize: 10, lineHeight: 13 },
 });

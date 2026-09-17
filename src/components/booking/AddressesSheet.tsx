@@ -1,5 +1,6 @@
 import Check from 'lucide-react-native/icons/check';
 import MapPin from 'lucide-react-native/icons/map-pin';
+import Plus from 'lucide-react-native/icons/plus';
 import X from 'lucide-react-native/icons/x';
 import React from 'react';
 import {
@@ -27,6 +28,7 @@ type Props = {
   loading: boolean;
   onClose: () => void;
   onSelect: (address: CustomerAddress) => void;
+  onCreate: () => void;
 };
 
 export function AddressesSheet({
@@ -36,6 +38,7 @@ export function AddressesSheet({
   loading,
   onClose,
   onSelect,
+  onCreate,
 }: Props) {
   const { theme } = useAppTheme();
   return (
@@ -52,7 +55,9 @@ export function AddressesSheet({
           edges={['bottom']}
           style={[styles.sheet, { backgroundColor: theme.colors.surface }]}
         >
-          <View style={[styles.handle, { backgroundColor: theme.colors.border }]} />
+          <View
+            style={[styles.handle, { backgroundColor: theme.colors.border }]}
+          />
           <View style={styles.header}>
             <View>
               <AppText style={styles.title} weight="800">
@@ -64,7 +69,10 @@ export function AddressesSheet({
             </View>
             <Pressable
               onPress={onClose}
-              style={[styles.close, { backgroundColor: theme.colors.surfaceMuted }]}
+              style={[
+                styles.close,
+                { backgroundColor: theme.colors.surfaceMuted },
+              ]}
             >
               <X color={theme.colors.text} size={19} />
             </Pressable>
@@ -84,22 +92,33 @@ export function AddressesSheet({
                   <Pressable
                     key={address.address_id}
                     onPress={() => onSelect(address)}
-                    style={[styles.address, { borderBottomColor: theme.colors.border }]}
+                    style={[
+                      styles.address,
+                      { borderBottomColor: theme.colors.border },
+                    ]}
                   >
                     <View
-                      style={[styles.icon, { backgroundColor: theme.colors.primarySoft }]}
+                      style={[
+                        styles.icon,
+                        { backgroundColor: theme.colors.primarySoft },
+                      ]}
                     >
                       <MapPin color={theme.colors.primary} size={18} />
                     </View>
                     <View style={styles.copy}>
                       <AppText
-                        color={selected ? theme.colors.primary : theme.colors.text}
+                        color={
+                          selected ? theme.colors.primary : theme.colors.text
+                        }
                         style={styles.name}
                         weight="700"
                       >
                         {addressTitle(address)}
                       </AppText>
-                      <AppText color={theme.colors.textMuted} style={styles.addressLine}>
+                      <AppText
+                        color={theme.colors.textMuted}
+                        style={styles.addressLine}
+                      >
                         {addressLine(address)}
                       </AppText>
                     </View>
@@ -116,11 +135,33 @@ export function AddressesSheet({
                   <AppText style={styles.stateTitle} weight="700">
                     No saved addresses
                   </AppText>
-                  <AppText color={theme.colors.textMuted} style={styles.stateText}>
+                  <AppText
+                    color={theme.colors.textMuted}
+                    style={styles.stateText}
+                  >
                     Add an address to choose a collection location.
                   </AppText>
                 </View>
               )}
+              <Pressable
+                onPress={onCreate}
+                style={[
+                  styles.create,
+                  {
+                    backgroundColor: theme.colors.primarySoft,
+                    borderColor: theme.colors.primary,
+                  },
+                ]}
+              >
+                <Plus color={theme.colors.primary} size={16} />
+                <AppText
+                  color={theme.colors.primary}
+                  style={styles.createText}
+                  weight="800"
+                >
+                  Add new address
+                </AppText>
+              </Pressable>
             </ScrollView>
           )}
         </SafeAreaView>
@@ -146,7 +187,13 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 16,
   },
-  handle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginTop: 8 },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 8,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -170,7 +217,13 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 10,
   },
-  icon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  icon: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   copy: { flex: 1 },
   name: { fontSize: 12, lineHeight: 16, textTransform: 'capitalize' },
   addressLine: { marginTop: 3, fontSize: 9, lineHeight: 13 },
@@ -185,4 +238,16 @@ const styles = StyleSheet.create({
   state: { alignItems: 'center', paddingVertical: 42, paddingHorizontal: 24 },
   stateTitle: { fontSize: 13, lineHeight: 17 },
   stateText: { marginTop: 6, textAlign: 'center', fontSize: 9, lineHeight: 12 },
+  create: {
+    minHeight: 44,
+    marginTop: 12,
+    marginBottom: 18,
+    borderWidth: 1,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  createText: { fontSize: 10, lineHeight: 13 },
 });

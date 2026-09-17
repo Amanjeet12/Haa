@@ -11,7 +11,7 @@ import Trash from 'lucide-react-native/icons/trash';
 import WandSparkles from 'lucide-react-native/icons/wand-sparkles';
 import UserRound from 'lucide-react-native/icons/user-round';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -21,9 +21,7 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import RazorpayCheckout, {
-  PaymentFailure,
-} from 'react-native-razorpay';
+import RazorpayCheckout, { PaymentFailure } from 'react-native-razorpay';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -38,10 +36,7 @@ import {
 } from '../api/addresses';
 import { getLabSlots, LabSlot } from '../api/labSlots';
 import { createBooking } from '../api/bookings';
-import {
-  getRecommendedLabs,
-  RecommendedLab,
-} from '../api/recommendedLabs';
+import { getRecommendedLabs, RecommendedLab } from '../api/recommendedLabs';
 import {
   getFamilyMembers,
   FamilyMember,
@@ -90,14 +85,7 @@ function slotLabel(slot: LabSlot) {
 function slotStartHasPassed(slot: LabSlot, now = new Date()) {
   const [year, month, day] = slot.booking_date.split('-').map(Number);
   const [hour, minute, second] = slot.start_time.split(':').map(Number);
-  const start = new Date(
-    year,
-    month - 1,
-    day,
-    hour,
-    minute,
-    second || 0,
-  );
+  const start = new Date(year, month - 1, day, hour, minute, second || 0);
   return start.getTime() <= now.getTime();
 }
 
@@ -118,6 +106,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
   const [membersOpen, setMembersOpen] = useState(false);
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersError, setMembersError] = useState<string | null>(null);
+  const [returnToMembers, setReturnToMembers] = useState(false);
   const patientId = customer ? String(customer.customer_id) : 'guest-primary';
   const patientName = customer?.name ?? 'Primary patient';
   const [selectedDay, setSelectedDay] = useState(0);
@@ -131,6 +120,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
   );
   const [addressesOpen, setAddressesOpen] = useState(false);
   const [addressesLoading, setAddressesLoading] = useState(false);
+  const [returnToAddresses, setReturnToAddresses] = useState(false);
   const [recommendation, setRecommendation] = useState<RecommendedLab | null>(
     null,
   );
@@ -224,9 +214,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
         if (!active) return;
         const activeSlots = fetchedSlots.filter(slot => slot.isActive);
         setSlots(activeSlots);
-        setSelectedSlotId(
-          activeSlots.find(isSlotBookable)?.slot_id ?? null,
-        );
+        setSelectedSlotId(activeSlots.find(isSlotBookable)?.slot_id ?? null);
       })
       .catch(error => {
         if (!active) return;
@@ -243,29 +231,35 @@ export function ReviewBookingScreen({ navigation }: Props) {
     };
   }, [cart.labId, selectedBookingDate]);
 
-  useEffect(() => {
-    if (!authToken) return;
-    let active = true;
+  const loadAddresses = useCallback(async () => {
+    if (!authToken) {
+      setAddresses([]);
+      setSelectedAddressId(null);
+      return;
+    }
     setAddressesLoading(true);
-    getCustomerAddresses(authToken)
-      .then(fetchedAddresses => {
-        if (!active) return;
-        setAddresses(fetchedAddresses);
+    try {
+      const fetchedAddresses = await getCustomerAddresses(authToken);
+      setAddresses(fetchedAddresses);
+      setSelectedAddressId(currentId => {
+        if (fetchedAddresses.some(item => item.address_id === currentId)) {
+          return currentId;
+        }
         const preferred =
           fetchedAddresses.find(item => item.billing_address.isDefault) ??
           fetchedAddresses[0];
-        setSelectedAddressId(preferred?.address_id ?? null);
-      })
-      .catch(() => {
-        if (active) setAddresses([]);
-      })
-      .finally(() => {
-        if (active) setAddressesLoading(false);
+        return preferred?.address_id ?? null;
       });
-    return () => {
-      active = false;
-    };
+    } catch {
+      setAddresses([]);
+    } finally {
+      setAddressesLoading(false);
+    }
   }, [authToken]);
+
+  useEffect(() => {
+    loadAddresses();
+  }, [loadAddresses]);
 
   const selectedAddress =
     addresses.find(item => item.address_id === selectedAddressId) ?? null;
@@ -417,9 +411,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
           : {
               id: patientId,
               name: patientName,
-              detail: customer?.phone
-                ? `${customer.phone}  ·  Self`
-                : 'Self',
+              detail: customer?.phone ? `${customer.phone}  ·  Self` : 'Self',
               profilePhoto: normalizeProfilePhoto(
                 customer?.profilePhoto ?? null,
               ),
@@ -498,6 +490,47 @@ export function ReviewBookingScreen({ navigation }: Props) {
     } finally {
       setMembersLoading(false);
     }
+  };
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (!returnToMembers) return;
+      setReturnToMembers(false);
+      loadFamilyMembers();
+    });
+    return unsubscribe;
+  }, [navigation, returnToMembers]);
+
+  const createFamilyMember = () => {
+    setMembersOpen(false);
+    setReturnToMembers(true);
+    navigation
+      .getParent()
+      ?.getParent<NativeStackNavigationProp<RootStackParamList>>()
+      ?.navigate('FamilyMemberForm');
+  };
+
+  const openAddresses = () => {
+    setAddressesOpen(true);
+    loadAddresses();
+  };
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (!returnToAddresses) return;
+      setReturnToAddresses(false);
+      openAddresses();
+    });
+    return unsubscribe;
+  }, [loadAddresses, navigation, returnToAddresses]);
+
+  const createAddress = () => {
+    setAddressesOpen(false);
+    setReturnToAddresses(true);
+    navigation
+      .getParent()
+      ?.getParent<NativeStackNavigationProp<RootStackParamList>>()
+      ?.navigate('AddressForm');
   };
 
   return (
@@ -591,7 +624,9 @@ export function ReviewBookingScreen({ navigation }: Props) {
                     dispatch(requestBookingLogin());
                     navigation
                       .getParent()
-                      ?.getParent<NativeStackNavigationProp<RootStackParamList>>()
+                      ?.getParent<
+                        NativeStackNavigationProp<RootStackParamList>
+                      >()
                       ?.navigate('Login');
                   }}
                   style={[
@@ -599,38 +634,43 @@ export function ReviewBookingScreen({ navigation }: Props) {
                     { backgroundColor: theme.colors.primary },
                   ]}
                 >
-                  <AppText color="#FFFFFF" style={styles.loginButtonText} weight="800">
+                  <AppText
+                    color="#FFFFFF"
+                    style={styles.loginButtonText}
+                    weight="800"
+                  >
                     Login
                   </AppText>
                 </Pressable>
               </View>
             )}
-            {customer && bookingPatients.map(beneficiary => (
-              <PatientGroup
-                key={beneficiary.id}
-                beneficiary={beneficiary}
-                tests={cart.items.filter(item =>
-                  item.beneficiaryIds.includes(beneficiary.id),
-                )}
-                onRemoveMember={() =>
-                  dispatch(removeCartBeneficiary(beneficiary.id))
-                }
-                onRemoveTest={labTestId =>
-                  dispatch(
-                    removeTestForBeneficiary({
-                      labTestId,
+            {customer &&
+              bookingPatients.map(beneficiary => (
+                <PatientGroup
+                  key={beneficiary.id}
+                  beneficiary={beneficiary}
+                  tests={cart.items.filter(item =>
+                    item.beneficiaryIds.includes(beneficiary.id),
+                  )}
+                  onRemoveMember={() =>
+                    dispatch(removeCartBeneficiary(beneficiary.id))
+                  }
+                  onRemoveTest={labTestId =>
+                    dispatch(
+                      removeTestForBeneficiary({
+                        labTestId,
+                        beneficiaryId: beneficiary.id,
+                      }),
+                    )
+                  }
+                  onAddTest={() => {
+                    dispatch(setCartBeneficiaryTarget(beneficiary.id));
+                    navigation.navigate('AddPatientTests', {
                       beneficiaryId: beneficiary.id,
-                    }),
-                  )
-                }
-                onAddTest={() => {
-                  dispatch(setCartBeneficiaryTarget(beneficiary.id));
-                  navigation.navigate('AddPatientTests', {
-                    beneficiaryId: beneficiary.id,
-                  });
-                }}
-              />
-            ))}
+                    });
+                  }}
+                />
+              ))}
             {false && (
               <>
                 <View
@@ -770,31 +810,36 @@ export function ReviewBookingScreen({ navigation }: Props) {
                 </Pressable>
               </>
             )}
-            {customer && <Pressable
-              onPress={loadFamilyMembers}
-              style={[styles.addMember, { borderColor: theme.colors.primary }]}
-            >
-              <View
+            {customer && (
+              <Pressable
+                onPress={loadFamilyMembers}
                 style={[
-                  styles.plusCircle,
+                  styles.addMember,
                   { borderColor: theme.colors.primary },
                 ]}
               >
-                <Plus color={theme.colors.primary} size={15} />
-              </View>
-              <View style={styles.grow}>
-                <AppText style={styles.addMemberText} weight="700">
-                  Add another family member
-                </AppText>
-                <AppText
-                  color={theme.colors.textMuted}
-                  style={styles.addMemberSubtext}
+                <View
+                  style={[
+                    styles.plusCircle,
+                    { borderColor: theme.colors.primary },
+                  ]}
                 >
-                  Select a saved member or create new
-                </AppText>
-              </View>
-              <ChevronDown color={theme.colors.textMuted} size={14} />
-            </Pressable>}
+                  <Plus color={theme.colors.primary} size={15} />
+                </View>
+                <View style={styles.grow}>
+                  <AppText style={styles.addMemberText} weight="700">
+                    Add another family member
+                  </AppText>
+                  <AppText
+                    color={theme.colors.textMuted}
+                    style={styles.addMemberSubtext}
+                  >
+                    Select a saved member or create new
+                  </AppText>
+                </View>
+                <ChevronDown color={theme.colors.textMuted} size={14} />
+              </Pressable>
+            )}
           </StepCard>
           {recommendation && (
             <SmartChoiceCard
@@ -882,67 +927,67 @@ export function ReviewBookingScreen({ navigation }: Props) {
               </View>
             ) : slots.length ? (
               <View style={styles.times}>
-              {slots.map(slot => {
-                const active = selectedSlotId === slot.slot_id;
-                const timePassed = slotStartHasPassed(slot);
-                const bookable = isSlotBookable(slot);
-                return (
-                  <Pressable
-                    key={slot.slot_id}
-                    disabled={!bookable}
-                    onPress={() => setSelectedSlotId(slot.slot_id)}
-                    style={[
-                      styles.time,
-                      {
-                        borderColor: active
-                          ? '#078A73'
-                          : bookable
-                          ? '#8BD8C8'
-                          : theme.colors.border,
-                        backgroundColor: active
-                          ? '#078A73'
-                          : bookable
-                          ? '#EEFAF6'
-                          : theme.colors.surface,
-                        opacity: bookable ? 1 : 0.45,
-                      },
-                    ]}
-                  >
-                    <AppText
-                      color={
-                        active
-                          ? '#FFFFFF'
-                          : bookable
-                          ? '#078A73'
-                          : theme.colors.textMuted
-                      }
-                      style={styles.timeText}
-                      weight="700"
+                {slots.map(slot => {
+                  const active = selectedSlotId === slot.slot_id;
+                  const timePassed = slotStartHasPassed(slot);
+                  const bookable = isSlotBookable(slot);
+                  return (
+                    <Pressable
+                      key={slot.slot_id}
+                      disabled={!bookable}
+                      onPress={() => setSelectedSlotId(slot.slot_id)}
+                      style={[
+                        styles.time,
+                        {
+                          borderColor: active
+                            ? '#078A73'
+                            : bookable
+                            ? '#8BD8C8'
+                            : theme.colors.border,
+                          backgroundColor: active
+                            ? '#078A73'
+                            : bookable
+                            ? '#EEFAF6'
+                            : theme.colors.surface,
+                          opacity: bookable ? 1 : 0.45,
+                        },
+                      ]}
                     >
-                      {slotLabel(slot)}
-                    </AppText>
-                    <AppText
-                      color={
-                        active
-                          ? '#FFFFFF'
-                          : bookable
-                          ? '#078A73'
-                          : theme.colors.textMuted
-                      }
-                      style={styles.slotCount}
-                      weight={active ? '700' : '400'}
-                    >
-                      {active
-                        ? `✓ Selected · ${slot.available_booking_count} left`
-                        : timePassed
-                        ? 'Time passed'
-                        : slot.is_available
-                        ? `${slot.available_booking_count} left`
-                        : 'Full'}
-                    </AppText>
-                  </Pressable>
-                );
-              })}
+                      <AppText
+                        color={
+                          active
+                            ? '#FFFFFF'
+                            : bookable
+                            ? '#078A73'
+                            : theme.colors.textMuted
+                        }
+                        style={styles.timeText}
+                        weight="700"
+                      >
+                        {slotLabel(slot)}
+                      </AppText>
+                      <AppText
+                        color={
+                          active
+                            ? '#FFFFFF'
+                            : bookable
+                            ? '#078A73'
+                            : theme.colors.textMuted
+                        }
+                        style={styles.slotCount}
+                        weight={active ? '700' : '400'}
+                      >
+                        {active
+                          ? `✓ Selected · ${slot.available_booking_count} left`
+                          : timePassed
+                          ? 'Time passed'
+                          : slot.is_available
+                          ? `${slot.available_booking_count} left`
+                          : 'Full'}
+                      </AppText>
+                    </Pressable>
+                  );
+                })}
               </View>
             ) : (
               <View style={styles.slotStatus}>
@@ -961,8 +1006,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
             subtitle="Where should our phlebotomist visit?"
           >
             <Pressable
-              disabled={!addresses.length}
-              onPress={() => setAddressesOpen(open => !open)}
+              onPress={openAddresses}
               style={[
                 styles.address,
                 { backgroundColor: theme.colors.surfaceMuted },
@@ -1002,7 +1046,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
                 </View>
               )}
             </Pressable>
-            <Pressable style={styles.addAddress}>
+            <Pressable onPress={createAddress} style={styles.addAddress}>
               <Plus color={theme.colors.primary} size={12} />
               <AppText
                 color={theme.colors.primary}
@@ -1022,6 +1066,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
           error={membersError}
           onClose={() => setMembersOpen(false)}
           onRetry={loadFamilyMembers}
+          onCreate={createFamilyMember}
           onSelect={member => {
             if (selectedMemberIds.has(member.member_id)) {
               setMembersOpen(false);
@@ -1050,6 +1095,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
             setSelectedAddressId(address.address_id);
             setAddressesOpen(false);
           }}
+          onCreate={createAddress}
         />
         <View
           style={[
@@ -1083,9 +1129,10 @@ export function ReviewBookingScreen({ navigation }: Props) {
             style={[
               styles.pay,
               {
-                backgroundColor: cart.items.length && !bookingLoading
-                  ? theme.colors.primary
-                  : theme.colors.border,
+                backgroundColor:
+                  cart.items.length && !bookingLoading
+                    ? theme.colors.primary
+                    : theme.colors.border,
               },
             ]}
           >
@@ -1302,12 +1349,20 @@ function SmartChoiceCard({
     >
       <View style={styles.recommendationHeader}>
         <WandSparkles color="#FFFFFF" size={20} />
-        <AppText color="#FFFFFF" style={styles.recommendationHeaderText} weight="800">
+        <AppText
+          color="#FFFFFF"
+          style={styles.recommendationHeaderText}
+          weight="800"
+        >
           SMART CHOICE RECOMMENDATION
         </AppText>
       </View>
       <View style={styles.recommendationBody}>
-        <AppText color="#94A3B8" style={styles.recommendationEyebrow} weight="800">
+        <AppText
+          color="#94A3B8"
+          style={styles.recommendationEyebrow}
+          weight="800"
+        >
           YOUR SELECTION
         </AppText>
         <View style={styles.recommendationSummary}>
@@ -1315,8 +1370,13 @@ function SmartChoiceCard({
             <AppText style={styles.recommendationLabName} weight="800">
               {currentLabName}
             </AppText>
-            <AppText color="#94A3B8" style={styles.recommendationTestCount} weight="700">
-              {selectedTestCount} selected {selectedTestCount === 1 ? 'test' : 'tests'}
+            <AppText
+              color="#94A3B8"
+              style={styles.recommendationTestCount}
+              weight="700"
+            >
+              {selectedTestCount} selected{' '}
+              {selectedTestCount === 1 ? 'test' : 'tests'}
             </AppText>
           </View>
           <AppText style={styles.recommendationPrice} weight="800">
@@ -1326,7 +1386,9 @@ function SmartChoiceCard({
         <View style={styles.versusRow}>
           <View style={styles.versusLine} />
           <View style={styles.versusCircle}>
-            <AppText color="#94A3B8" style={styles.versusText} weight="800">VS</AppText>
+            <AppText color="#94A3B8" style={styles.versusText} weight="800">
+              VS
+            </AppText>
           </View>
           <View style={styles.versusLine} />
         </View>
@@ -1334,7 +1396,8 @@ function SmartChoiceCard({
           {saving > 0 && (
             <View style={styles.savingPill}>
               <AppText color="#FFFFFF" style={styles.savingText} weight="800">
-                Save ₹{saving}{savingPercent ? ` (${savingPercent}%)` : ''}
+                Save ₹{saving}
+                {savingPercent ? ` (${savingPercent}%)` : ''}
               </AppText>
             </View>
           )}
@@ -1349,7 +1412,8 @@ function SmartChoiceCard({
               <AppText style={styles.recommendedPrice} weight="800">
                 ₹{recommendation.total_test_final_amount}
               </AppText>
-              {recommendation.total_test_normal_amount > recommendation.total_test_final_amount && (
+              {recommendation.total_test_normal_amount >
+                recommendation.total_test_final_amount && (
                 <AppText color="#94A3B8" style={styles.strikePrice}>
                   ₹{recommendation.total_test_normal_amount}
                 </AppText>
@@ -1358,19 +1422,31 @@ function SmartChoiceCard({
           </View>
           <View style={styles.recommendedMeta}>
             <Star color="#FFC107" fill="#FFC107" size={17} />
-            <AppText color="#64748B" style={styles.recommendedMetaText} weight="700">
+            <AppText
+              color="#64748B"
+              style={styles.recommendedMetaText}
+              weight="700"
+            >
               Recommended
             </AppText>
             {!!city && <AppText color="#64748B">•</AppText>}
             {!!city && (
-              <AppText color="#D81F32" style={styles.recommendedMetaText} weight="700">
+              <AppText
+                color="#D81F32"
+                style={styles.recommendedMetaText}
+                weight="700"
+              >
                 {city}
               </AppText>
             )}
           </View>
         </View>
         <Pressable onPress={onSwitch} style={styles.switchRecommendation}>
-          <AppText color="#D81F32" style={styles.switchRecommendationText} weight="800">
+          <AppText
+            color="#D81F32"
+            style={styles.switchRecommendationText}
+            weight="800"
+          >
             Switch to Recommended
           </AppText>
           <ArrowRight color="#D81F32" size={20} />
@@ -1490,15 +1566,27 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
   },
-  recommendationHeaderText: { fontSize: 10, lineHeight: 13, letterSpacing: 0.8 },
+  recommendationHeaderText: {
+    fontSize: 10,
+    lineHeight: 13,
+    letterSpacing: 0.8,
+  },
   recommendationBody: { padding: 14 },
   recommendationEyebrow: { fontSize: 8, lineHeight: 10, letterSpacing: 0.8 },
-  recommendationSummary: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 11 },
+  recommendationSummary: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 11,
+  },
   recommendationLabName: { fontSize: 14, lineHeight: 18 },
   recommendationTestCount: { marginTop: 4, fontSize: 9, lineHeight: 12 },
   recommendationPrice: { fontSize: 15, lineHeight: 19 },
   versusRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 10 },
-  versusLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: '#D7DCE2' },
+  versusLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#D7DCE2',
+  },
   versusCircle: {
     width: 34,
     height: 34,
@@ -1528,12 +1616,26 @@ const styles = StyleSheet.create({
   },
   savingText: { fontSize: 8, lineHeight: 10 },
   topRated: { fontSize: 8, lineHeight: 10, letterSpacing: 1 },
-  recommendedNameRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 12 },
+  recommendedNameRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 12,
+  },
   recommendedName: { flex: 1, fontSize: 12, lineHeight: 16 },
   recommendedPriceBlock: { alignItems: 'flex-end' },
   recommendedPrice: { fontSize: 13, lineHeight: 16 },
-  strikePrice: { marginTop: 2, fontSize: 8, lineHeight: 10, textDecorationLine: 'line-through' },
-  recommendedMeta: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 7 },
+  strikePrice: {
+    marginTop: 2,
+    fontSize: 8,
+    lineHeight: 10,
+    textDecorationLine: 'line-through',
+  },
+  recommendedMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 7,
+  },
   recommendedMetaText: { fontSize: 8, lineHeight: 11 },
   switchRecommendation: {
     minHeight: 44,
