@@ -95,6 +95,7 @@ export function MainTabs() {
             route.name === 'Home' &&
             [
               'Labs',
+              'Search',
               'CitySearch',
               'LabDetails',
               'AddPatientTests',

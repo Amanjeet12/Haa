@@ -21,6 +21,13 @@ jest.mock('@react-native-community/geolocation', () => ({
   getCurrentPosition: jest.fn(),
 }));
 
+jest.mock('@react-native-community/netinfo', () => ({
+  fetch: jest.fn(() =>
+    Promise.resolve({ isConnected: true, isInternetReachable: true }),
+  ),
+  addEventListener: jest.fn(() => jest.fn()),
+}));
+
 jest.mock('react-native-config', () => ({
   GOOGLE_MAPS_API_KEY: 'test-google-maps-key',
 }));

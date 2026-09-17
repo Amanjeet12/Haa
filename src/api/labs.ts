@@ -53,11 +53,14 @@ export async function getLabsByZone(
   zoneId: number,
   start?: number,
   end?: number,
+  search?: string,
 ): Promise<LabsPage> {
-  const query =
-    start !== undefined && end !== undefined
-      ? `?start=${start}&end=${end}`
-      : '';
+  const params: string[] = [];
+  if (start !== undefined && end !== undefined) {
+    params.push(`start=${start}`, `end=${end}`);
+  }
+  if (search?.trim()) params.push(`search=${encodeURIComponent(search.trim())}`);
+  const query = params.length ? `?${params.join('&')}` : '';
   const response = await apiRequest<LabsResponse>(
     `${apiBaseUrl}/customer/zones/${zoneId}/labs${query}`,
   );

@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React, { useEffect } from 'react';
 
 import { HomeScreen } from '../screens/HomeScreen';
+import { SearchScreen } from '../screens/SearchScreen';
 import { LabsScreen } from '../screens/LabsScreen';
 import { CitySearchScreen } from '../screens/CitySearchScreen';
 import { LabDetailsScreen } from '../screens/LabDetailsScreen';
@@ -33,6 +34,7 @@ export function HomeNavigator() {
       screenOptions={{ headerShown: false }}
     >
       <Stack.Screen name="HomeLanding" component={HomeScreen} />
+      <Stack.Screen name="Search" component={SearchScreen} />
       <Stack.Screen name="Labs" component={LabsScreen} />
       <Stack.Screen name="CitySearch" component={CitySearchScreen} />
       <Stack.Screen name="LabDetails" component={LabDetailsScreen} />

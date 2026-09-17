@@ -14,10 +14,13 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
+  ToastAndroid,
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -533,6 +536,15 @@ export function ReviewBookingScreen({ navigation }: Props) {
   }, [navigation, openAddresses, returnToAddresses]);
 
   const createAddress = () => {
+    if (!authToken) {
+      const message = 'Login required to add a new address.';
+      if (Platform.OS === 'android') {
+        ToastAndroid.show(message, ToastAndroid.SHORT);
+      } else {
+        Alert.alert('Login required', message);
+      }
+      return;
+    }
     setAddressesOpen(false);
     setReturnToAddresses(true);
     navigation

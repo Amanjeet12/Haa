@@ -14,6 +14,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { NavigationProp } from '@react-navigation/native';
 import {
   Image,
+  ImageBackground,
   ActivityIndicator,
   Modal,
   Pressable,
@@ -172,7 +173,10 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             <ChevronDown color={theme.colors.textMuted} size={18} />
           </Pressable>
 
-          <View
+          <Pressable
+            accessibilityLabel="Search tests and labs"
+            accessibilityRole="button"
+            onPress={() => navigation.navigate('Search')}
             style={[
               styles.searchBar,
               {
@@ -189,14 +193,28 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             >
               Search tests, products and care
             </AppText>
-          </View>
+          </Pressable>
 
           <LinearGradient
             colors={['#102A46', '#1B3550', '#7E4548']}
             end={{ x: 1, y: 1 }}
             style={styles.hero}
           >
-            <View style={styles.heroGlow} />
+            <ImageBackground
+              source={images.homeBanner}
+              resizeMode="cover"
+              style={styles.heroImage}
+              imageStyle={styles.heroImageCorners}
+            />
+            <LinearGradient
+              colors={[
+                'rgba(5,23,43,0.9)',
+                'rgba(10,37,62,0.54)',
+                'rgba(93,37,47,0.22)',
+              ]}
+              locations={[0, 0.56, 1]}
+              style={styles.heroImageOverlay}
+            />
             <AppText color="#FF8690" style={styles.eyebrow} weight="800">
               — DIAGNOSTICS, DONE DIFFERENTLY
             </AppText>
@@ -226,25 +244,12 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
               </AppText>
               <ChevronRight color="#FFFFFF" size={14} />
             </Pressable>
-            <View style={styles.heroArt}>
-              <FlaskConical
-                color="rgba(255,255,255,0.3)"
-                size={82}
-                strokeWidth={1.2}
-              />
-            </View>
+           
           </LinearGradient>
 
           <View style={styles.sectionHeader}>
             <AppText style={styles.sectionTitle} weight="800">
               Choose your care
-            </AppText>
-            <AppText
-              color={theme.colors.primary}
-              style={styles.viewAll}
-              weight="700"
-            >
-              View all
             </AppText>
           </View>
           <LinearGradient
@@ -278,19 +283,21 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
               icon={<ShoppingBasket color={theme.colors.text} size={18} />}
               eyebrow="QUICK COMMERCE"
               title="Essentials nearby."
-              status="15–25 min"
+              status="Coming soon"
               gradient={['#FFFFFF', '#E9FAF6']}
-              statusBackground="#D7F6EC"
-              statusColor="#087C67"
+              statusBackground={theme.colors.surfaceMuted}
+              statusColor={theme.colors.textMuted}
+              disabled
             />
             <ServiceCard
               icon={<Globe color={theme.colors.text} size={18} />}
               eyebrow="GLOBAL STORE"
               title="Always available."
-              status="Across India"
+              status="Coming soon"
               gradient={['#FFFFFF', '#FFF0F4']}
-              statusBackground={theme.colors.primarySoft}
-              statusColor={theme.colors.primary}
+              statusBackground={theme.colors.surfaceMuted}
+              statusColor={theme.colors.textMuted}
+              disabled
             />
           </View>
 
@@ -327,15 +334,18 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             <View style={styles.checkinRow}>
               <View
                 style={[
-                  styles.arrowButton,
-                  { backgroundColor: theme.colors.primary },
+                  styles.comingSoonPill,
+                  { backgroundColor: theme.colors.surface },
                 ]}
               >
-                <ChevronRight color="#FFFFFF" size={17} />
+                <AppText
+                  color={theme.colors.primary}
+                  style={styles.checkinText}
+                  weight="700"
+                >
+                  Coming soon
+                </AppText>
               </View>
-              <AppText style={styles.checkinText} weight="700">
-                Start your check-in
-              </AppText>
             </View>
             <View style={styles.ringOuter}>
               <View style={styles.ringInner} />
@@ -546,6 +556,7 @@ type ServiceCardProps = {
   gradient: string[];
   statusBackground: string;
   statusColor: string;
+  disabled?: boolean;
 };
 function ServiceCard(props: ServiceCardProps) {
   const { theme } = useAppTheme();
@@ -556,6 +567,7 @@ function ServiceCard(props: ServiceCardProps) {
       start={{ x: 0, y: 0 }}
       style={[
         styles.serviceCard,
+        props.disabled && styles.serviceCardDisabled,
         {
           borderColor: theme.colors.border,
           shadowColor: theme.colors.shadow,
@@ -644,6 +656,15 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 17,
   },
+  heroImage: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
+  heroImageCorners: { borderRadius: 20 },
+  heroImageOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
   heroGlow: {
     position: 'absolute',
     right: -40,
@@ -686,7 +707,6 @@ const styles = StyleSheet.create({
     marginBottom: 7,
   },
   sectionTitle: { fontSize: 16, lineHeight: 21, letterSpacing: -0.4 },
-  viewAll: { fontSize: 10, lineHeight: 14 },
   careCard: {
     minHeight: 132,
     flexDirection: 'row',
@@ -724,6 +744,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 10,
   },
+  serviceCardDisabled: { opacity: 0.68 },
   serviceIcon: {
     width: 31,
     height: 31,
@@ -771,12 +792,10 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 13,
   },
-  arrowButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+  comingSoonPill: {
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   checkinText: { fontSize: 10, lineHeight: 13 },
   ringOuter: {

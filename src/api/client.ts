@@ -1,4 +1,26 @@
+import NetInfo from '@react-native-community/netinfo';
+import { Alert, Platform, ToastAndroid } from 'react-native';
+
 import { appConfig } from '../config/app';
+
+let lastOfflineNoticeAt = 0;
+
+function showOfflineNotice() {
+  const now = Date.now();
+  if (now - lastOfflineNoticeAt < 3_000) return;
+  lastOfflineNoticeAt = now;
+
+  const message =
+    'No internet connection. Please check your network and try again.';
+  if (Platform.OS === 'android') {
+    ToastAndroid.show(message, ToastAndroid.SHORT);
+  } else {
+    Alert.alert(
+      'No internet connection',
+      'Please check your network and try again.',
+    );
+  }
+}
 
 export class ApiError extends Error {
   constructor(
@@ -19,6 +41,15 @@ export async function apiRequest<T>(
   url: string,
   options: RequestOptions = {},
 ): Promise<T> {
+  const networkState = await NetInfo.fetch();
+  if (
+    networkState.isConnected === false ||
+    networkState.isInternetReachable === false
+  ) {
+    showOfflineNotice();
+    throw new ApiError('No internet connection.', 0);
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(
     () => controller.abort(),
