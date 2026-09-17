@@ -11,6 +11,7 @@ import Sparkles from 'lucide-react-native/icons/sparkles';
 import X from 'lucide-react-native/icons/x';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { NavigationProp } from '@react-navigation/native';
 import {
   Image,
   ActivityIndicator,
@@ -26,7 +27,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { images } from '../assets/images';
 import { AppText, Screen } from '../components';
 import { useAppTheme } from '../theme';
-import { HomeStackParamList } from '../types/navigation';
+import { HomeStackParamList, RootStackParamList } from '../types/navigation';
 import { useAppDispatch, useAppSelector } from '../store';
 import { fetchZones, setSelectedZone } from '../store/zonesSlice';
 import { zoneAvailabilityLabel } from '../api/zones';
@@ -38,7 +39,10 @@ type ServiceLocation = {
   eta: string;
 };
 
-type HomeScreenProps = NativeStackScreenProps<HomeStackParamList, 'HomeLanding'>;
+type HomeScreenProps = NativeStackScreenProps<
+  HomeStackParamList,
+  'HomeLanding'
+>;
 
 export function HomeScreen({ navigation }: HomeScreenProps) {
   const { theme } = useAppTheme();
@@ -100,7 +104,12 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
               style={styles.logo}
             />
             <Pressable
-              onPress={() => setLocationOpen(true)}
+              onPress={() =>
+                navigation
+                  .getParent()
+                  ?.getParent<NavigationProp<RootStackParamList>>()
+                  ?.navigate('Support')
+              }
               style={[
                 styles.helpButton,
                 {
@@ -435,7 +444,11 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                       { backgroundColor: theme.colors.primary },
                     ]}
                   >
-                    <AppText color="#FFFFFF" style={styles.retryText} weight="700">
+                    <AppText
+                      color="#FFFFFF"
+                      style={styles.retryText}
+                      weight="700"
+                    >
                       Try again
                     </AppText>
                   </Pressable>
@@ -443,59 +456,62 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
               ) : null}
               {!locationsLoading && !locationsError
                 ? filteredLocations.map(location => {
-                const selected = location.id === selectedLocation?.id;
-                return (
-                  <Pressable
-                    key={location.id}
-                    onPress={() => chooseLocation(location)}
-                    style={({ pressed }) => [
-                      styles.locationOption,
-                      { borderBottomColor: theme.colors.border },
-                      pressed && styles.pressed,
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.locationOptionIcon,
-                        {
-                          backgroundColor: selected
-                            ? theme.colors.primary
-                            : theme.colors.primarySoft,
-                        },
-                      ]}
-                    >
-                      <MapPin
-                        color={selected ? '#FFFFFF' : theme.colors.primary}
-                        size={18}
-                      />
-                    </View>
-                    <View style={styles.locationOptionCopy}>
-                      <AppText
-                        style={styles.locationName}
-                        weight={selected ? '800' : '700'}
+                    const selected = location.id === selectedLocation?.id;
+                    return (
+                      <Pressable
+                        key={location.id}
+                        onPress={() => chooseLocation(location)}
+                        style={({ pressed }) => [
+                          styles.locationOption,
+                          { borderBottomColor: theme.colors.border },
+                          pressed && styles.pressed,
+                        ]}
                       >
-                        {location.name}
-                      </AppText>
-                      <AppText
-                        color={theme.colors.textMuted}
-                        style={styles.locationDetail}
-                      >
-                        {location.detail}
-                      </AppText>
-                      <View style={styles.availabilityRow}>
-                        <Clock3 color="#087C67" size={12} />
-                        <AppText
-                          color="#087C67"
-                          style={styles.availabilityText}
-                          weight="600"
+                        <View
+                          style={[
+                            styles.locationOptionIcon,
+                            {
+                              backgroundColor: selected
+                                ? theme.colors.primary
+                                : theme.colors.primarySoft,
+                            },
+                          ]}
                         >
-                          {location.eta}
-                        </AppText>
-                      </View>
-                    </View>
-                    <ChevronRight color={theme.colors.textMuted} size={18} />
-                  </Pressable>
-                );
+                          <MapPin
+                            color={selected ? '#FFFFFF' : theme.colors.primary}
+                            size={18}
+                          />
+                        </View>
+                        <View style={styles.locationOptionCopy}>
+                          <AppText
+                            style={styles.locationName}
+                            weight={selected ? '800' : '700'}
+                          >
+                            {location.name}
+                          </AppText>
+                          <AppText
+                            color={theme.colors.textMuted}
+                            style={styles.locationDetail}
+                          >
+                            {location.detail}
+                          </AppText>
+                          <View style={styles.availabilityRow}>
+                            <Clock3 color="#087C67" size={12} />
+                            <AppText
+                              color="#087C67"
+                              style={styles.availabilityText}
+                              weight="600"
+                            >
+                              {location.eta}
+                            </AppText>
+                          </View>
+                        </View>
+                        <ChevronRight
+                          color={theme.colors.textMuted}
+                          size={18}
+                        />
+                      </Pressable>
+                    );
                   })
                 : null}
               {!locationsLoading &&

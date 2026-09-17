@@ -1,5 +1,7 @@
 import CircleQuestionMark from 'lucide-react-native/icons/circle-question-mark';
 import ShoppingBag from 'lucide-react-native/icons/shopping-bag';
+import { useNavigation } from '@react-navigation/native';
+import type { NavigationProp } from '@react-navigation/native';
 import React from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -8,9 +10,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { images } from '../assets/images';
 import { AppText } from '../components';
 import { useAppTheme } from '../theme';
+import { RootStackParamList } from '../types/navigation';
 
 export function CartScreen() {
   const { theme } = useAppTheme();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   return (
     <LinearGradient
@@ -31,6 +35,7 @@ export function CartScreen() {
               style={styles.logo}
             />
             <Pressable
+              onPress={() => navigation.navigate('Support')}
               style={[
                 styles.helpButton,
                 {

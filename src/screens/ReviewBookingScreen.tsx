@@ -436,7 +436,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
     patientName,
   ]);
 
-  const loadFamilyMembers = async () => {
+  const loadFamilyMembers = useCallback(async () => {
     setMembersOpen(true);
     if (!authToken) {
       setMembersError('Sign in to select a saved family member.');
@@ -490,7 +490,15 @@ export function ReviewBookingScreen({ navigation }: Props) {
     } finally {
       setMembersLoading(false);
     }
-  };
+  }, [
+    authToken,
+    cart.items,
+    customer?.phone,
+    customer?.profilePhoto,
+    dispatch,
+    patientId,
+    patientName,
+  ]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -499,7 +507,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
       loadFamilyMembers();
     });
     return unsubscribe;
-  }, [navigation, returnToMembers]);
+  }, [loadFamilyMembers, navigation, returnToMembers]);
 
   const createFamilyMember = () => {
     setMembersOpen(false);
@@ -510,10 +518,10 @@ export function ReviewBookingScreen({ navigation }: Props) {
       ?.navigate('FamilyMemberForm');
   };
 
-  const openAddresses = () => {
+  const openAddresses = useCallback(() => {
     setAddressesOpen(true);
     loadAddresses();
-  };
+  }, [loadAddresses]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -522,7 +530,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
       openAddresses();
     });
     return unsubscribe;
-  }, [loadAddresses, navigation, returnToAddresses]);
+  }, [navigation, openAddresses, returnToAddresses]);
 
   const createAddress = () => {
     setAddressesOpen(false);

@@ -7,9 +7,18 @@ export type RootStackParamList = {
   Settings: undefined;
   BookingDetails: { booking: import('../api/bookings').CustomerBooking };
   AppearancePreferences: undefined;
-  FamilyMemberForm: { member?: import('../api/familyMembers').FamilyMember } | undefined;
+  FamilyMemberForm:
+    | { member?: import('../api/familyMembers').FamilyMember }
+    | undefined;
   Addresses: undefined;
-  AddressForm: { address?: import('../api/addresses').CustomerAddress } | undefined;
+  AddressForm:
+    | { address?: import('../api/addresses').CustomerAddress }
+    | undefined;
+  Support: undefined;
+  SupportCreate:
+    | { booking?: import('../api/bookings').CustomerBooking }
+    | undefined;
+  SupportDetail: { ticket: import('../api/support').SupportTicket };
 };
 
 export type MainTabParamList = {

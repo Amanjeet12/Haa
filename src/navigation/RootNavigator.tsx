@@ -21,6 +21,9 @@ import { AppearancePreferencesScreen } from '../screens/AppearancePreferencesScr
 import { FamilyMemberFormScreen } from '../screens/FamilyMemberFormScreen';
 import { AddressesScreen } from '../screens/AddressesScreen';
 import { AddressFormScreen } from '../screens/AddressFormScreen';
+import { SupportCreateScreen } from '../screens/SupportCreateScreen';
+import { SupportScreen } from '../screens/SupportScreen';
+import { SupportDetailScreen } from '../screens/SupportDetailScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -119,6 +122,21 @@ export function RootNavigator() {
             <Stack.Screen
               name="AddressForm"
               component={AddressFormScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="Support"
+              component={SupportScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="SupportCreate"
+              component={SupportCreateScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="SupportDetail"
+              component={SupportDetailScreen}
               options={{ headerShown: false }}
             />
           </>
