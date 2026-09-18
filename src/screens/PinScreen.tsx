@@ -58,9 +58,9 @@ export function PinScreen({ navigation, route }: Props) {
         <LockKeyhole color={theme.colors.primary} size={13} />
       </View>
 
-      <AppText variant="title" weight="800" style={styles.title}>
+      <AppText variant="title" weight="500" style={styles.title}>
         Enter your{' '}
-        <AppText variant="title" weight="800" color={theme.colors.primary}>
+        <AppText variant="title" weight="500" color={theme.colors.primary} style={{ fontSize: 36 }}>
           HAA PIN.
         </AppText>
       </AppText>
@@ -170,7 +170,7 @@ export function PinScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   spacerTop: {
     flex: 0.25,
-    minHeight: 42,
+    minHeight: 0,
   },
   badge: {
     alignSelf: 'flex-start',
@@ -186,8 +186,8 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
   title: {
-    fontSize: 29,
-    lineHeight: 32,
+    fontSize: 36,
+    lineHeight: 40,
     letterSpacing: -1.2,
     marginBottom: 8,
   },

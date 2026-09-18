@@ -2,7 +2,7 @@ export const palette = {
   brandNavy: '#08233D',
   brandRed: '#DF1F2D',
   brandRedDark: '#C91624',
-  brandBlush: '#FFF0F2',
+  brandBlush: '#FFE5E9',
   brandBlushStrong: '#FFE2E7',
   coolGray: '#EEF2F5',
   emerald50: '#ECFDF5',

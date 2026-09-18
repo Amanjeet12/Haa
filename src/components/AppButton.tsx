@@ -68,7 +68,7 @@ export function AppButton({
       ) : (
         <View style={styles.content}>
           {iconPosition === 'start' ? icon : null}
-          <AppText weight="700" color={contentColor}>
+          <AppText weight="800" color={contentColor} style={{ fontSize: 13 }}>
             {label}
           </AppText>
           {iconPosition === 'end' ? icon : null}

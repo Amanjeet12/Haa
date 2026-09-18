@@ -50,13 +50,13 @@ export function LoginScreen({ navigation }: Props) {
             color={theme.colors.primary}
             style={styles.badgeText}
           >
-            Confirming your lab booking
+            Continue your lab booking
           </AppText>
         </View>
 
-        <AppText variant="title" weight="800" style={styles.title}>
+        <AppText variant="title" weight="500" style={styles.title}>
           Your care, kept{`\n`}
-          <AppText variant="title" weight="800" color={theme.colors.primary}>
+          <AppText variant="title" weight="500" color={theme.colors.primary} style={{ fontSize: 36 }}>
             securely yours.
           </AppText>
         </AppText>
@@ -107,9 +107,8 @@ export function LoginScreen({ navigation }: Props) {
 
         <View style={styles.privacyNote}>
           <LockKeyhole color={theme.colors.textMuted} size={13} />
-          <AppText variant="caption" color={theme.colors.textMuted}>
-            We only verify this number before asking for your four-digit HAA
-            PIN.
+          <AppText variant="caption" color={theme.colors.textMuted} style={{fontSize: 11}}>
+           We will verify this number before asking for your four-digit HAA PIN.
           </AppText>
         </View>
       </View>
@@ -145,7 +144,7 @@ export function LoginScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   spacerTop: {
     flex: 0.32,
-    minHeight: 46,
+    minHeight: 0,
   },
   form: {
     gap: 10,
@@ -163,8 +162,8 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
   title: {
-    fontSize: 29,
-    lineHeight: 32,
+    fontSize: 36,
+    lineHeight: 40,
     letterSpacing: -1.2,
   },
   phoneField: {

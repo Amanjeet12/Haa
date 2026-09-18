@@ -220,9 +220,9 @@ export function LocationScreen({ navigation }: Props) {
         >
           — YOUR LOCATION SHAPES YOUR CARE
         </AppText>
-        <AppText variant="title" weight="800" style={styles.title}>
+        <AppText variant="title" weight="500" style={styles.title}>
           Where should we{' '}
-          <AppText variant="title" weight="800" color={theme.colors.primary}>
+          <AppText variant="title" weight="500" color={theme.colors.primary} style={{ fontSize: 36 }}>
             serve you?
           </AppText>
         </AppText>
@@ -406,11 +406,11 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     fontSize: 10,
-    letterSpacing: 0.8,
+    letterSpacing: 1.5,
   },
   title: {
-    fontSize: 29,
-    lineHeight: 31,
+    fontSize: 36,
+    lineHeight: 40,
     letterSpacing: -1.2,
   },
   searchArea: {

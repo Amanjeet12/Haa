@@ -13,7 +13,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Onboarding'>;
 export function OnboardingScreen({ navigation }: Props) {
   const { theme } = useAppTheme();
   const { width } = useWindowDimensions();
-  const artworkHeight = Math.min(width * 1.12, 410);
+  const artworkWidth = Math.min(width - 20, 410);
+  const artworkHeight = artworkWidth * (1555 / 1608);
 
   return (
     <AuthScaffold contentContainerStyle={styles.content}>
@@ -23,17 +24,25 @@ export function OnboardingScreen({ navigation }: Props) {
         accessibilityLabel="At-home labs, quick commerce, and global store"
         resizeMode="contain"
         source={images.onboardingCards}
-        style={[styles.artwork, { height: artworkHeight }]}
+        style={[
+          styles.artwork,
+          { height: artworkHeight, width: artworkWidth },
+        ]}
       />
 
       <View style={styles.copy}>
-        <AppText variant="title" weight="800" style={styles.title}>
+        <AppText variant="title" weight="500" style={styles.title}>
           Three ways to care.{`\n`}
-          <AppText variant="title" weight="800" color={theme.colors.primary}>
+          <AppText
+            variant="title"
+            weight="500"
+            color={theme.colors.primary}
+            style={{ fontSize: 36,  }}
+          >
             One HAA Health.
           </AppText>
         </AppText>
-        <AppText variant="caption" color={theme.colors.textMuted}>
+        <AppText variant="caption" color={theme.colors.textMuted} style={{ fontSize: 12 }}>
           Browse freely, choose what fits, and sign in only when you are ready
           to book or buy.
         </AppText>
@@ -66,7 +75,6 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   artwork: {
-    width: '124%',
     alignSelf: 'center',
     marginTop: 0,
     marginBottom: -6,
@@ -75,8 +83,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: {
-    fontSize: 28,
-    lineHeight: 31,
+    fontSize: 36,
+    lineHeight: 45,
     letterSpacing: -1.1,
   },
   dots: {
