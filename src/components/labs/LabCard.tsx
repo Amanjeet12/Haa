@@ -2,7 +2,7 @@ import BadgeCheck from 'lucide-react-native/icons/badge-check';
 import Clock3 from 'lucide-react-native/icons/clock-3';
 import FlaskConical from 'lucide-react-native/icons/flask-conical';
 import Star from 'lucide-react-native/icons/star';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Image,
   ImageBackground,
@@ -19,6 +19,9 @@ import { Lab } from './types';
 
 export function LabCard({ lab, onPress }: { lab: Lab; onPress?: () => void }) {
   const { theme } = useAppTheme();
+  const [logoSize, setLogoSize] = useState({ uri: '', aspectRatio: 1 });
+  const logoAspectRatio = logoSize.uri === lab.image ? logoSize.aspectRatio : 1;
+  const logoWidth = Math.min(44 * logoAspectRatio, 112);
   const canRenderLogo = lab.image && !lab.image.toLowerCase().endsWith('.svg');
   const fallbackCoverStyle = { backgroundColor: lab.accent };
 
@@ -53,19 +56,27 @@ export function LabCard({ lab, onPress }: { lab: Lab; onPress?: () => void }) {
               style={styles.coverDecoration}
             />
           ) : null}
-          <View style={styles.logo}>
+          <View
+            style={[
+              styles.logo,
+              { width: logoWidth, height: logoWidth / logoAspectRatio },
+            ]}
+          >
             {canRenderLogo ? (
               <Image
                 resizeMode="contain"
                 source={{ uri: lab.image }}
                 style={styles.logoImage}
+                onLoad={({ nativeEvent }) => {
+                  const { width, height } = nativeEvent.source;
+                  if (width > 0 && height > 0) {
+                    setLogoSize({ uri: lab.image ?? '', aspectRatio: width / height });
+                  }
+                }}
               />
             ) : (
               <FlaskConical color={theme.colors.primary} size={20} />
             )}
-            <AppText color="#08233D" numberOfLines={1} style={styles.logoText} weight="800">
-              {lab.name.split(' ')[0]}
-            </AppText>
           </View>
           {lab.verified || lab.partner ? (
             <View style={styles.verified}>
@@ -159,18 +170,14 @@ const styles = StyleSheet.create({
   imageGradient: { flex: 1, justifyContent: 'flex-end', padding: 13 },
   coverDecoration: { position: 'absolute', right: 22, top: 17 },
   logo: {
-    minWidth: 112,
-    maxWidth: 150,
-    height: 44,
+    alignSelf: 'flex-start',
     borderRadius: 11,
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    flexDirection: 'row',
+    overflow: 'hidden',
     alignItems: 'center',
-    gap: 7,
+    justifyContent: 'center',
   },
-  logoImage: { width: 34, height: 27 },
-  logoText: { flexShrink: 1, fontSize: 10, lineHeight: 13 },
+  logoImage: { width: '100%', height: '100%' },
   verified: {
     position: 'absolute',
     right: 10,
