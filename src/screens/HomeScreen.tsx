@@ -1,5 +1,6 @@
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import ChevronRight from 'lucide-react-native/icons/chevron-right';
+import ArrowRight from 'lucide-react-native/icons/arrow-right';
 import CircleQuestionMark from 'lucide-react-native/icons/circle-question-mark';
 import Clock3 from 'lucide-react-native/icons/clock-3';
 import Globe from 'lucide-react-native/icons/globe';
@@ -34,6 +35,7 @@ import { HomeStackParamList, RootStackParamList } from '../types/navigation';
 import { useAppDispatch, useAppSelector } from '../store';
 import { fetchZones, setSelectedZone } from '../store/zonesSlice';
 import { zoneAvailabilityLabel } from '../api/zones';
+import { getLabsByZone } from '../api/labs';
 
 type ServiceLocation = {
   id: string;
@@ -55,6 +57,11 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const zonesStatus = useAppSelector(state => state.zones.status);
   const locationsError = useAppSelector(state => state.zones.error);
   const [locationOpen, setLocationOpen] = useState(false);
+  const [accreditedLabCount, setAccreditedLabCount] = useState<number | null>(
+    null,
+  );
+  const [labCountError, setLabCountError] = useState(false);
+  const [labCountZoneId, setLabCountZoneId] = useState<number | null>(null);
   const serviceLocations = useMemo(
     () =>
       zones.map(zone => ({
@@ -78,6 +85,52 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   useEffect(() => {
     if (zonesStatus === 'idle') loadZones();
   }, [loadZones, zonesStatus]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!selectedZone?.zone_id) {
+      setAccreditedLabCount(null);
+      setLabCountError(false);
+      return () => {
+        active = false;
+      };
+    }
+
+    setAccreditedLabCount(null);
+    setLabCountError(false);
+    setLabCountZoneId(selectedZone.zone_id);
+    getLabsByZone(selectedZone.zone_id, 0, 19)
+      .then(page => {
+        if (!Number.isInteger(page.meta?.total) || page.meta.total < 0) {
+          throw new Error('Invalid lab total');
+        }
+        if (active) setAccreditedLabCount(page.meta.total);
+      })
+      .catch(() => {
+        if (active) setLabCountError(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedZone?.zone_id]);
+
+  const currentLabCount =
+    labCountZoneId === selectedZone?.zone_id ? accreditedLabCount : null;
+  const currentLabCountError =
+    labCountZoneId === selectedZone?.zone_id && labCountError;
+  const labCountLabel = !selectedZone
+    ? 'Choose your location'
+    : currentLabCountError
+    ? 'Lab availability unavailable'
+    : currentLabCount === null
+    ? 'Checking nearby labs...'
+    : `${currentLabCount} ${currentLabCount === 1 ? 'lab' : 'labs'} available`;
+  const nearbyLabsLabel =
+    currentLabCount === null
+      ? labCountLabel
+      : `${currentLabCount} ${currentLabCount === 1 ? 'lab' : 'labs'} near you`;
 
   const chooseLocation = (location: ServiceLocation) => {
     const zone = zones.find(item => String(item.zone_id) === location.id);
@@ -197,7 +250,8 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
           <LinearGradient
             colors={['#102A46', '#1B3550', '#7E4548']}
-            end={{ x: 1, y: 1 }}
+            end={{ x: 1, y: 0.5 }}
+            start={{ x: 0, y: 0.5 }}
             style={styles.hero}
           >
             <ImageBackground
@@ -212,20 +266,22 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                 'rgba(10,37,62,0.54)',
                 'rgba(93,37,47,0.22)',
               ]}
+              end={{ x: 1, y: 0.5 }}
               locations={[0, 0.56, 1]}
+              start={{ x: 0, y: 0.5 }}
               style={styles.heroImageOverlay}
             />
-            <AppText color="#FF8690" style={styles.eyebrow} weight="800">
-              — DIAGNOSTICS, DONE DIFFERENTLY
+            <AppText color="#FFA6B2" style={styles.eyebrow} weight="800">
+              — {nearbyLabsLabel.toUpperCase()}
             </AppText>
             <AppText color="#FFFFFF" style={styles.heroTitle} weight="500">
-              The same test.{`\n`}
-              <AppText color="#FF7884" style={styles.heroTitle} weight="500">
-                Clearer choices.
+              Compare first.{' '}
+              <AppText color="#FFA6B2" style={styles.heroTitle} weight="500">
+                Book{`\n`}with confidence.
               </AppText>
             </AppText>
             <AppText color="#D7E0E8" style={styles.heroBody}>
-              Compare trusted labs on price, parameters and report time.
+              See accreditation, report time and the complete price.
             </AppText>
             <Pressable
               accessibilityRole="button"
@@ -240,64 +296,74 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                 style={styles.heroButtonText}
                 weight="700"
               >
-                Book a test
+                Find labs
               </AppText>
-              <ChevronRight color="#FFFFFF" size={14} />
+              <ArrowRight color="#FFFFFF" size={14} />
             </Pressable>
-           
           </LinearGradient>
 
           <View style={styles.sectionHeader}>
-            <AppText style={styles.sectionTitle} weight="800">
-              Choose your care
+            <AppText style={styles.sectionTitle} weight="600"  >
+              Available for you
             </AppText>
           </View>
-          <LinearGradient
-            colors={['#071F35', '#123B50', '#6A3543']}
-            end={{ x: 1, y: 1 }}
-            style={styles.careCard}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Find home collection labs. ${labCountLabel}`}
+            onPress={() => navigation.navigate('Labs')}
+            style={({ pressed }) => pressed && styles.pressed}
           >
-            <ImageBackground
-              source={images.careImage}
-              resizeMode="cover"
-              style={styles.careImage}
-              imageStyle={styles.careImageCorners}
-            />
             <LinearGradient
-              colors={[
-                'rgba(4,25,43,0.96)',
-                'rgba(6,35,56,0.72)',
-                'rgba(40,23,35,0.2)',
-              ]}
+              colors={['#071F35', '#123B50', '#6A3543']}
               end={{ x: 1, y: 0.5 }}
-              locations={[0, 0.58, 1]}
               start={{ x: 0, y: 0.5 }}
-              style={styles.careImageOverlay}
-            />
-            <View style={styles.careCopy}>
-              <AppText color="#FF8B94" style={styles.eyebrow} weight="800">
-                AT-HOME LABS
-              </AppText>
-              <AppText color="#FFFFFF" style={styles.careTitle} weight="800">
-                Book your test,{`\n`}your way.
-              </AppText>
-              <AppText color="#C9D6E0" style={styles.careBody}>
-                6 accredited labs serve this address.
-              </AppText>
-              <View style={styles.availablePill}>
-                <AppText color="#087C67" style={styles.pillText} weight="700">
-                  Available today
+              style={styles.careCard}
+            >
+              <ImageBackground
+                source={images.careImage}
+                resizeMode="cover"
+                style={styles.careImage}
+                imageStyle={styles.careImageCorners}
+              />
+              <LinearGradient
+                colors={[
+                  'rgba(4,25,43,0.96)',
+                  'rgba(6,35,56,0.72)',
+                  'rgba(40,23,35,0.2)',
+                ]}
+                end={{ x: 1, y: 0.5 }}
+                locations={[0, 0.58, 1]}
+                start={{ x: 0, y: 0.5 }}
+                style={styles.careImageOverlay}
+              />
+              <View style={styles.careCopy}>
+                <AppText color="#FFA6B2" style={styles.eyebrow} weight="800">
+                  AT-HOME LABS
                 </AppText>
+                <AppText color="#FFFFFF" style={styles.careTitle} weight="800">
+                  Home collection in{`\n`}your zone.
+                </AppText>
+                <AppText color="#C9D6E0" style={styles.careBody}>
+                  Slots available tomorrow morning.
+                </AppText>
+                <View style={styles.availablePill}>
+                  <AppText color="#087C67" style={styles.pillText} weight="700">
+                    {currentLabCount !== null && currentLabCount > 0
+                      ? '● '
+                      : ''}
+                    {labCountLabel}
+                  </AppText>
+                </View>
               </View>
-            </View>
-          </LinearGradient>
+            </LinearGradient>
+          </Pressable>
 
           <View style={styles.serviceRow}>
             <ServiceCard
               icon={<ShoppingBasket color={theme.colors.text} size={18} />}
               eyebrow="QUICK COMMERCE"
               title="Essentials nearby."
-              status="Coming soon"
+              status="Join waitlist"
               gradient={
                 theme.isDark
                   ? [theme.colors.surface, '#14282A']
@@ -325,7 +391,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
           <AppText
             style={[styles.sectionTitle, styles.wellnessHeading]}
-            weight="800"
+            weight="600"
           >
             Make time for you
           </AppText>
@@ -695,7 +761,7 @@ const styles = StyleSheet.create({
     borderRadius: 95,
     backgroundColor: 'rgba(255,255,255,0.08)',
   },
-  eyebrow: { fontSize: 9, lineHeight: 12, letterSpacing: 0.6 },
+  eyebrow: { fontSize: 9, lineHeight: 12, letterSpacing: 1.15 },
   heroTitle: {
     marginTop: 12,
     fontSize: 23,
@@ -727,7 +793,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     marginBottom: 7,
   },
-  sectionTitle: { fontSize: 16, lineHeight: 21, letterSpacing: -0.4 },
+  sectionTitle: { fontSize: 18, lineHeight: 21, letterSpacing: -0.4 },
   careCard: {
     minHeight: 132,
     flexDirection: 'row',
