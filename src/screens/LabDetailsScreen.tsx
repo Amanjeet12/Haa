@@ -1,3 +1,4 @@
+import { formatINR } from '../utils/currency';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Search from 'lucide-react-native/icons/search';
 import ShieldCheck from 'lucide-react-native/icons/shield-check';
@@ -382,7 +383,7 @@ export function LabDetailsScreen({ navigation, route }: Props) {
               View cart
             </AppText>
             <AppText color="#C9D6E0" style={styles.cartMeta} weight="600">
-              {cartCount} item{cartCount === 1 ? '' : 's'} · ₹{cartTotal}
+              {cartCount} item{cartCount === 1 ? '' : 's'} · {formatINR(cartTotal)}
             </AppText>
             <AppText
               color="#94A3B8"

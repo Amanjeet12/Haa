@@ -1,3 +1,4 @@
+import { formatINR } from '../../utils/currency';
 import Check from 'lucide-react-native/icons/check';
 import Clock3 from 'lucide-react-native/icons/clock-3';
 import Droplets from 'lucide-react-native/icons/droplets';
@@ -92,10 +93,10 @@ export function LabTestCard({ item, selected, onPress, onBook }: Props) {
           </AppText>
           <View style={styles.priceRow}>
             <AppText style={styles.price} weight="800">
-              ₹{Number(item.offer_price)}
+              {formatINR(Number(item.offer_price))}
             </AppText>
             <AppText color={theme.colors.textMuted} style={styles.oldPrice}>
-              ₹{Number(item.normal_price)}
+              {formatINR(Number(item.normal_price))}
             </AppText>
           </View>
         </View>

@@ -1,3 +1,4 @@
+import { formatINR } from '../utils/currency';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import ChevronLeft from 'lucide-react-native/icons/chevron-left';
@@ -804,7 +805,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
                         <Trash color={theme.colors.textMuted} size={14} />
                       </Pressable>
                       <AppText style={styles.testPrice} weight="800">
-                        ₹{Number(entry.labTest.offer_price)}
+                        {formatINR(Number(entry.labTest.offer_price))}
                       </AppText>
                     </View>
                   </View>
@@ -1133,7 +1134,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
               Total payable
             </AppText>
             <AppText style={styles.total} weight="800">
-              ₹{total}
+              {formatINR(total)}
             </AppText>
             <AppText
               color={bookingError ? theme.colors.danger : '#078A73'}
@@ -1284,7 +1285,7 @@ function PatientGroup({
           </View>
           <View style={styles.groupTestRight}>
             <AppText style={styles.groupTestPrice} weight="800">
-              ₹{Number(labTest.offer_price)}
+              {formatINR(Number(labTest.offer_price))}
             </AppText>
             <Pressable
               hitSlop={10}
@@ -1401,7 +1402,7 @@ function SmartChoiceCard({
             </AppText>
           </View>
           <AppText style={styles.recommendationPrice} weight="800">
-            ₹{currentPrice}
+            {formatINR(currentPrice)}
           </AppText>
         </View>
         <View style={styles.versusRow}>
@@ -1417,7 +1418,7 @@ function SmartChoiceCard({
           {saving > 0 && (
             <View style={styles.savingPill}>
               <AppText color="#FFFFFF" style={styles.savingText} weight="800">
-                Save ₹{saving}
+                Save {formatINR(saving)}
                 {savingPercent ? ` (${savingPercent}%)` : ''}
               </AppText>
             </View>
@@ -1431,12 +1432,12 @@ function SmartChoiceCard({
             </AppText>
             <View style={styles.recommendedPriceBlock}>
               <AppText color="#08233D" style={styles.recommendedPrice} weight="800">
-                ₹{recommendation.total_test_final_amount}
+                {formatINR(recommendation.total_test_final_amount)}
               </AppText>
               {recommendation.total_test_normal_amount >
                 recommendation.total_test_final_amount && (
                 <AppText color="#94A3B8" style={styles.strikePrice}>
-                  ₹{recommendation.total_test_normal_amount}
+                  {formatINR(recommendation.total_test_normal_amount)}
                 </AppText>
               )}
             </View>

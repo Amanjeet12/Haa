@@ -1,3 +1,4 @@
+import { formatINR } from '../../utils/currency';
 import Clock3 from 'lucide-react-native/icons/clock-3';
 import Droplets from 'lucide-react-native/icons/droplets';
 import FlaskConical from 'lucide-react-native/icons/flask-conical';
@@ -261,11 +262,11 @@ export function TestDetailsSheet({
               </AppText>
               <View style={styles.priceRow}>
                 <AppText color="#FFFFFF" style={styles.price} weight="800">
-                  ₹{selected ? cartTotal : Number(item.offer_price)}
+                  {formatINR(selected ? cartTotal : Number(item.offer_price))}
                 </AppText>
                 {!selected ? (
                   <AppText color="#94A3B8" style={styles.oldPrice}>
-                    ₹{Number(item.normal_price)}
+                    {formatINR(Number(item.normal_price))}
                   </AppText>
                 ) : null}
               </View>

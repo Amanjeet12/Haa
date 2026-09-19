@@ -1,3 +1,4 @@
+import { formatINR } from '../../utils/currency';
 import BadgeCheck from 'lucide-react-native/icons/badge-check';
 import Clock3 from 'lucide-react-native/icons/clock-3';
 import FlaskConical from 'lucide-react-native/icons/flask-conical';
@@ -127,7 +128,7 @@ export function LabCard({ lab, onPress }: { lab: Lab; onPress?: () => void }) {
             From
           </AppText>
           <AppText style={styles.price} weight="800">
-            ₹{lab.price}
+            {formatINR(lab.price)}
           </AppText>
         </View>
 

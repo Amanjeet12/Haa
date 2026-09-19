@@ -1,3 +1,4 @@
+import { formatINR } from '../utils/currency';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import CalendarDays from 'lucide-react-native/icons/calendar-days';
 import ChevronLeft from 'lucide-react-native/icons/chevron-left';
@@ -295,7 +296,7 @@ export function BookingDetailsScreen({ navigation, route }: Props) {
                       </AppText>
                     </View>
                     <AppText style={styles.memberTotal} weight="800">
-                      ₹{member.total_offer_price}
+                      {formatINR(member.total_offer_price)}
                     </AppText>
                   </View>
                   {member.tests.map(test => (
@@ -315,7 +316,7 @@ export function BookingDetailsScreen({ navigation, route }: Props) {
                           </AppText>
                         </View>
                         <AppText style={styles.testPrice} weight="700">
-                          ₹{test.offer_price}
+                          {formatINR(test.offer_price)}
                         </AppText>
                       </View>
                     </View>
@@ -359,20 +360,20 @@ export function BookingDetailsScreen({ navigation, route }: Props) {
           >
             <InfoRow
               label="MRP total"
-              value={`₹${Number(booking.total_normal_amount)}`}
+              value={formatINR(booking.total_normal_amount)}
               muted
             />
             <InfoRow
               label="Discount"
-              value={`− ₹${
+              value={`− ${formatINR(
                 Number(booking.total_normal_amount) -
-                Number(booking.total_final_amount)
-              }`}
+                Number(booking.total_final_amount),
+              )}`}
               green
             />
             <InfoRow
               label="Amount paid"
-              value={`₹${Number(booking.total_final_amount)}`}
+              value={formatINR(booking.total_final_amount)}
               strong
             />
             <InfoRow

@@ -1,3 +1,4 @@
+import { formatINR } from '../utils/currency';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import CalendarDays from 'lucide-react-native/icons/calendar-days';
@@ -386,7 +387,7 @@ function BookingCard({
           </View>
         </View>
         <AppText style={styles.price} weight="800">
-          ₹{Number(booking.total_final_amount)}
+          {formatINR(Number(booking.total_final_amount))}
         </AppText>
       </View>
       <View style={styles.progressRow}>

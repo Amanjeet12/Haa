@@ -1,3 +1,4 @@
+import { formatINR } from '../utils/currency';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import ChevronLeft from 'lucide-react-native/icons/chevron-left';
 import ChevronRight from 'lucide-react-native/icons/chevron-right';
@@ -208,7 +209,7 @@ function SearchResult({ lab, onPress }: { lab: ApiLab; onPress: () => void }) {
       <AppText color={theme.colors.textMuted} numberOfLines={1} style={styles.testName}>{minimum?.test?.test_name ?? 'Diagnostic tests available'}</AppText>
       <View style={styles.resultMeta}><Star color="#D97706" fill="#D97706" size={12} /><AppText style={styles.metaText} weight="700">{Number(lab.avg_rating ?? 0).toFixed(1)}</AppText><Clock3 color={theme.colors.textMuted} size={12} /><AppText color={theme.colors.textMuted} style={styles.metaText}>{minimum?.test_timing ?? 'Contact lab'}</AppText></View>
     </View>
-    <View style={styles.priceBlock}><AppText color={theme.colors.textMuted} style={styles.fromText}>From</AppText><AppText color={theme.colors.primary} style={styles.priceText} weight="800">₹{price}</AppText>{oldPrice > price ? <AppText color={theme.colors.textMuted} style={styles.oldPrice}>₹{oldPrice}</AppText> : null}</View>
+    <View style={styles.priceBlock}><AppText color={theme.colors.textMuted} style={styles.fromText}>From</AppText><AppText color={theme.colors.primary} style={styles.priceText} weight="800">{formatINR(price)}</AppText>{oldPrice > price ? <AppText color={theme.colors.textMuted} style={styles.oldPrice}>{formatINR(oldPrice)}</AppText> : null}</View>
     <ChevronRight color={theme.colors.textMuted} size={18} />
   </Pressable>;
 }
