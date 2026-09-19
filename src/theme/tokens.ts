@@ -22,6 +22,7 @@ export const palette = {
   amber500: '#F59E0B',
   red500: '#EF4444',
   slate300: '#fecdd3',
+  brandBlushLight: '#FFF0F3',
 } as const;
 
 export const spacing = {

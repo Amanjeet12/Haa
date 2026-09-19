@@ -7,48 +7,78 @@ Geolocation.setRNConfiguration({
   skipPermissionRequests: true,
   authorizationLevel: 'whenInUse',
   enableBackgroundLocationUpdates: false,
+  locationProvider: 'playServices',
 });
 
-async function requestLocationPermission() {
+type LocationPermission = 'fine' | 'coarse' | null;
+
+async function requestLocationPermission(): Promise<LocationPermission> {
   if (Platform.OS === 'ios') {
-    return new Promise<boolean>(resolve => {
+    return new Promise<LocationPermission>(resolve => {
       Geolocation.requestAuthorization(
-        () => resolve(true),
-        () => resolve(false),
+        () => resolve('fine'),
+        () => resolve(null),
       );
     });
   }
 
   if (Platform.OS === 'android') {
-    const result = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-      {
-        title: 'Allow location access',
-        message:
-          'Haa Health uses your location to find care and delivery options near you.',
-        buttonPositive: 'Allow',
-        buttonNegative: 'Not now',
-      },
-    );
+    const finePermission = PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION;
+    const coarsePermission =
+      PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION;
+    const [hasFine, hasCoarse] = await Promise.all([
+      PermissionsAndroid.check(finePermission),
+      PermissionsAndroid.check(coarsePermission),
+    ]);
 
-    return result === PermissionsAndroid.RESULTS.GRANTED;
+    if (hasFine) return 'fine';
+    if (hasCoarse) return 'coarse';
+
+    const results = await PermissionsAndroid.requestMultiple([
+      finePermission,
+      coarsePermission,
+    ]);
+
+    if (results[finePermission] === PermissionsAndroid.RESULTS.GRANTED) {
+      return 'fine';
+    }
+    if (results[coarsePermission] === PermissionsAndroid.RESULTS.GRANTED) {
+      return 'coarse';
+    }
   }
 
-  return false;
+  return null;
+}
+
+function readCurrentPosition(
+  enableHighAccuracy: boolean,
+  timeout: number,
+  maximumAge: number,
+) {
+  return new Promise<GeolocationResponse>((resolve, reject) => {
+    Geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy,
+      timeout,
+      maximumAge,
+    });
+  });
 }
 
 export async function getCurrentLocation(): Promise<GeolocationResponse> {
-  const hasPermission = await requestLocationPermission();
+  const permission = await requestLocationPermission();
 
-  if (!hasPermission) {
+  if (!permission) {
     throw new Error('Location permission was not granted.');
   }
 
-  return new Promise((resolve, reject) => {
-    Geolocation.getCurrentPosition(resolve, reject, {
-      enableHighAccuracy: true,
-      timeout: 15_000,
-      maximumAge: 10_000,
-    });
-  });
+  if (permission === 'fine') {
+    try {
+      return await readCurrentPosition(true, 15_000, 60_000);
+    } catch {
+      // GPS fixes can be slow or unavailable on older phones and indoors.
+      // Fall back to the network provider and allow a recent cached fix.
+    }
+  }
+
+  return readCurrentPosition(false, 20_000, 10 * 60_000);
 }

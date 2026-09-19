@@ -348,7 +348,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
               gradient={
                 theme.isDark
                   ? [theme.colors.surface, '#291A24']
-                  : ['#FFFFFF', '#FFF0F4']
+                  : ['#FFFFFF', '#D9DADD']
               }
               statusBackground={theme.colors.surfaceMuted}
               statusColor={theme.colors.textMuted}
@@ -366,7 +366,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             style={[
               styles.wellnessCard,
               {
-                backgroundColor: theme.colors.primarySoft,
+                backgroundColor: theme.colors.primarySoft2,
                 borderColor: '#F7CBD1',
                 shadowColor: theme.colors.shadow,
               },
@@ -389,18 +389,15 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             <View style={styles.checkinRow}>
               <View
                 style={[
-                  styles.comingSoonPill,
-                  { backgroundColor: theme.colors.surface },
+                  styles.checkinIcon,
+                  { backgroundColor: theme.colors.primary },
                 ]}
               >
-                <AppText
-                  color={theme.colors.primary}
-                  style={styles.checkinText}
-                  weight="700"
-                >
-                  Coming soon
-                </AppText>
+                <ArrowRight color="#FFFFFF" size={18} />
               </View>
+              <AppText style={styles.checkinText} weight="800">
+                Coming soon
+              </AppText>
             </View>
             <View style={styles.ringOuter}>
               <View style={styles.ringInner} />
@@ -846,53 +843,55 @@ const styles = StyleSheet.create({
   },
   wellnessHeading: { marginTop: 15, marginBottom: 7 },
   wellnessCard: {
-    minHeight: 170,
+    minHeight: 190,
     overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 20,
-    padding: 17,
+    borderWidth: 1,
+    borderRadius: 22,
+    padding: 21,
     elevation: 4,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
   },
   wellnessTitle: {
-    marginTop: 10,
-    fontSize: 21,
-    lineHeight: 20,
+    marginTop: 12,
+    fontSize: 22,
+    lineHeight: 23,
     letterSpacing: -0.5,
   },
-  wellnessBody: { width: '60%', marginTop: 8, fontSize: 9, lineHeight: 13 },
+  wellnessBody: { width: '67%', marginTop: 10, fontSize: 10, lineHeight: 15 },
   checkinRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 13,
+    gap: 10,
+    marginTop: 16,
   },
-  comingSoonPill: {
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  checkinIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  checkinText: { fontSize: 10, lineHeight: 13 },
+  checkinText: { fontSize: 12, lineHeight: 15 },
   ringOuter: {
     position: 'absolute',
-    right: -30,
-    bottom: -65,
-    width: 165,
-    height: 165,
-    borderRadius: 83,
-    borderWidth: 20,
+    right: -18,
+    bottom: -70,
+    width: 185,
+    height: 185,
+    borderRadius: 93,
+    borderWidth: 22,
     borderColor: 'rgba(223,31,45,0.13)',
   },
   ringInner: {
     position: 'absolute',
-    top: 17,
-    left: 17,
-    right: 17,
-    bottom: 17,
-    borderRadius: 62,
-    borderWidth: 14,
+    top: 20,
+    left: 20,
+    right: 20,
+    bottom: 20,
+    borderRadius: 72,
+    borderWidth: 16,
     borderColor: 'rgba(8,35,61,0.1)',
   },
   modalRoot: { flex: 1, justifyContent: 'flex-end' },

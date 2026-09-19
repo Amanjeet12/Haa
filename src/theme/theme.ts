@@ -7,6 +7,7 @@ export type ThemeColors = {
   primary: string;
   primaryPressed: string;
   primarySoft: string;
+  primarySoft2: string;
   text: string;
   textMuted: string;
   border: string;
@@ -75,6 +76,7 @@ export const lightTheme: AppTheme = {
     gradientStart: palette.brandBlush,
     gradientEnd: palette.coolGray,
     border2: palette.slate300,
+    primarySoft2: palette.brandBlushLight,
   },
   spacing,
   radius,
@@ -102,5 +104,6 @@ export const darkTheme: AppTheme = {
     gradientStart: '#281A20',
     gradientEnd: '#0E111A',
     border2: '#1C1F2A',
+    primarySoft2: palette.brandBlushLight,
   },
 };
