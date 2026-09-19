@@ -4,4 +4,5 @@ export * from './AuthScaffold';
 export * from './BrandMark';
 export * from './Card';
 export * from './HaaLogo';
+export * from './BottomTabHeader';
 export * from './Screen';

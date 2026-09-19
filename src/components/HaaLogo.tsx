@@ -10,13 +10,13 @@ type HaaLogoProps = {
 
 export function HaaLogo({ style }: HaaLogoProps) {
   const { theme } = useAppTheme();
-  
+
   return (
     <Image
       accessibilityLabel="Haa Health"
       resizeMode="contain"
       source={images.logo}
-      style={[styles.logo, theme.isDark && styles.nightLogo]}
+      style={[styles.logo, theme.isDark && styles.nightLogo, style]}
     />
   );
 }

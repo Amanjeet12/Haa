@@ -15,13 +15,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
-  ToastAndroid,
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -63,7 +60,11 @@ import {
   upsertCartBeneficiary,
 } from '../store/cartSlice';
 import { requestBookingLogin } from '../store/authSlice';
-import { screenGradientColors, screenGradientLocations, useAppTheme } from '../theme';
+import {
+  screenGradientColors,
+  screenGradientLocations,
+  useAppTheme,
+} from '../theme';
 import { HomeStackParamList, RootStackParamList } from '../types/navigation';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'ReviewBooking'>;
@@ -268,9 +269,25 @@ export function ReviewBookingScreen({ navigation }: Props) {
   const selectedAddress =
     addresses.find(item => item.address_id === selectedAddressId) ?? null;
 
+  const goToLogin = () => {
+    dispatch(requestBookingLogin());
+    navigation
+      .getParent()
+      ?.getParent<NativeStackNavigationProp<RootStackParamList>>()
+      ?.navigate('Login');
+  };
+
+  const runAuthenticatedAction = (action: () => void) => {
+    if (!authToken) {
+      goToLogin();
+      return;
+    }
+    action();
+  };
+
   const proceedToPayment = async () => {
     if (!authToken || !customer) {
-      setBookingError('Please log in before continuing to payment.');
+      goToLogin();
       return;
     }
     if (!selectedSlotId) {
@@ -538,12 +555,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
 
   const createAddress = () => {
     if (!authToken) {
-      const message = 'Login required to add a new address.';
-      if (Platform.OS === 'android') {
-        ToastAndroid.show(message, ToastAndroid.SHORT);
-      } else {
-        Alert.alert('Login required', message);
-      }
+      goToLogin();
       return;
     }
     setAddressesOpen(false);
@@ -637,15 +649,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
                   </AppText>
                 </View>
                 <Pressable
-                  onPress={() => {
-                    dispatch(requestBookingLogin());
-                    navigation
-                      .getParent()
-                      ?.getParent<
-                        NativeStackNavigationProp<RootStackParamList>
-                      >()
-                      ?.navigate('Login');
-                  }}
+                  onPress={goToLogin}
                   style={[
                     styles.loginButton,
                     { backgroundColor: theme.colors.primary },
@@ -865,11 +869,13 @@ export function ReviewBookingScreen({ navigation }: Props) {
               selectedTestCount={selectedTestIds.length}
               recommendation={recommendation}
               onSwitch={() =>
-                dispatch(
-                  switchCartLab({
-                    labName: recommendation.lab_name,
-                    tests: recommendation.tests,
-                  }),
+                runAuthenticatedAction(() =>
+                  dispatch(
+                    switchCartLab({
+                      labName: recommendation.lab_name,
+                      tests: recommendation.tests,
+                    }),
+                  ),
                 )
               }
             />
@@ -885,7 +891,9 @@ export function ReviewBookingScreen({ navigation }: Props) {
                 return (
                   <Pressable
                     key={date.toISOString()}
-                    onPress={() => setSelectedDay(index)}
+                    onPress={() =>
+                      runAuthenticatedAction(() => setSelectedDay(index))
+                    }
                     style={[
                       styles.date,
                       {
@@ -924,7 +932,12 @@ export function ReviewBookingScreen({ navigation }: Props) {
               })}
             </View>
             {slotsLoading ? (
-              <View style={[styles.slotStatus, { backgroundColor: theme.colors.surfaceMuted }]}>
+              <View
+                style={[
+                  styles.slotStatus,
+                  { backgroundColor: theme.colors.surfaceMuted },
+                ]}
+              >
                 <ActivityIndicator color={theme.colors.primary} size="small" />
                 <AppText
                   color={theme.colors.textMuted}
@@ -934,7 +947,12 @@ export function ReviewBookingScreen({ navigation }: Props) {
                 </AppText>
               </View>
             ) : slotsError ? (
-              <View style={[styles.slotStatus, { backgroundColor: theme.colors.surfaceMuted }]}>
+              <View
+                style={[
+                  styles.slotStatus,
+                  { backgroundColor: theme.colors.surfaceMuted },
+                ]}
+              >
                 <AppText
                   color={theme.colors.textMuted}
                   style={styles.slotStatusText}
@@ -952,19 +970,27 @@ export function ReviewBookingScreen({ navigation }: Props) {
                     <Pressable
                       key={slot.slot_id}
                       disabled={!bookable}
-                      onPress={() => setSelectedSlotId(slot.slot_id)}
+                      onPress={() =>
+                        runAuthenticatedAction(() =>
+                          setSelectedSlotId(slot.slot_id),
+                        )
+                      }
                       style={[
                         styles.time,
                         {
                           borderColor: active
                             ? theme.colors.success
                             : bookable
-                            ? theme.isDark ? '#2F7669' : '#8BD8C8'
+                            ? theme.isDark
+                              ? '#2F7669'
+                              : '#8BD8C8'
                             : theme.colors.border,
                           backgroundColor: active
                             ? theme.colors.success
                             : bookable
-                            ? theme.isDark ? '#123A34' : '#EEFAF6'
+                            ? theme.isDark
+                              ? '#123A34'
+                              : '#EEFAF6'
                             : theme.colors.surface,
                           opacity: bookable ? 1 : 0.45,
                         },
@@ -975,7 +1001,9 @@ export function ReviewBookingScreen({ navigation }: Props) {
                           active
                             ? '#FFFFFF'
                             : bookable
-                            ? theme.isDark ? '#5EEAD4' : '#078A73'
+                            ? theme.isDark
+                              ? '#5EEAD4'
+                              : '#078A73'
                             : theme.colors.textMuted
                         }
                         style={styles.timeText}
@@ -988,7 +1016,9 @@ export function ReviewBookingScreen({ navigation }: Props) {
                           active
                             ? '#FFFFFF'
                             : bookable
-                            ? theme.isDark ? '#5EEAD4' : '#078A73'
+                            ? theme.isDark
+                              ? '#5EEAD4'
+                              : '#078A73'
                             : theme.colors.textMuted
                         }
                         style={styles.slotCount}
@@ -1007,7 +1037,12 @@ export function ReviewBookingScreen({ navigation }: Props) {
                 })}
               </View>
             ) : (
-              <View style={[styles.slotStatus, { backgroundColor: theme.colors.surfaceMuted }]}>
+              <View
+                style={[
+                  styles.slotStatus,
+                  { backgroundColor: theme.colors.surfaceMuted },
+                ]}
+              >
                 <AppText
                   color={theme.colors.textMuted}
                   style={styles.slotStatusText}
@@ -1023,7 +1058,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
             subtitle="Where should our phlebotomist visit?"
           >
             <Pressable
-              onPress={openAddresses}
+              onPress={() => runAuthenticatedAction(openAddresses)}
               style={[
                 styles.address,
                 { backgroundColor: theme.colors.surfaceMuted },
@@ -1427,11 +1462,19 @@ function SmartChoiceCard({
             TOP RATED
           </AppText>
           <View style={styles.recommendedNameRow}>
-            <AppText color="#08233D" style={styles.recommendedName} weight="800">
+            <AppText
+              color="#08233D"
+              style={styles.recommendedName}
+              weight="800"
+            >
               {recommendation.lab_name}
             </AppText>
             <View style={styles.recommendedPriceBlock}>
-              <AppText color="#08233D" style={styles.recommendedPrice} weight="800">
+              <AppText
+                color="#08233D"
+                style={styles.recommendedPrice}
+                weight="800"
+              >
                 {formatINR(recommendation.total_test_final_amount)}
               </AppText>
               {recommendation.total_test_normal_amount >

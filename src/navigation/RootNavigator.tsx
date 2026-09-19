@@ -106,11 +106,6 @@ export function RootNavigator() {
               options={{ headerShown: false }}
             />
             <Stack.Screen
-              name="AppearancePreferences"
-              component={AppearancePreferencesScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
               name="FamilyMemberForm"
               component={FamilyMemberFormScreen}
               options={{ headerShown: false }}
@@ -165,6 +160,11 @@ export function RootNavigator() {
         <Stack.Screen
           name="Support"
           component={HelpScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="AppearancePreferences"
+          component={AppearancePreferencesScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

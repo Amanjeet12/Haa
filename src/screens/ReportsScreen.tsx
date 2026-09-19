@@ -1,7 +1,6 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import ArrowRight from 'lucide-react-native/icons/arrow-right';
-import CircleQuestionMark from 'lucide-react-native/icons/circle-question-mark';
 import FileText from 'lucide-react-native/icons/file-text';
 import React, { useCallback, useState } from 'react';
 import {
@@ -16,9 +15,13 @@ import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CustomerBooking, getCustomerBookings } from '../api/bookings';
-import { AppText, HaaLogo } from '../components';
+import { AppText, BottomTabHeader } from '../components';
 import { useAppSelector } from '../store';
-import { screenGradientColors, screenGradientLocations, useAppTheme } from '../theme';
+import {
+  screenGradientColors,
+  screenGradientLocations,
+  useAppTheme,
+} from '../theme';
 import { RootStackParamList } from '../types/navigation';
 
 export function ReportsScreen() {
@@ -72,28 +75,7 @@ export function ReportsScreen() {
           }
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
-            <HaaLogo style={styles.logo} />
-            <Pressable
-              onPress={() => navigation.navigate('Support')}
-              style={[
-                styles.helpButton,
-                {
-                  backgroundColor: theme.colors.primarySoft,
-                  borderColor: theme.colors.border2,
-                },
-              ]}
-            >
-              <CircleQuestionMark color={theme.colors.primary} size={15} />
-              <AppText
-                color={theme.colors.primary}
-                style={styles.helpText}
-                weight="700"
-              >
-                Need help?
-              </AppText>
-            </Pressable>
-          </View>
+          <BottomTabHeader />
           <AppText
             color={theme.colors.primary}
             style={styles.eyebrow}
@@ -296,23 +278,6 @@ function StateCard({
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 110 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  logo: { width: 74, height: 40 },
-  helpButton: {
-    height: 34,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-  },
-  helpText: { fontSize: 11, lineHeight: 14 },
   eyebrow: { fontSize: 9, lineHeight: 12, letterSpacing: 0.8, marginBottom: 4 },
   title: { fontSize: 25, lineHeight: 29, letterSpacing: -0.8 },
   subtitle: { marginTop: 4, maxWidth: 310, fontSize: 10, lineHeight: 14 },

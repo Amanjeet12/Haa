@@ -1,7 +1,6 @@
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import ChevronRight from 'lucide-react-native/icons/chevron-right';
 import ArrowRight from 'lucide-react-native/icons/arrow-right';
-import CircleQuestionMark from 'lucide-react-native/icons/circle-question-mark';
 import Clock3 from 'lucide-react-native/icons/clock-3';
 import Globe from 'lucide-react-native/icons/globe';
 import MapPin from 'lucide-react-native/icons/map-pin';
@@ -10,7 +9,6 @@ import ShoppingBasket from 'lucide-react-native/icons/shopping-basket';
 import X from 'lucide-react-native/icons/x';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { NavigationProp } from '@react-navigation/native';
 import {
   ImageBackground,
   ActivityIndicator,
@@ -24,13 +22,13 @@ import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { images } from '../assets/images';
-import { AppText, HaaLogo, Screen } from '../components';
+import { AppText, BottomTabHeader, Screen } from '../components';
 import {
   screenGradientColors,
   screenGradientLocations,
   useAppTheme,
 } from '../theme';
-import { HomeStackParamList, RootStackParamList } from '../types/navigation';
+import { HomeStackParamList } from '../types/navigation';
 import { useAppDispatch, useAppSelector } from '../store';
 import { fetchZones, setSelectedZone } from '../store/zonesSlice';
 import { zoneAvailabilityLabel } from '../api/zones';
@@ -150,33 +148,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
           backgroundColor="transparent"
           contentContainerStyle={styles.content}
         >
-          <View style={styles.header}>
-            <HaaLogo style={styles.logo} />
-            <Pressable
-              onPress={() =>
-                navigation
-                  .getParent()
-                  ?.getParent<NavigationProp<RootStackParamList>>()
-                  ?.navigate('Support')
-              }
-              style={[
-                styles.helpButton,
-                {
-                  backgroundColor: theme.colors.primarySoft,
-                  borderColor: theme.colors.border2,
-                },
-              ]}
-            >
-              <CircleQuestionMark color={theme.colors.primary} size={15} />
-              <AppText
-                color={theme.colors.primary}
-                style={styles.helpText}
-                weight="700"
-              >
-                Need help?
-              </AppText>
-            </Pressable>
-          </View>
+          <BottomTabHeader />
 
           <Pressable
             accessibilityHint="Shows available service locations"
@@ -298,7 +270,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
           </LinearGradient>
 
           <View style={styles.sectionHeader}>
-            <AppText style={styles.sectionTitle} weight="600"  >
+            <AppText style={styles.sectionTitle} weight="600">
               Available for you
             </AppText>
           </View>
@@ -643,20 +615,38 @@ type ServiceCardProps = {
 };
 function ServiceCard(props: ServiceCardProps) {
   const { theme } = useAppTheme();
+  const gradientColors = props.disabled
+    ? theme.isDark
+      ? [theme.colors.surfaceMuted, theme.colors.surface]
+      : ['#F7F7F5', '#FBFBF9']
+    : props.gradient;
+
   return (
     <LinearGradient
-      colors={props.gradient}
+      colors={gradientColors}
       end={{ x: 1, y: 1 }}
       start={{ x: 0, y: 0 }}
       style={[
         styles.serviceCard,
+        props.disabled && styles.serviceCardDisabled,
         {
           borderColor: theme.colors.border,
-          shadowColor: theme.colors.shadow,
+          shadowColor: props.disabled ? 'transparent' : theme.colors.shadow,
         },
       ]}
     >
-      <View style={styles.serviceIcon}>{props.icon}</View>
+      <View
+        style={[
+          styles.serviceIcon,
+          props.disabled && {
+            backgroundColor: theme.isDark
+              ? theme.colors.surfaceMuted
+              : '#FFFFFF',
+          },
+        ]}
+      >
+        {props.icon}
+      </View>
       <AppText
         color={theme.colors.textMuted}
         style={styles.serviceEyebrow}
@@ -668,7 +658,16 @@ function ServiceCard(props: ServiceCardProps) {
         {props.title}
       </AppText>
       <View
-        style={[styles.statusPill, { backgroundColor: props.statusBackground }]}
+        style={[
+          styles.statusPill,
+          {
+            backgroundColor: props.disabled
+              ? theme.isDark
+                ? theme.colors.surfaceMuted
+                : '#ECEDEB'
+              : props.statusBackground,
+          },
+        ]}
       >
         <AppText color={props.statusColor} style={styles.pillText} weight="700">
           {props.status}
@@ -681,22 +680,6 @@ function ServiceCard(props: ServiceCardProps) {
 const styles = StyleSheet.create({
   screenGradient: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  logo: { width: 74, height: 40 },
-  helpButton: {
-    height: 34,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-  },
-  helpText: { fontSize: 11, lineHeight: 14 },
   addressRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -826,36 +809,40 @@ const styles = StyleSheet.create({
   serviceRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
   serviceCard: {
     flex: 1,
-    minHeight: 125,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 16,
-    padding: 12,
+    minHeight: 150,
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 14,
     elevation: 4,
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
   },
+  serviceCardDisabled: {
+    elevation: 0,
+    shadowOpacity: 0,
+  },
   serviceIcon: {
-    width: 31,
-    height: 31,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: '#FFFFFF',
   },
   serviceEyebrow: {
-    marginTop: 10,
-    fontSize: 8,
-    lineHeight: 10,
-    letterSpacing: 0.4,
+    marginTop: 14,
+    fontSize: 9,
+    lineHeight: 11,
+    letterSpacing: 0.8,
   },
-  serviceTitle: { marginTop: 3, fontSize: 13, lineHeight: 17 },
+  serviceTitle: { marginTop: 5, fontSize: 15, lineHeight: 19 },
   statusPill: {
     alignSelf: 'flex-start',
-    marginTop: 8,
-    borderRadius: 7,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
+    marginTop: 10,
+    borderRadius: 9,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
   },
   wellnessHeading: { marginTop: 15, marginBottom: 7 },
   wellnessCard: {

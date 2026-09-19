@@ -6,7 +6,6 @@ import CircleQuestionMark from 'lucide-react-native/icons/circle-question-mark';
 import FileText from 'lucide-react-native/icons/file-text';
 import LogOut from 'lucide-react-native/icons/log-out';
 import MapPin from 'lucide-react-native/icons/map-pin';
-import PackageOpen from 'lucide-react-native/icons/package-open';
 import Plus from 'lucide-react-native/icons/plus';
 import Settings from 'lucide-react-native/icons/settings';
 import React, { useCallback, useState } from 'react';
@@ -21,7 +20,7 @@ import {
 } from '../api/addresses';
 import { CustomerBooking, getCustomerBookings } from '../api/bookings';
 import { FamilyMember, getFamilyMembers } from '../api/familyMembers';
-import { AppText, HaaLogo } from '../components';
+import { AppText, BottomTabHeader } from '../components';
 import { useAppDispatch, useAppSelector } from '../store';
 import { signOut } from '../store/authSlice';
 import {
@@ -89,32 +88,7 @@ export function ProfileScreen() {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
-            <HaaLogo style={styles.logo} />
-            <Pressable
-              onPress={() =>
-                navigation
-                  .getParent<NavigationProp<RootStackParamList>>()
-                  ?.navigate('Support')
-              }
-              style={[
-                styles.helpButton,
-                {
-                  backgroundColor: theme.colors.primarySoft,
-                  borderColor: theme.colors.border2,
-                },
-              ]}
-            >
-              <CircleQuestionMark color={theme.colors.primary} size={15} />
-              <AppText
-                color={theme.colors.primary}
-                style={styles.helpText}
-                weight="700"
-              >
-                Need help?
-              </AppText>
-            </Pressable>
-          </View>
+          <BottomTabHeader />
           <AppText
             color={theme.colors.primary}
             style={styles.eyebrow}
@@ -324,37 +298,39 @@ export function ProfileScreen() {
                   </AppText>
                 </Pressable>
               </ScrollView>
+            </>
+          )}
 
-              <SectionTitle title="Your health and orders" />
-              <View
-                style={[
-                  styles.menuCard,
-                  {
-                    backgroundColor: theme.colors.surface,
-                    borderColor: theme.colors.border,
-                  },
-                ]}
-              >
-                <MenuRow
-                  icon={<FileText color="#D64A5B" size={17} />}
-                  color="#FFF0F2"
-                  title="Reports and health records"
-                  subtitle={`${readyReports} ready · ${Math.max(
-                    bookings.length - readyReports,
-                    0,
-                  )} processing`}
-                  count={readyReports}
-                  onPress={() => navigation.navigate('Reports')}
-                />
-                <MenuRow
-                  icon={<CalendarDays color="#D64A5B" size={17} />}
-                  color="#FFF0F2"
-                  title="Bookings"
-                  subtitle="Current and previous lab bookings"
-                  count={bookings.length}
-                  onPress={() => navigation.navigate('Bookings')}
-                />
-                {/* <MenuRow
+          <SectionTitle title="Your health and orders" />
+          <View
+            style={[
+              styles.menuCard,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            <MenuRow
+              icon={<FileText color="#D64A5B" size={17} />}
+              color="#FFF0F2"
+              title="Reports and health records"
+              subtitle={`${readyReports} ready · ${Math.max(
+                bookings.length - readyReports,
+                0,
+              )} processing`}
+              count={readyReports}
+              onPress={() => navigation.navigate('Reports')}
+            />
+            <MenuRow
+              icon={<CalendarDays color="#D64A5B" size={17} />}
+              color="#FFF0F2"
+              title="Bookings"
+              subtitle="Current and previous lab bookings"
+              count={bookings.length}
+              onPress={() => navigation.navigate('Bookings')}
+            />
+            {/* <MenuRow
                   icon={<PackageOpen color="#94A3B8" size={17} />}
                   color="#F1F3F5"
                   title="Order history"
@@ -363,63 +339,61 @@ export function ProfileScreen() {
                   disabled
                   last
                 /> */}
-              </View>
+          </View>
 
-              <SectionTitle title="Account settings" />
+          <SectionTitle title="Account settings" />
+          <View
+            style={[
+              styles.menuCard,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            <MenuRow
+              icon={<Settings color="#D64A5B" size={17} />}
+              color="#FFF0F2"
+              title="Appearance and preferences"
+              subtitle="Theme and app settings"
+              onPress={() =>
+                navigation
+                  .getParent<NavigationProp<RootStackParamList>>()
+                  ?.navigate('AppearancePreferences')
+              }
+            />
+            <MenuRow
+              icon={<CircleQuestionMark color="#D64A5B" size={17} />}
+              color="#FFF0F2"
+              title="Support and help"
+              subtitle="View or create support requests"
+              onPress={() =>
+                navigation
+                  .getParent<NavigationProp<RootStackParamList>>()
+                  ?.navigate('Support')
+              }
+            />
+            <Pressable
+              onPress={() => dispatch(signOut())}
+              style={styles.logoutRow}
+            >
               <View
                 style={[
-                  styles.menuCard,
-                  {
-                    backgroundColor: theme.colors.surface,
-                    borderColor: theme.colors.border,
-                  },
+                  styles.menuIcon,
+                  { backgroundColor: theme.colors.primarySoft },
                 ]}
               >
-                <MenuRow
-                  icon={<Settings color="#D64A5B" size={17} />}
-                  color='#FFF0F2'
-                  title="Appearance and preferences"
-                  subtitle="Theme and app settings"
-                  onPress={() =>
-                    navigation
-                      .getParent<NavigationProp<RootStackParamList>>()
-                      ?.navigate('AppearancePreferences')
-                  }
-                />
-                <MenuRow
-                  icon={<CircleQuestionMark color="#D64A5B" size={17} />}
-                  color="#FFF0F2"
-                  title="Support and help"
-                  subtitle="View or create support requests"
-                  onPress={() =>
-                    navigation
-                      .getParent<NavigationProp<RootStackParamList>>()
-                      ?.navigate('Support')
-                  }
-                />
-                <Pressable
-                  onPress={() => dispatch(signOut())}
-                  style={styles.logoutRow}
-                >
-                  <View
-                    style={[
-                      styles.menuIcon,
-                      { backgroundColor: theme.colors.primarySoft },
-                    ]}
-                  >
-                    <LogOut color={theme.colors.primary} size={17} />
-                  </View>
-                  <AppText
-                    color={theme.colors.primary}
-                    style={styles.menuTitle}
-                    weight="800"
-                  >
-                    Log out
-                  </AppText>
-                </Pressable>
+                <LogOut color={theme.colors.primary} size={17} />
               </View>
-            </>
-          )}
+              <AppText
+                color={theme.colors.primary}
+                style={styles.menuTitle}
+                weight="800"
+              >
+                Log out
+              </AppText>
+            </Pressable>
+          </View>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -558,23 +532,6 @@ function MenuRow({
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 110 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  logo: { width: 74, height: 40 },
-  helpButton: {
-    height: 34,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-  },
-  helpText: { fontSize: 11, lineHeight: 14 },
   eyebrow: { fontSize: 9, lineHeight: 12, letterSpacing: 0.8, marginBottom: 4 },
   title: { fontSize: 25, lineHeight: 29, letterSpacing: -0.8 },
   subtitle: { marginTop: 4, maxWidth: 310, fontSize: 10, lineHeight: 14 },
