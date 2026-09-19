@@ -131,7 +131,7 @@ export function LabsScreen({ navigation }: Props) {
         onBack={navigation.goBack}
         onChangeLocation={() => setLocationOpen(true)}
       />
-      <LabFilters query={query} selected={certification} appliedCount={appliedCount} onFilterPress={() => setFiltersOpen(true)} onQueryChange={setQuery} onSelect={setCertification} />
+      <LabFilters query={query} selected={certification} appliedCount={appliedCount} onFilterPress={() => setFiltersOpen(true)} onQueryChange={setQuery} onSearchPress={() => navigation.navigate('Search')} onSelect={setCertification} />
       {labsLoading ? <View style={styles.state}><ActivityIndicator color={theme.colors.primary} size="large" /><AppText color={theme.colors.textMuted} style={styles.stateText}>Loading labs in {location}…</AppText></View> : labsError ? <View style={styles.state}><AppText style={styles.emptyTitle} weight="700">Could not load labs</AppText><AppText color={theme.colors.textMuted} style={styles.stateText}>{labsError}</AppText><Pressable onPress={loadFirstPage} style={[styles.retry, { backgroundColor: theme.colors.primary }]}><AppText color="#FFFFFF" style={styles.retryText} weight="700">Try again</AppText></Pressable></View> : <FlatList
         data={visibleLabs}
         keyExtractor={item => item.id}

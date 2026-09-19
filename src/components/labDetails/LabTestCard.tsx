@@ -12,10 +12,17 @@ import { AppText } from '../AppText';
 type Props = {
   item: LabTestItem;
   selected: boolean;
+  highlighted?: boolean;
   onPress: () => void;
   onBook: () => void;
 };
-export function LabTestCard({ item, selected, onPress, onBook }: Props) {
+export function LabTestCard({
+  item,
+  selected,
+  highlighted,
+  onPress,
+  onBook,
+}: Props) {
   const { theme } = useAppTheme();
   const healthPackage = item.test.test_type === 'health_package';
   const cardBackground = theme.isDark ? '#121C2D' : theme.colors.surface;
@@ -40,6 +47,11 @@ export function LabTestCard({ item, selected, onPress, onBook }: Props) {
           shadowColor: theme.colors.shadow,
         },
         selected && styles.selectedCard,
+        highlighted && {
+          backgroundColor: theme.isDark ? '#2A202D' : theme.colors.primarySoft,
+          borderColor: theme.colors.primary,
+        },
+        highlighted && styles.highlightedCard,
       ]}
     >
       <View style={styles.top}>
@@ -169,6 +181,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
   },
   selectedCard: { borderWidth: 1.5 },
+  highlightedCard: { borderWidth: 2 },
   top: {
     flexDirection: 'row',
     alignItems: 'center',

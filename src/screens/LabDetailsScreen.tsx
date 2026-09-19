@@ -2,7 +2,13 @@ import { formatINR } from '../utils/currency';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Search from 'lucide-react-native/icons/search';
 import ShieldCheck from 'lucide-react-native/icons/shield-check';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -43,8 +49,16 @@ export function LabDetailsScreen({ navigation, route }: Props) {
   const dispatch = useAppDispatch();
   const cart = useAppSelector(state => state.cart);
   const insets = useSafeAreaInsets();
-  const { lab } = route.params;
-  const [type, setType] = useState<LabTestType>('individual_test');
+  const { lab, highlightTest } = route.params;
+  const listRef = useRef<FlatList<LabTestItem>>(null);
+  const hasAutoScrolledRef = useRef(false);
+  const triedAlternateTypeRef = useRef(false);
+  const scrollRetryRef = useRef(0);
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [listReady, setListReady] = useState(false);
+  const [type, setType] = useState<LabTestType>(
+    highlightTest?.testType ?? 'individual_test',
+  );
   const [query, setQuery] = useState('');
   const [items, setItems] = useState<LabTestItem[]>([]);
   const [meta, setMeta] = useState<LabsPage['meta'] | null>(null);
@@ -56,6 +70,9 @@ export function LabDetailsScreen({ navigation, route }: Props) {
     health_package: null,
   });
   const [selectedTest, setSelectedTest] = useState<LabTestItem | null>(null);
+  const [highlightedLabTestId, setHighlightedLabTestId] = useState<
+    number | null
+  >(null);
 
   const loadFirst = useCallback(async () => {
     setLoading(true);
@@ -131,6 +148,86 @@ export function LabDetailsScreen({ navigation, route }: Props) {
         )
       : items;
   }, [items, query]);
+
+  const highlightedIndex = useMemo(() => {
+    if (!highlightTest) return -1;
+    return visibleItems.findIndex(item => {
+      if (highlightTest.testId !== undefined) {
+        return item.test.test_id === highlightTest.testId;
+      }
+      if (highlightTest.labTestId !== undefined) {
+        return item.lab_test_id === highlightTest.labTestId;
+      }
+      return item.test.test_name
+        .trim()
+        .toLocaleLowerCase()
+        .replace(/\s+/g, ' ')
+        .includes(
+          highlightTest.testName
+            .trim()
+            .toLocaleLowerCase()
+            .replace(/\s+/g, ' '),
+        );
+    });
+  }, [highlightTest, visibleItems]);
+
+  useEffect(() => {
+    if (
+      !highlightTest ||
+      hasAutoScrolledRef.current ||
+      loading ||
+      moreLoading
+    ) {
+      return;
+    }
+
+    if (highlightedIndex >= 0 && listReady) {
+      const matchedItem = visibleItems[highlightedIndex];
+      hasAutoScrolledRef.current = true;
+      setHighlightedLabTestId(matchedItem.lab_test_id);
+      requestAnimationFrame(() => {
+        listRef.current?.scrollToIndex({
+          index: highlightedIndex,
+          animated: true,
+          viewPosition: 0.25,
+        });
+      });
+      highlightTimerRef.current = setTimeout(
+        () => setHighlightedLabTestId(null),
+        2600,
+      );
+      return;
+    }
+
+    if (meta?.hasMore) {
+      loadMore().catch(() => undefined);
+      return;
+    }
+
+    if (!triedAlternateTypeRef.current) {
+      triedAlternateTypeRef.current = true;
+      setQuery('');
+      setType(current =>
+        current === 'individual_test' ? 'health_package' : 'individual_test',
+      );
+    }
+  }, [
+    highlightTest,
+    highlightedIndex,
+    listReady,
+    loadMore,
+    loading,
+    meta?.hasMore,
+    moreLoading,
+    visibleItems,
+  ]);
+
+  useEffect(
+    () => () => {
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    },
+    [],
+  );
   const heading =
     type === 'individual_test' ? 'Individual Tests' : 'Health Packages';
   const cartTotal = cart.items.reduce(
@@ -189,6 +286,7 @@ export function LabDetailsScreen({ navigation, route }: Props) {
       style={[styles.safe, { backgroundColor: theme.colors.background }]}
     >
       <FlatList
+        ref={listRef}
         data={visibleItems}
         keyExtractor={item => String(item.lab_test_id)}
         renderItem={({ item }) => (
@@ -196,6 +294,7 @@ export function LabDetailsScreen({ navigation, route }: Props) {
             <LabTestCard
               item={item}
               selected={isSelectedForTarget(item.lab_test_id)}
+              highlighted={highlightedLabTestId === item.lab_test_id}
               onPress={() => setSelectedTest(item)}
               onBook={() => addToCart(item)}
             />
@@ -203,6 +302,22 @@ export function LabDetailsScreen({ navigation, route }: Props) {
         )}
         onEndReached={loadMore}
         onEndReachedThreshold={0.35}
+        onLayout={() => setListReady(true)}
+        onScrollToIndexFailed={info => {
+          if (scrollRetryRef.current >= 2) return;
+          scrollRetryRef.current += 1;
+          listRef.current?.scrollToOffset({
+            offset: info.averageItemLength * info.index,
+            animated: true,
+          });
+          requestAnimationFrame(() =>
+            listRef.current?.scrollToIndex({
+              index: info.index,
+              animated: true,
+              viewPosition: 0.25,
+            }),
+          );
+        }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[

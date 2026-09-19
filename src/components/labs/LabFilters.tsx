@@ -6,18 +6,23 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 import { useAppTheme } from '../../theme';
 import { AppText } from '../AppText';
 
-type Props = { query: string; selected: string; appliedCount: number; onFilterPress: () => void; onQueryChange: (value: string) => void; onSelect: (value: string) => void };
+type Props = { query: string; selected: string; appliedCount: number; onFilterPress: () => void; onQueryChange: (value: string) => void; onSearchPress: () => void; onSelect: (value: string) => void };
 const filters = ['All labs', 'NABL Accredited', 'ISO Certified', 'ICMR Approved', 'CAP Accredited', 'NABH Certified'];
 
-export function LabFilters({ query, selected, appliedCount, onFilterPress, onQueryChange, onSelect }: Props) {
+export function LabFilters({ query, selected, appliedCount, onFilterPress, onQueryChange, onSearchPress, onSelect }: Props) {
   const { theme } = useAppTheme();
   return (
     <View style={styles.root}>
       <View style={styles.searchRow}>
-        <View style={[styles.search, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+        <Pressable
+          accessibilityLabel="Search tests and labs"
+          accessibilityRole="button"
+          onPress={onSearchPress}
+          style={[styles.search, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+        >
           <Search color={theme.colors.textMuted} size={17} />
-          <TextInput value={query} onChangeText={onQueryChange} placeholder="Search lab name or disease" placeholderTextColor={theme.colors.textMuted} style={[styles.input, { color: theme.colors.text, fontFamily: theme.typography.fontFamily.regular }]} />
-        </View>
+          <TextInput editable={false} pointerEvents="none" value={query} onChangeText={onQueryChange} placeholder="Search lab name or disease" placeholderTextColor={theme.colors.textMuted} style={[styles.input, { color: theme.colors.text, fontFamily: theme.typography.fontFamily.regular }]} />
+        </Pressable>
         <Pressable
           onPress={onFilterPress}
           style={[

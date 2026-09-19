@@ -2,14 +2,21 @@ import { apiBaseUrl } from '../config/environment';
 import { apiRequest } from './client';
 
 type LabTest = {
+  lab_test_id?: number;
+  test_id?: number;
   test_timing?: string;
   final_price?: number;
   offer_price?: string;
   normal_price?: string;
   test?: {
+    test_id?: number;
+    test_type?: 'individual_test' | 'health_package';
     test_name?: string;
     tags?: string[];
-    category?: { category_name?: string };
+    category?: {
+      category_name?: string;
+      category_type?: 'individual_test' | 'health_package';
+    };
   };
 };
 
@@ -59,7 +66,8 @@ export async function getLabsByZone(
   if (start !== undefined && end !== undefined) {
     params.push(`start=${start}`, `end=${end}`);
   }
-  if (search?.trim()) params.push(`search=${encodeURIComponent(search.trim())}`);
+  if (search?.trim())
+    params.push(`search=${encodeURIComponent(search.trim())}`);
   const query = params.length ? `?${params.join('&')}` : '';
   const response = await apiRequest<LabsResponse>(
     `${apiBaseUrl}/customer/zones/${zoneId}/labs${query}`,

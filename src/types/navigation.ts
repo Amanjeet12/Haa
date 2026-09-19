@@ -35,7 +35,15 @@ export type HomeStackParamList = {
   Search: undefined;
   Labs: undefined;
   CitySearch: undefined;
-  LabDetails: { lab: Lab };
+  LabDetails: {
+    lab: Lab;
+    highlightTest?: {
+      testId?: number;
+      labTestId?: number;
+      testName: string;
+      testType?: 'individual_test' | 'health_package';
+    };
+  };
   AddPatientTests: { beneficiaryId: string };
   ReviewBooking: undefined;
   BookingSuccess: { bookingNo: string };
