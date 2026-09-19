@@ -3,7 +3,14 @@ import Droplets from 'lucide-react-native/icons/droplets';
 import FlaskConical from 'lucide-react-native/icons/flask-conical';
 import X from 'lucide-react-native/icons/x';
 import React from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -40,6 +47,13 @@ export function TestDetailsSheet({
   if (!item) return null;
   const fasting = item.test.requirements?.fasting_required;
   const bottomInset = Math.max(insets.bottom, 48);
+  const markers = item.test.included_tests ?? [];
+  const markerRows = Array.from(
+    { length: Math.ceil(markers.length / 2) },
+    (_, index) => markers.slice(index * 2, index * 2 + 2),
+  );
+  const canRenderLabLogo =
+    Boolean(lab.image) && !lab.image?.toLowerCase().endsWith('.svg');
 
   return (
     <Modal
@@ -71,8 +85,17 @@ export function TestDetailsSheet({
               { paddingBottom: bottomInset + 82 },
             ]}
           >
-            <View style={[styles.typeBadge, { backgroundColor: theme.isDark ? '#123A34' : '#DCF7EF' }]}>
-              <AppText color={theme.isDark ? '#5EEAD4' : '#078A73'} style={styles.typeText} weight="800">
+            <View
+              style={[
+                styles.typeBadge,
+                { backgroundColor: theme.isDark ? '#123A34' : '#DCF7EF' },
+              ]}
+            >
+              <AppText
+                color={theme.isDark ? '#5EEAD4' : '#078A73'}
+                style={styles.typeText}
+                weight="800"
+              >
                 {item.test.test_type === 'health_package'
                   ? 'HEALTH PACKAGE'
                   : 'INDIVIDUAL TEST'}
@@ -111,30 +134,45 @@ export function TestDetailsSheet({
               />
             </View>
             <AppText style={styles.sectionTitle} weight="800">
-              {item.test.included_tests?.length ?? 0} included markers
+              {markers.length} included markers
             </AppText>
             <View style={styles.markers}>
-              {item.test.included_tests?.map(marker => (
-                <View
-                  key={marker}
-                  style={[
-                    styles.marker,
-                    { backgroundColor: theme.colors.surface },
-                  ]}
-                >
-                  <View style={styles.dot} />
-                  <AppText style={styles.markerText} numberOfLines={1}>
-                    {marker}
-                  </AppText>
+              {markerRows.map((row, rowIndex) => (
+                <View key={`${rowIndex}-${row[0]}`} style={styles.markerRow}>
+                  {row.map(marker => (
+                    <View
+                      key={marker}
+                      style={[
+                        styles.marker,
+                        { backgroundColor: theme.colors.surface },
+                      ]}
+                    >
+                      <View style={styles.dot} />
+                      <AppText style={styles.markerText} numberOfLines={2}>
+                        {marker}
+                      </AppText>
+                    </View>
+                  ))}
+                  {row.length === 1 ? (
+                    <View style={styles.markerSpacer} />
+                  ) : null}
                 </View>
               ))}
             </View>
             <AppText style={styles.sectionTitle} weight="800">
               Before your test
             </AppText>
-            <View style={[styles.warning, { backgroundColor: theme.isDark ? '#3A2E16' : '#FFF2C9' }]}>
+            <View
+              style={[
+                styles.warning,
+                { backgroundColor: theme.isDark ? '#3A2E16' : '#FFF2C9' },
+              ]}
+            >
               <Clock3 color={theme.isDark ? '#FBBF24' : '#9A6700'} size={14} />
-              <AppText color={theme.isDark ? '#FDE68A' : '#7C5800'} style={styles.warningText}>
+              <AppText
+                color={theme.isDark ? '#FDE68A' : '#7C5800'}
+                style={styles.warningText}
+              >
                 {fasting
                   ? `Fasting is required for ${
                       item.test.requirements?.fasting_duration ?? ''
@@ -154,8 +192,22 @@ export function TestDetailsSheet({
                 },
               ]}
             >
-              <View style={[styles.providerLogo, { backgroundColor: theme.colors.primarySoft }]}>
-                <FlaskConical color={theme.colors.primary} size={20} />
+              <View
+                style={[
+                  styles.providerLogo,
+                  { backgroundColor: theme.colors.primarySoft },
+                ]}
+              >
+                {canRenderLabLogo ? (
+                  <Image
+                    accessibilityLabel={`${lab.name} logo`}
+                    resizeMode="contain"
+                    source={{ uri: lab.image }}
+                    style={styles.providerLogoImage}
+                  />
+                ) : (
+                  <FlaskConical color={theme.colors.primary} size={20} />
+                )}
               </View>
               <View style={styles.providerCopy}>
                 <AppText
@@ -328,16 +380,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 16,
   },
-  markers: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  markers: { gap: 7 },
+  markerRow: { flexDirection: 'row', gap: 7 },
   marker: {
-    width: '49%',
-    height: 34,
+    flex: 1,
+    minWidth: 0,
+    minHeight: 42,
     borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 9,
   },
+  markerSpacer: { flex: 1 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981' },
   markerText: { flex: 1, fontSize: 10, lineHeight: 11 },
   warning: {
@@ -363,6 +418,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  providerLogoImage: { width: '100%', height: '100%' },
   providerCopy: { flex: 1 },
   providerName: { fontSize: 11, lineHeight: 14 },
   providerMeta: { marginTop: 2, fontSize: 8, lineHeight: 10 },
