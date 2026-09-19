@@ -17,6 +17,14 @@ type Props = {
 export function LabTestCard({ item, selected, onPress, onBook }: Props) {
   const { theme } = useAppTheme();
   const healthPackage = item.test.test_type === 'health_package';
+  const cardBackground = theme.isDark ? '#121C2D' : theme.colors.surface;
+  const cardBorder = theme.isDark
+    ? selected
+      ? '#FF7A86'
+      : '#3B4A62'
+    : selected
+    ? theme.colors.primary
+    : theme.colors.border;
   const fasting = item.test.requirements?.fasting_required
     ? `${item.test.requirements.fasting_duration ?? ''} hours`
     : 'Not required';
@@ -26,15 +34,25 @@ export function LabTestCard({ item, selected, onPress, onBook }: Props) {
       style={[
         styles.card,
         {
-          backgroundColor: theme.colors.surface,
-          borderColor: selected ? theme.colors.primary : theme.colors.border,
+          backgroundColor: cardBackground,
+          borderColor: cardBorder,
           shadowColor: theme.colors.shadow,
         },
+        selected && styles.selectedCard,
       ]}
     >
       <View style={styles.top}>
-        <View style={[styles.typeBadge, { backgroundColor: theme.isDark ? '#123A34' : '#DCF7EF' }]}>
-          <AppText color={theme.isDark ? '#5EEAD4' : '#078A73'} style={styles.typeText} weight="800">
+        <View
+          style={[
+            styles.typeBadge,
+            { backgroundColor: theme.isDark ? '#123A34' : '#DCF7EF' },
+          ]}
+        >
+          <AppText
+            color={theme.isDark ? '#5EEAD4' : '#078A73'}
+            style={styles.typeText}
+            weight="800"
+          >
             {healthPackage ? 'HEALTH PACKAGE' : 'INDIVIDUAL TEST'}
           </AppText>
         </View>
@@ -81,8 +99,8 @@ export function LabTestCard({ item, selected, onPress, onBook }: Props) {
             </AppText>
           </View>
         </View>
-          <Pressable
-            onPress={onBook}
+        <Pressable
+          onPress={onBook}
           style={[
             styles.book,
             {
@@ -97,7 +115,7 @@ export function LabTestCard({ item, selected, onPress, onBook }: Props) {
             <Check color={theme.colors.primary} size={14} strokeWidth={3} />
           )}
           <AppText
-            color={selected ? theme.colors.primary : '#FFFFFF'}
+            color={selected ? theme.colors.primary : theme.colors.onPrimary}
             style={styles.bookText}
             weight="800"
           >
@@ -112,7 +130,15 @@ export function LabTestCard({ item, selected, onPress, onBook }: Props) {
 function Info({ label, value }: { label: string; value: string }) {
   const { theme } = useAppTheme();
   return (
-    <View style={[styles.info, { backgroundColor: theme.colors.surfaceMuted }]}>
+    <View
+      style={[
+        styles.info,
+        {
+          backgroundColor: theme.isDark ? '#1A263A' : theme.colors.surfaceMuted,
+          borderColor: theme.isDark ? '#31415A' : 'transparent',
+        },
+      ]}
+    >
       <AppText color={theme.colors.textMuted} style={styles.infoLabel}>
         {label}
       </AppText>
@@ -141,6 +167,7 @@ const styles = StyleSheet.create({
     shadowRadius: 9,
     shadowOffset: { width: 0, height: 4 },
   },
+  selectedCard: { borderWidth: 1.5 },
   top: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -161,6 +188,7 @@ const styles = StyleSheet.create({
     minHeight: 52,
     borderRadius: 10,
     padding: 8,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   infoLabel: { fontSize: 7, lineHeight: 9 },
   infoValueRow: {

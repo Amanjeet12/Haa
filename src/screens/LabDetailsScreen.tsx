@@ -297,7 +297,11 @@ export function LabDetailsScreen({ navigation, route }: Props) {
                   { backgroundColor: theme.colors.primary },
                 ]}
               >
-                <AppText color="#FFFFFF" style={styles.retryText} weight="700">
+                <AppText
+                  color={theme.colors.onPrimary}
+                  style={styles.retryText}
+                  weight="700"
+                >
                   Try again
                 </AppText>
               </Pressable>
@@ -341,9 +345,8 @@ export function LabDetailsScreen({ navigation, route }: Props) {
             styles.bottomBar,
             {
               bottom: Math.max(insets.bottom, 48),
-              backgroundColor: theme.isDark
-                ? theme.colors.surface
-                : theme.colors.text,
+              backgroundColor: theme.isDark ? '#121C2D' : theme.colors.text,
+              borderColor: theme.isDark ? '#3B4A62' : 'transparent',
             },
           ]}
         >
@@ -397,7 +400,11 @@ export function LabDetailsScreen({ navigation, route }: Props) {
               { backgroundColor: theme.colors.primary },
             ]}
           >
-            <AppText color="#FFFFFF" style={styles.viewCartText} weight="800">
+            <AppText
+              color={theme.colors.onPrimary}
+              style={styles.viewCartText}
+              weight="800"
+            >
               VIEW CART
             </AppText>
           </Pressable>
@@ -489,6 +496,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     elevation: 12,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   thumbnailGroup: { flexDirection: 'row', alignItems: 'center' },
   cartThumbnail: {

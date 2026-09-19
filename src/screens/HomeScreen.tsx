@@ -360,7 +360,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
           <View style={styles.serviceRow}>
             <ServiceCard
-              icon={<ShoppingBasket color={theme.colors.text} size={18} />}
+              icon={<ShoppingBasket color="#08233D" size={18} />}
               eyebrow="QUICK COMMERCE"
               title="Essentials nearby."
               status="Join waitlist"
@@ -374,7 +374,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
               disabled
             />
             <ServiceCard
-              icon={<Globe color={theme.colors.text} size={18} />}
+              icon={<Globe color="#08233D" size={18} />}
               eyebrow="GLOBAL STORE"
               title="Always available."
               status="Coming soon"

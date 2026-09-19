@@ -21,7 +21,7 @@ import { useAppSelector } from '../store';
 import { useAppTheme } from '../theme';
 import { RootStackParamList } from '../types/navigation';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Support'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'SupportRequests'>;
 
 function titleCase(value: string) {
   return value

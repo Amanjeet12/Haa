@@ -144,7 +144,12 @@ export function TestDetailsSheet({
                       key={marker}
                       style={[
                         styles.marker,
-                        { backgroundColor: theme.colors.surface },
+                        {
+                          backgroundColor: theme.isDark
+                            ? '#121C2D'
+                            : theme.colors.surface,
+                          borderColor: theme.isDark ? '#3B4A62' : 'transparent',
+                        },
                       ]}
                     >
                       <View style={styles.dot} />
@@ -275,7 +280,7 @@ export function TestDetailsSheet({
               ]}
             >
               <AppText
-                color={selected ? theme.colors.primary : '#FFFFFF'}
+                color={selected ? theme.colors.primary : theme.colors.onPrimary}
                 style={styles.bookText}
                 weight="800"
               >
@@ -391,6 +396,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 9,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   markerSpacer: { flex: 1 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981' },

@@ -23,6 +23,7 @@ import { AddressesScreen } from '../screens/AddressesScreen';
 import { AddressFormScreen } from '../screens/AddressFormScreen';
 import { SupportCreateScreen } from '../screens/SupportCreateScreen';
 import { SupportScreen } from '../screens/SupportScreen';
+import { HelpScreen } from '../screens/HelpScreen';
 import { SupportDetailScreen } from '../screens/SupportDetailScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -125,7 +126,7 @@ export function RootNavigator() {
               options={{ headerShown: false }}
             />
             <Stack.Screen
-              name="Support"
+              name="SupportRequests"
               component={SupportScreen}
               options={{ headerShown: false }}
             />
@@ -161,6 +162,11 @@ export function RootNavigator() {
             />
           </>
         )}
+        <Stack.Screen
+          name="Support"
+          component={HelpScreen}
+          options={{ headerShown: false }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

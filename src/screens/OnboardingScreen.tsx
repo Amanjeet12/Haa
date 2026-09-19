@@ -13,7 +13,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Onboarding'>;
 export function OnboardingScreen({ navigation }: Props) {
   const { theme } = useAppTheme();
   const { width } = useWindowDimensions();
-  const artworkWidth = Math.min(width - 20, 410);
+  const artworkWidth = Math.min(width, 410);
   const artworkHeight = artworkWidth * (1555 / 1608);
 
   return (
@@ -24,10 +24,7 @@ export function OnboardingScreen({ navigation }: Props) {
         accessibilityLabel="At-home labs, quick commerce, and global store"
         resizeMode="contain"
         source={images.onboardingCards}
-        style={[
-          styles.artwork,
-          { height: artworkHeight, width: artworkWidth },
-        ]}
+        style={[styles.artwork, { height: artworkHeight, width: artworkWidth }]}
       />
 
       <View style={styles.copy}>
@@ -37,12 +34,16 @@ export function OnboardingScreen({ navigation }: Props) {
             variant="title"
             weight="500"
             color={theme.colors.primary}
-            style={{ fontSize: 36,  }}
+            style={{ fontSize: 36 }}
           >
             One HAA Health.
           </AppText>
         </AppText>
-        <AppText variant="caption" color={theme.colors.textMuted} style={{ fontSize: 12 }}>
+        <AppText
+          variant="caption"
+          color={theme.colors.textMuted}
+          style={{ fontSize: 12 }}
+        >
           Browse freely, choose what fits, and sign in only when you are ready
           to book or buy.
         </AppText>

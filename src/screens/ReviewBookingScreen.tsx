@@ -1426,11 +1426,11 @@ function SmartChoiceCard({
             TOP RATED
           </AppText>
           <View style={styles.recommendedNameRow}>
-            <AppText style={styles.recommendedName} weight="800">
+            <AppText color="#08233D" style={styles.recommendedName} weight="800">
               {recommendation.lab_name}
             </AppText>
             <View style={styles.recommendedPriceBlock}>
-              <AppText style={styles.recommendedPrice} weight="800">
+              <AppText color="#08233D" style={styles.recommendedPrice} weight="800">
                 ₹{recommendation.total_test_final_amount}
               </AppText>
               {recommendation.total_test_normal_amount >

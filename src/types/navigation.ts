@@ -15,6 +15,7 @@ export type RootStackParamList = {
     | { address?: import('../api/addresses').CustomerAddress }
     | undefined;
   Support: undefined;
+  SupportRequests: undefined;
   SupportCreate:
     | { booking?: import('../api/bookings').CustomerBooking }
     | undefined;
