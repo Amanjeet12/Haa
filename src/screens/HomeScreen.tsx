@@ -329,7 +329,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             <ServiceCard
               icon={<ShoppingBasket color="#08233D" size={18} />}
               eyebrow="QUICK COMMERCE"
-              title="Essentials nearby."
+              title="We’re not here yet."
               status="Join waitlist"
               gradient={
                 theme.isDark
@@ -343,7 +343,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             <ServiceCard
               icon={<Globe color="#08233D" size={18} />}
               eyebrow="GLOBAL STORE"
-              title="Always available."
+              title="Comming soon."
               status="Coming soon"
               gradient={
                 theme.isDark

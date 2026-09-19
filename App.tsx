@@ -7,6 +7,7 @@ import { RootNavigator } from './src/navigation/RootNavigator';
 import { ThemeProvider, useAppTheme } from './src/theme/ThemeProvider';
 import { store } from './src/store';
 import { usePushNotifications } from './src/services/usePushNotifications';
+import { UpdateAppModal } from './src/components/UpdateAppModal';
 
 function AppContent() {
   usePushNotifications();
@@ -19,6 +20,7 @@ function AppContent() {
         barStyle={theme.isDark ? 'light-content' : 'dark-content'}
       />
       <RootNavigator />
+      <UpdateAppModal />
     </>
   );
 }
