@@ -10,7 +10,6 @@ import FileText from 'lucide-react-native/icons/file-text';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -21,8 +20,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CustomerBooking, getCustomerBookings } from '../api/bookings';
-import { images } from '../assets/images';
-import { AppText } from '../components';
+import { AppText, HaaLogo } from '../components';
 import { useAppSelector } from '../store';
 import { screenGradientColors, screenGradientLocations, useAppTheme } from '../theme';
 import { RootStackParamList } from '../types/navigation';
@@ -111,18 +109,14 @@ export function BookingsScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <Image
-              resizeMode="contain"
-              source={images.logo}
-              style={styles.logo}
-            />
+            <HaaLogo style={styles.logo} />
             <Pressable
               onPress={() => navigation.navigate('Support')}
               style={[
                 styles.helpButton,
                 {
                   backgroundColor: theme.colors.primarySoft,
-                  borderColor: theme.colors.border,
+                  borderColor: theme.colors.border2,
                 },
               ]}
             >

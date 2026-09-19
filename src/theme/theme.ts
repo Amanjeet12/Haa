@@ -17,6 +17,7 @@ export type ThemeColors = {
   shadow: string;
   gradientStart: string;
   gradientEnd: string;
+  border2: string;
 };
 
 export type AppTheme = {
@@ -73,6 +74,7 @@ export const lightTheme: AppTheme = {
     shadow: palette.slate900,
     gradientStart: palette.brandBlush,
     gradientEnd: palette.coolGray,
+    border2: palette.slate300,
   },
   spacing,
   radius,
@@ -99,5 +101,6 @@ export const darkTheme: AppTheme = {
     shadow: '#000000',
     gradientStart: '#281A20',
     gradientEnd: '#0E111A',
+    border2: '#1C1F2A',
   },
 };

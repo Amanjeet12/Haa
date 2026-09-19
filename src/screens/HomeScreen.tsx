@@ -12,7 +12,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { NavigationProp } from '@react-navigation/native';
 import {
-  Image,
   ImageBackground,
   ActivityIndicator,
   Modal,
@@ -25,7 +24,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { images } from '../assets/images';
-import { AppText, Screen } from '../components';
+import { AppText, HaaLogo, Screen } from '../components';
 import {
   screenGradientColors,
   screenGradientLocations,
@@ -152,11 +151,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
           contentContainerStyle={styles.content}
         >
           <View style={styles.header}>
-            <Image
-              resizeMode="contain"
-              source={images.logo}
-              style={styles.logo}
-            />
+            <HaaLogo style={styles.logo} />
             <Pressable
               onPress={() =>
                 navigation
@@ -168,7 +163,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                 styles.helpButton,
                 {
                   backgroundColor: theme.colors.primarySoft,
-                  borderColor: theme.colors.border,
+                  borderColor: theme.colors.border2,
                 },
               ]}
             >

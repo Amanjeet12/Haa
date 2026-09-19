@@ -3,12 +3,11 @@ import ShoppingBag from 'lucide-react-native/icons/shopping-bag';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import React from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { images } from '../assets/images';
-import { AppText } from '../components';
+import { AppText, HaaLogo } from '../components';
 import { screenGradientColors, screenGradientLocations, useAppTheme } from '../theme';
 import { RootStackParamList } from '../types/navigation';
 
@@ -25,18 +24,14 @@ export function CartScreen() {
       <SafeAreaView edges={['top']} style={styles.safe}>
         <View style={styles.hero}>
           <View style={styles.header}>
-            <Image
-              resizeMode="contain"
-              source={images.logo}
-              style={styles.logo}
-            />
+            <HaaLogo style={styles.logo} />
             <Pressable
               onPress={() => navigation.navigate('Support')}
               style={[
                 styles.helpButton,
                 {
                   backgroundColor: theme.colors.primarySoft,
-                  borderColor: theme.colors.border,
+                  borderColor: theme.colors.border2,
                 },
               ]}
             >

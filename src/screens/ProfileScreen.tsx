@@ -21,11 +21,14 @@ import {
 } from '../api/addresses';
 import { CustomerBooking, getCustomerBookings } from '../api/bookings';
 import { FamilyMember, getFamilyMembers } from '../api/familyMembers';
-import { images } from '../assets/images';
-import { AppText } from '../components';
+import { AppText, HaaLogo } from '../components';
 import { useAppDispatch, useAppSelector } from '../store';
 import { signOut } from '../store/authSlice';
-import { screenGradientColors, screenGradientLocations, useAppTheme } from '../theme';
+import {
+  screenGradientColors,
+  screenGradientLocations,
+  useAppTheme,
+} from '../theme';
 import { MainTabParamList, RootStackParamList } from '../types/navigation';
 
 export function ProfileScreen() {
@@ -87,11 +90,7 @@ export function ProfileScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <Image
-              resizeMode="contain"
-              source={images.logo}
-              style={styles.logo}
-            />
+            <HaaLogo style={styles.logo} />
             <Pressable
               onPress={() =>
                 navigation
@@ -102,7 +101,7 @@ export function ProfileScreen() {
                 styles.helpButton,
                 {
                   backgroundColor: theme.colors.primarySoft,
-                  borderColor: theme.colors.border,
+                  borderColor: theme.colors.border2,
                 },
               ]}
             >
@@ -337,8 +336,8 @@ export function ProfileScreen() {
                 ]}
               >
                 <MenuRow
-                  icon={<FileText color="#52789B" size={17} />}
-                  color="#E8F1FB"
+                  icon={<FileText color="#D64A5B" size={17} />}
+                  color="#FFF0F2"
                   title="Reports and health records"
                   subtitle={`${readyReports} ready · ${Math.max(
                     bookings.length - readyReports,
@@ -355,7 +354,7 @@ export function ProfileScreen() {
                   count={bookings.length}
                   onPress={() => navigation.navigate('Bookings')}
                 />
-                <MenuRow
+                {/* <MenuRow
                   icon={<PackageOpen color="#94A3B8" size={17} />}
                   color="#F1F3F5"
                   title="Order history"
@@ -363,7 +362,7 @@ export function ProfileScreen() {
                   count={0}
                   disabled
                   last
-                />
+                /> */}
               </View>
 
               <SectionTitle title="Account settings" />
@@ -377,8 +376,8 @@ export function ProfileScreen() {
                 ]}
               >
                 <MenuRow
-                  icon={<Settings color={theme.colors.primary} size={17} />}
-                  color={theme.colors.primarySoft}
+                  icon={<Settings color="#D64A5B" size={17} />}
+                  color='#FFF0F2'
                   title="Appearance and preferences"
                   subtitle="Theme and app settings"
                   onPress={() =>
@@ -388,8 +387,8 @@ export function ProfileScreen() {
                   }
                 />
                 <MenuRow
-                  icon={<CircleQuestionMark color="#52789B" size={17} />}
-                  color="#E8F1FB"
+                  icon={<CircleQuestionMark color="#D64A5B" size={17} />}
+                  color="#FFF0F2"
                   title="Support and help"
                   subtitle="View or create support requests"
                   onPress={() =>
