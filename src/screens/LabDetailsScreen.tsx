@@ -345,7 +345,7 @@ export function LabDetailsScreen({ navigation, route }: Props) {
           style={[
             styles.bottomBar,
             {
-              bottom: Math.max(insets.bottom, 48),
+              bottom: insets.bottom,
               backgroundColor: theme.isDark ? '#121C2D' : theme.colors.text,
               borderColor: theme.isDark ? '#3B4A62' : 'transparent',
             },
@@ -383,7 +383,8 @@ export function LabDetailsScreen({ navigation, route }: Props) {
               View cart
             </AppText>
             <AppText color="#C9D6E0" style={styles.cartMeta} weight="600">
-              {cartCount} item{cartCount === 1 ? '' : 's'} · {formatINR(cartTotal)}
+              {cartCount} item{cartCount === 1 ? '' : 's'} ·{' '}
+              {formatINR(cartTotal)}
             </AppText>
             <AppText
               color="#94A3B8"

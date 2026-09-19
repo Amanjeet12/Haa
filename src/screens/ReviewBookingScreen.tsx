@@ -1158,7 +1158,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
           style={[
             styles.payment,
             {
-              bottom: Math.max(insets.bottom, 48),
+              bottom: insets.bottom,
               backgroundColor: theme.colors.surface,
               borderTopColor: theme.colors.border,
             },
