@@ -29,7 +29,7 @@ function isThemePreference(value: string | null): value is ThemePreference {
 
 export function ThemeProvider({ children }: PropsWithChildren) {
   const systemScheme = useColorScheme();
-  const [preference, setPreferenceState] = useState<ThemePreference>('system');
+  const [preference, setPreferenceState] = useState<ThemePreference>('light');
 
   useEffect(() => {
     let isMounted = true;
@@ -41,7 +41,7 @@ export function ThemeProvider({ children }: PropsWithChildren) {
         }
       })
       .catch(() => {
-        // Keep the system preference if storage is unavailable.
+        // Keep the light default if storage is unavailable.
       });
 
     return () => {

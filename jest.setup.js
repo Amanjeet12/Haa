@@ -1,5 +1,16 @@
 /* global jest */
 
+jest.mock('react-native-onesignal', () => ({
+  OneSignal: {
+    initialize: jest.fn(),
+    login: jest.fn(),
+    logout: jest.fn(),
+    Notifications: {
+      requestPermission: jest.fn(() => Promise.resolve(true)),
+    },
+  },
+}));
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(() => Promise.resolve(null)),
   setItem: jest.fn(() => Promise.resolve()),
@@ -42,7 +53,9 @@ jest.mock('react-native-blob-util', () => ({
   default: {
     fs: { dirs: { DocumentDir: '/documents', DownloadDir: '/downloads' } },
     config: jest.fn(() => ({
-      fetch: jest.fn(() => Promise.resolve({ path: () => '/downloads/report.pdf' })),
+      fetch: jest.fn(() =>
+        Promise.resolve({ path: () => '/downloads/report.pdf' }),
+      ),
     })),
   },
 }));

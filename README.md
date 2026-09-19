@@ -43,6 +43,28 @@ npm run android
 npm run ios
 ```
 
+## Push notifications
+
+OneSignal uses app ID `0d7b5bcd-c378-4baa-8092-5a078c02347d` in
+`src/config/app.ts`. This is a public app ID, not a REST API secret.
+The app requests notification permission on launch, including for guests.
+Users must accept the native prompt themselves. Successful login and restored
+sessions set the OneSignal external ID to `customer_<customer_id>` (for example,
+`customer_42`). Notification senders must target this prefixed external ID.
+Logout clears that identity and retains anonymous guest notifications.
+
+Configure Android FCM credentials and iOS APNs credentials in that OneSignal
+app's dashboard. For iOS, use your registered bundle ID and a provisioning profile
+with Push Notifications enabled; install pods on macOS after pulling this change.
+Basic push capabilities are configured. Rich iOS attachments and confirmed receipt
+require an additional Notification Service Extension and App Group; see the
+[OneSignal setup guide](https://documentation.onesignal.com/docs/en/react-native-sdk-setup).
+Rebuild the native app after installing the package (a Metro reload is insufficient).
+
+On a device, verify the first-launch permission prompt, guest delivery, login
+external ID, restored-session identity, and removal of the external ID on logout.
+Then log into a different customer account and verify notifications target that ID.
+
 ## Quality checks
 
 ```sh

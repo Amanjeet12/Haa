@@ -6,8 +6,10 @@ import { Provider } from 'react-redux';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { ThemeProvider, useAppTheme } from './src/theme/ThemeProvider';
 import { store } from './src/store';
+import { usePushNotifications } from './src/services/usePushNotifications';
 
 function AppContent() {
+  usePushNotifications();
   const { theme } = useAppTheme();
 
   return (
