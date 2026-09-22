@@ -32,6 +32,11 @@ export type MainTabParamList = {
 
 export type HomeStackParamList = {
   HomeLanding: undefined;
+  HealthView: undefined;
+  HealthCheckIn: undefined;
+  HealthTrends: undefined;
+  HealthRecommendations: undefined;
+  HaaPlus: undefined;
   Search: undefined;
   Labs: undefined;
   CitySearch: undefined;

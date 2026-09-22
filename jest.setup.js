@@ -1,5 +1,7 @@
 /* global jest */
 
+jest.mock('./src/assets/images/audio.mp3', () => 1);
+
 jest.mock('react-native-onesignal', () => ({
   OneSignal: {
     initialize: jest.fn(),
@@ -62,6 +64,19 @@ jest.mock('react-native-blob-util', () => ({
 
 jest.mock('react-native-image-picker', () => ({
   launchImageLibrary: jest.fn(() => Promise.resolve({ assets: [] })),
+}));
+
+jest.mock('react-native-video', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return props => React.createElement(View, props);
+});
+
+jest.mock('@react-native-documents/picker', () => ({
+  pick: jest.fn(() => Promise.resolve([])),
+  types: { pdf: 'application/pdf', images: 'image/*' },
+  errorCodes: { OPERATION_CANCELED: 'OPERATION_CANCELED' },
+  isErrorWithCode: jest.fn(() => false),
 }));
 
 jest.mock('react-native-maps', () => {
