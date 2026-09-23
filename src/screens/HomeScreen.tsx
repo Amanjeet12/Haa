@@ -327,32 +327,32 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
           <View style={styles.serviceRow}>
             <ServiceCard
-              icon={<ShoppingBasket color="#08233D" size={18} />}
+              icon={<ShoppingBasket color="#08233D" size={14} />}
               eyebrow="QUICK COMMERCE"
-              title="We’re not here yet."
-              status="Join waitlist"
+              title="Essentials nearby."
+              status="15–25 min"
               gradient={
                 theme.isDark
                   ? [theme.colors.surface, '#14282A']
                   : ['#FFFFFF', '#E9FAF6']
               }
-              statusBackground={theme.colors.surfaceMuted}
-              statusColor={theme.colors.textMuted}
-              disabled
+              statusBackground={theme.isDark ? theme.colors.surfaceMuted : '#DDF7EF'}
+              statusColor={theme.colors.success}
+              onPress={() => navigation.navigate('QuickCommerce')}
             />
             <ServiceCard
-              icon={<Globe color="#08233D" size={18} />}
+              icon={<Globe color="#08233D" size={14} />}
               eyebrow="GLOBAL STORE"
-              title="Comming soon."
-              status="Coming soon"
+              title="Always available."
+              status="Across India"
               gradient={
                 theme.isDark
                   ? [theme.colors.surface, '#291A24']
-                  : ['#FFFFFF', '#D9DADD']
+                  : ['#FFFFFF', '#FCECF1']
               }
-              statusBackground={theme.colors.surfaceMuted}
-              statusColor={theme.colors.textMuted}
-              disabled
+              statusBackground={theme.isDark ? theme.colors.surfaceMuted : '#FCE7EC'}
+              statusColor={theme.colors.primary}
+              onPress={() => navigation.navigate('GlobalStore')}
             />
           </View>
 
@@ -609,6 +609,7 @@ type ServiceCardProps = {
   statusBackground: string;
   statusColor: string;
   disabled?: boolean;
+  onPress?: () => void;
 };
 function ServiceCard(props: ServiceCardProps) {
   const { theme } = useAppTheme();
@@ -619,6 +620,12 @@ function ServiceCard(props: ServiceCardProps) {
     : props.gradient;
 
   return (
+    <Pressable
+      accessibilityRole="button"
+      disabled={props.disabled}
+      onPress={props.onPress}
+      style={styles.serviceCardPressable}
+    >
     <LinearGradient
       colors={gradientColors}
       end={{ x: 1, y: 1 }}
@@ -666,11 +673,12 @@ function ServiceCard(props: ServiceCardProps) {
           },
         ]}
       >
-        <AppText color={props.statusColor} style={styles.pillText} weight="700">
+        <AppText color={props.statusColor} style={styles.servicePillText} weight="700">
           {props.status}
         </AppText>
       </View>
     </LinearGradient>
+    </Pressable>
   );
 }
 
@@ -804,43 +812,45 @@ const styles = StyleSheet.create({
   },
   pillText: { fontSize: 8, lineHeight: 10 },
   serviceRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  serviceCardPressable: { flex: 1 },
   serviceCard: {
     flex: 1,
-    minHeight: 150,
+    minHeight: 112,
     borderWidth: 1,
-    borderRadius: 20,
-    padding: 14,
-    elevation: 4,
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
+    borderRadius: 16,
+    padding: 11,
+    elevation: 2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.07,
+    shadowRadius: 7,
   },
   serviceCardDisabled: {
     elevation: 0,
     shadowOpacity: 0,
   },
   serviceIcon: {
-    width: 40,
-    height: 40,
+    width: 27,
+    height: 27,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
+    borderRadius: 9,
     backgroundColor: '#FFFFFF',
   },
   serviceEyebrow: {
-    marginTop: 14,
-    fontSize: 9,
-    lineHeight: 11,
-    letterSpacing: 0.8,
+    marginTop: 9,
+    fontSize: 7,
+    lineHeight: 9,
+    letterSpacing: 0.65,
   },
-  serviceTitle: { marginTop: 5, fontSize: 15, lineHeight: 19 },
+  serviceTitle: { marginTop: 4, fontSize: 12, lineHeight: 15 },
   statusPill: {
     alignSelf: 'flex-start',
-    marginTop: 10,
-    borderRadius: 9,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
+    marginTop: 7,
+    borderRadius: 7,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
   },
+  servicePillText: { fontSize: 7, lineHeight: 9 },
   wellnessHeading: { marginTop: 15, marginBottom: 7 },
   wellnessCard: {
     minHeight: 190,

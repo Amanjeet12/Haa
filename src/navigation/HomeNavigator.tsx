@@ -6,6 +6,12 @@ import { SearchScreen } from '../screens/SearchScreen';
 import { LabsScreen } from '../screens/LabsScreen';
 import { CitySearchScreen } from '../screens/CitySearchScreen';
 import { LabDetailsScreen } from '../screens/LabDetailsScreen';
+import { QuickCommerceScreen } from '../screens/QuickCommerceScreen';
+import { FrequentlyBoughtScreen } from '../screens/FrequentlyBoughtScreen';
+import { FirstAidScreen } from '../screens/FirstAidScreen';
+import { ProductDetailsScreen } from '../screens/ProductDetailsScreen';
+import { GlobalStoreScreen } from '../screens/GlobalStoreScreen';
+import { WomensHealthScreen } from '../screens/WomensHealthScreen';
 import { ReviewBookingScreen } from '../screens/ReviewBookingScreen';
 import { AddPatientTestsScreen } from '../screens/AddPatientTestsScreen';
 import {
@@ -36,6 +42,12 @@ export function HomeNavigator() {
       <Stack.Screen name="HomeLanding" component={HomeScreen} />
       <Stack.Screen name="Search" component={SearchScreen} />
       <Stack.Screen name="Labs" component={LabsScreen} />
+      <Stack.Screen name="QuickCommerce" component={QuickCommerceScreen} />
+      <Stack.Screen name="FrequentlyBought" component={FrequentlyBoughtScreen} />
+      <Stack.Screen name="FirstAid" component={FirstAidScreen} />
+      <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} />
+      <Stack.Screen name="GlobalStore" component={GlobalStoreScreen} />
+      <Stack.Screen name="WomensHealth" component={WomensHealthScreen} />
       <Stack.Screen name="CitySearch" component={CitySearchScreen} />
       <Stack.Screen name="LabDetails" component={LabDetailsScreen} />
       <Stack.Screen name="AddPatientTests" component={AddPatientTestsScreen} />

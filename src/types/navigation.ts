@@ -34,6 +34,23 @@ export type HomeStackParamList = {
   HomeLanding: undefined;
   Search: undefined;
   Labs: undefined;
+  QuickCommerce: undefined;
+  FrequentlyBought: { category?: string } | undefined;
+  FirstAid: undefined;
+  ProductDetails: {
+    product: {
+      id: string;
+      name: string;
+      detail: string;
+      price: number;
+      oldPrice?: number;
+      discount?: string;
+      seller: string;
+      image: number;
+    };
+  };
+  GlobalStore: undefined;
+  WomensHealth: undefined;
   CitySearch: undefined;
   LabDetails: {
     lab: Lab;

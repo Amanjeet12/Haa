@@ -95,6 +95,12 @@ export function MainTabs() {
             route.name === 'Home' &&
             [
               'Labs',
+              'QuickCommerce',
+              'FrequentlyBought',
+              'FirstAid',
+              'ProductDetails',
+              'GlobalStore',
+              'WomensHealth',
               'Search',
               'CitySearch',
               'LabDetails',
