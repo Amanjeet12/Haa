@@ -8,7 +8,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { images } from '../assets/images';
 import { AppText } from '../components';
 import { QuickCommerceCartBar } from '../components/quickCommerce/QuickCommerceCartBar';
-import { useAppSelector } from '../store';
+import { useAppDispatch, useAppSelector } from '../store';
+import { addCommerceItem } from '../store/commerceCartSlice';
 import { useAppTheme } from '../theme';
 import { HomeStackParamList } from '../types/navigation';
 
@@ -29,6 +30,7 @@ type Props = NativeStackScreenProps<HomeStackParamList, 'FrequentlyBought'>;
 export function FrequentlyBoughtScreen({ navigation, route }: Props) {
   const { theme } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const dispatch = useAppDispatch();
   const { width } = useWindowDimensions();
   const zone = useAppSelector(state => state.zones.selected);
   const category = route.params?.category;
@@ -84,13 +86,13 @@ export function FrequentlyBoughtScreen({ navigation, route }: Props) {
               <AppText color={theme.colors.success} weight="700" style={styles.seller}>● {item.seller}</AppText>
               <View style={styles.purchase}>
                 <View style={styles.prices}><AppText weight="800" style={styles.price}>₹{item.price}</AppText>{item.oldPrice ? <AppText color={theme.colors.textMuted} style={styles.oldPrice}>₹{item.oldPrice}</AppText> : null}</View>
-                <View style={[styles.add, { backgroundColor: theme.colors.primary }]}><AppText color="#FFFFFF" weight="800" style={styles.addText}>ADD</AppText></View>
+                <Pressable onPress={() => dispatch(addCommerceItem({ source: 'ecommerce', product: { id: item.id, name: item.name, price: item.price, image: item.image, detail: item.detail } }))} style={[styles.add, { backgroundColor: theme.colors.primary }]}><AppText color="#FFFFFF" weight="800" style={styles.addText}>ADD</AppText></Pressable>
               </View>
             </Pressable>
           );
         }}
       />
-      <QuickCommerceCartBar bottom={Math.max(insets.bottom, 8)} />
+      <QuickCommerceCartBar bottom={Math.max(insets.bottom, 8)} onPress={() => navigation.getParent()?.navigate('Cart')} />
     </SafeAreaView>
   );
 }

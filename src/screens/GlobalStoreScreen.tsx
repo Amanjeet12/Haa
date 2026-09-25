@@ -6,36 +6,85 @@ import Search from 'lucide-react-native/icons/search';
 import ShieldCheck from 'lucide-react-native/icons/shield-check';
 import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal';
 import Zap from 'lucide-react-native/icons/zap';
-import React, { useState } from 'react';
-import { ImageBackground, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, ImageBackground, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { images } from '../assets/images';
+import { getProductCategories, ProductCategory } from '../api/productCategories';
+import { getProducts, Product } from '../api/products';
 import { AppText } from '../components';
 import { LabFilterSheet, LabFilterValues } from '../components/labs';
 import { WomensHormonalSection } from '../components/globalStore/WomensHormonalSection';
 import { QuickCommerceCartBar } from '../components/quickCommerce/QuickCommerceCartBar';
-import { useAppSelector } from '../store';
+import { useAppDispatch, useAppSelector } from '../store';
+import { addCommerceItem, setCommerceItemQuantity } from '../store/commerceCartSlice';
 import { useAppTheme } from '../theme';
 import { HomeStackParamList } from '../types/navigation';
+import { toProductDetails } from '../utils/productDetails';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'GlobalStore'>;
 const initialFilters: LabFilterValues = { sort: 'none', price: 'all' };
-const needs = [
-  { label: 'Hormonal health', image: images.homeBanner },
-  { label: 'Sleep support', image: images.onboardingCards },
-  { label: 'Skin recovery', image: images.careImage },
-  { label: 'Mobility support', image: images.homeBanner },
-];
+type ProductSection = {
+  categoryId: number;
+  subCategoryId: number;
+  title: string;
+  description: string | null;
+  products: Product[];
+};
 
 export function GlobalStoreScreen({ navigation }: Props) {
   const { theme } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const dispatch = useAppDispatch();
   const selectedZone = useAppSelector(state => state.zones.selected);
+  const commerceCart = useAppSelector(state => state.commerceCart);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<LabFilterValues>(initialFilters);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+  const [productSections, setProductSections] = useState<ProductSection[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
   const appliedCount = Number(filters.sort !== 'none') + Number(filters.price !== 'all');
+  const globalQuantities = commerceCart.source === 'global' ? Object.fromEntries(commerceCart.items.map(item => [Number(item.id), item.quantity])) : {};
+
+  const loadCategories = useCallback(async () => {
+    setCategoriesLoading(true);
+    setProductsLoading(true);
+    setCategoriesError(null);
+    try {
+      const nextCategories = await getProductCategories();
+      setCategories(nextCategories);
+      const selections = nextCategories.flatMap(category => {
+        const subCategory = category.sub_categories.find(item => item.isActive);
+        return subCategory ? [{ category, subCategory }] : [];
+      });
+      const sections = await Promise.all(selections.map(async ({ category, subCategory }) => {
+        try {
+          const products = await getProducts(category.category_id, subCategory.sub_category_id);
+          return {
+            categoryId: category.category_id,
+            subCategoryId: subCategory.sub_category_id,
+            title: subCategory.sub_category_name,
+            description: subCategory.description,
+            products,
+          };
+        } catch {
+          return null;
+        }
+      }));
+      setProductSections(sections.filter((section): section is ProductSection => Boolean(section?.products.length)));
+    } catch (error) {
+      setCategoriesError(error instanceof Error ? error.message : 'Unable to load categories.');
+    } finally {
+      setCategoriesLoading(false);
+      setProductsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadCategories(); }, [loadCategories]);
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: theme.colors.background }]}>
@@ -86,18 +135,63 @@ export function GlobalStoreScreen({ navigation }: Props) {
           <View style={[styles.benefitCard, { backgroundColor: theme.colors.surface }]}><PackageCheck color={theme.colors.primary} size={20} /><AppText style={styles.benefitTitle} weight="800">Protected{`\n`}delivery</AppText><AppText color={theme.colors.textMuted} style={styles.benefitText}>Tracked to your door</AppText></View>
         </View>
 
-        <View style={styles.needHeader}><View><AppText style={styles.needTitle} weight="800">Shop by need</AppText><AppText color={theme.colors.textMuted} style={styles.needSubtitle}>Specialist care categories</AppText></View><Pressable><AppText color={theme.colors.primary} style={styles.viewAll} weight="800">View all</AppText></Pressable></View>
-        <ScrollView contentContainerStyle={styles.needRow} horizontal showsHorizontalScrollIndicator={false}>
-          {needs.map(item => <Pressable key={item.label} style={[styles.needCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}><ImageBackground source={item.image} resizeMode="cover" style={styles.needImage} imageStyle={styles.needImageCorners} /><AppText style={styles.needLabel} numberOfLines={2} weight="800">{item.label}</AppText></Pressable>)}
-        </ScrollView>
+        <View style={styles.needHeader}><View><AppText style={styles.needTitle} weight="800">Shop by need</AppText><AppText color={theme.colors.textMuted} style={styles.needSubtitle}>Specialist care categories</AppText></View></View>
+        {categoriesLoading ? (
+          <ActivityIndicator color={theme.colors.primary} style={styles.categoriesState} />
+        ) : categoriesError ? (
+          <Pressable accessibilityRole="button" onPress={loadCategories} style={styles.categoriesState}>
+            <AppText color={theme.colors.textMuted} style={styles.categoriesError}>Could not load categories. Tap to retry.</AppText>
+          </Pressable>
+        ) : (
+          <ScrollView contentContainerStyle={styles.needRow} horizontal showsHorizontalScrollIndicator={false}>
+            {categories.map(item => (
+              <Pressable key={item.category_id} onPress={() => navigation.navigate('CategoryProducts', { category: item })} style={[styles.needCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                <ImageBackground
+                  accessibilityLabel={item.image?.alt || item.category_name}
+                  source={item.image?.url ? { uri: item.image.url } : images.careImage}
+                  resizeMode="cover"
+                  style={styles.needImage}
+                  imageStyle={styles.needImageCorners}
+                />
+                <AppText style={styles.needLabel} numberOfLines={2} weight="800">{item.category_name}</AppText>
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
 
         <ImageBackground source={images.homeBanner} resizeMode="cover" style={styles.lifestyle} imageStyle={styles.lifestyleCorners} />
 
-        <WomensHormonalSection onSeeAll={() => navigation.navigate('WomensHealth')} />
+        {productsLoading ? <ActivityIndicator color={theme.colors.primary} style={styles.productsLoader} /> : productSections.map(section => (
+          <WomensHormonalSection
+            description={section.description}
+            key={`${section.categoryId}-${section.subCategoryId}`}
+            onAdd={product => dispatch(addCommerceItem({
+              source: 'global',
+              product: {
+                id: String(product.product_id),
+                name: product.product_name,
+                price: Number(product.final_price ?? product.offer_price ?? product.price),
+                image: product.images[0]?.url ?? '',
+                detail: product.short_description ?? product.unit,
+                brand: product.attributes?.brand,
+                vendorName: product.vendor?.business_name,
+                estimatedDelivery: product.attributes?.estimated_delivery,
+              },
+            }))}
+            onRemove={product => {
+              const item = commerceCart.items.find(candidate => candidate.id === String(product.product_id));
+              if (item) dispatch(setCommerceItemQuantity({ id: item.id, quantity: item.quantity - 1 }));
+            }}
+            onProductPress={product => navigation.navigate('ProductDetails', { product: toProductDetails(product) })}
+            products={section.products}
+            quantities={globalQuantities}
+            title={section.title}
+          />
+        ))}
 
       </ScrollView>
 
-      <QuickCommerceCartBar bottom={Math.max(insets.bottom, 8)} />
+      <QuickCommerceCartBar bottom={Math.max(insets.bottom, 8)} onPress={() => navigation.getParent()?.navigate('Cart')} />
 
       <LabFilterSheet visible={filtersOpen} value={filters} onClose={() => setFiltersOpen(false)} onApply={value => { setFilters(value); setFiltersOpen(false); }} />
     </SafeAreaView>
@@ -137,7 +231,10 @@ const styles = StyleSheet.create({
   benefitTitle: { marginTop: 7, textAlign: 'center', fontSize: 11, lineHeight: 13 },
   benefitText: { marginTop: 5, textAlign: 'center', fontSize: 7, lineHeight: 10 },
   needHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, marginTop: 17, marginBottom: 9 },
-  needTitle: { fontSize: 20, lineHeight: 24 }, needSubtitle: { marginTop: 3, fontSize: 9, lineHeight: 12 }, viewAll: { fontSize: 10, lineHeight: 13 },
+  needTitle: { fontSize: 20, lineHeight: 24 }, needSubtitle: { marginTop: 3, fontSize: 9, lineHeight: 12 },
+  categoriesState: { minHeight: 140, alignItems: 'center', justifyContent: 'center', marginHorizontal: 18 },
+  categoriesError: { textAlign: 'center', fontSize: 10, lineHeight: 14 },
+  productsLoader: { marginVertical: 34 },
   needRow: { gap: 10, paddingHorizontal: 18 },
   needCard: { width: 121, overflow: 'hidden', borderWidth: 1, borderRadius: 16 },
   needImage: { height: 96 }, needImageCorners: { borderTopLeftRadius: 15, borderTopRightRadius: 15 },

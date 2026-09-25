@@ -23,9 +23,13 @@ import { AppText } from '../AppText';
 
 type Props = {
   visible: boolean;
+  title?: string;
+  subtitle?: string;
   addresses: CustomerAddress[];
   selectedId: number | null;
   loading: boolean;
+  error?: string | null;
+  onRetry?: () => void;
   onClose: () => void;
   onSelect: (address: CustomerAddress) => void;
   onCreate: () => void;
@@ -33,9 +37,13 @@ type Props = {
 
 export function AddressesSheet({
   visible,
+  title = 'Choose collection address',
+  subtitle = 'Where should our phlebotomist visit?',
   addresses,
   selectedId,
   loading,
+  error,
+  onRetry,
   onClose,
   onSelect,
   onCreate,
@@ -61,10 +69,10 @@ export function AddressesSheet({
           <View style={styles.header}>
             <View>
               <AppText style={styles.title} weight="800">
-                Choose collection address
+                {title}
               </AppText>
               <AppText color={theme.colors.textMuted} style={styles.subtitle}>
-                Where should our phlebotomist visit?
+                {subtitle}
               </AppText>
             </View>
             <Pressable
@@ -84,6 +92,12 @@ export function AddressesSheet({
                 Loading saved addresses…
               </AppText>
             </View>
+          ) : error ? (
+            <Pressable onPress={onRetry} style={styles.state}>
+              <AppText style={styles.stateTitle} weight="700">Could not load addresses</AppText>
+              <AppText color={theme.colors.textMuted} style={styles.stateText}>{error}</AppText>
+              {onRetry ? <AppText color={theme.colors.primary} style={styles.stateText} weight="800">Tap to retry</AppText> : null}
+            </Pressable>
           ) : (
             <ScrollView showsVerticalScrollIndicator={false}>
               {addresses.map(address => {

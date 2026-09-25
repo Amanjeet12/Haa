@@ -43,6 +43,7 @@ export type SelectedPlace = {
   latitude: number;
   longitude: number;
   city?: string;
+  state?: string;
   pincode?: string;
 };
 
@@ -158,6 +159,9 @@ export async function getPlaceDetails(
       component.types?.some(type =>
         ['locality', 'postal_town', 'administrative_area_level_3'].includes(type),
       ),
+    )?.longText,
+    state: place.addressComponents?.find(component =>
+      component.types?.includes('administrative_area_level_1'),
     )?.longText,
     pincode: place.addressComponents?.find(component =>
       component.types?.includes('postal_code'),

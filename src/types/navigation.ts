@@ -1,9 +1,14 @@
+import type { NavigatorScreenParams } from '@react-navigation/native';
+
 export type RootStackParamList = {
   Onboarding: undefined;
   Location: undefined;
   Login: undefined;
   Pin: { phone: string };
-  Home: undefined;
+  Home: NavigatorScreenParams<MainTabParamList> | undefined;
+  OrderStatus: { success: boolean; orderNumber?: string; reason?: string };
+  OrderTracking: { order: import('../api/orders').CustomerOrder };
+  OrderProductDetails: { item: import('../api/orders').CustomerOrderItem; vendorName?: string };
   Settings: undefined;
   BookingDetails: { booking: import('../api/bookings').CustomerBooking };
   AppearancePreferences: undefined;
@@ -26,7 +31,7 @@ export type MainTabParamList = {
   Home: undefined;
   Bookings: undefined;
   Cart: undefined;
-  Reports: undefined;
+  Orders: undefined;
   Profile: undefined;
 };
 
@@ -46,10 +51,22 @@ export type HomeStackParamList = {
       oldPrice?: number;
       discount?: string;
       seller: string;
-      image: number;
+      vendorName?: string;
+      image: number | string;
+      description?: string;
+      source?: 'ecommerce' | 'global';
+      apiProduct?: boolean;
+      estimatedDelivery?: string;
+      sku?: string;
+      unit?: string;
+      weight?: string | null;
+      weightUnit?: string | null;
+      attributes?: import('../api/products').Product['attributes'];
+      isInStock?: boolean;
     };
   };
   GlobalStore: undefined;
+  CategoryProducts: { category: import('../api/productCategories').ProductCategory; mode?: 'quick'; subCategoryId?: number };
   WomensHealth: undefined;
   CitySearch: undefined;
   LabDetails: {

@@ -2,7 +2,7 @@ import ShoppingCart from 'lucide-react-native/icons/shopping-cart';
 import React from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 
-import { images } from '../../assets/images';
+import { useAppSelector } from '../../store';
 import { useAppTheme } from '../../theme';
 import { AppText } from '../AppText';
 
@@ -10,20 +10,26 @@ type Props = { bottom: number; onPress?: () => void };
 
 export function QuickCommerceCartBar({ bottom, onPress }: Props) {
   const { theme } = useAppTheme();
+  const items = useAppSelector(state => state.commerceCart.items);
+  const count = items.reduce((sum, item) => sum + item.quantity, 0);
+  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  if (!items.length) return null;
+
   return (
     <Pressable
-      accessibilityLabel="View cart, 2 items, ₹398"
+      accessibilityLabel={`View cart, ${count} items, ₹${total}`}
       accessibilityRole="button"
       onPress={onPress}
       style={[styles.bar, { bottom, shadowColor: theme.colors.shadow }]}
     >
       <View style={styles.thumbnails}>
-        <Image resizeMode="cover" source={images.careImage} style={styles.thumbnail} />
-        <Image resizeMode="cover" source={images.onboardingCards} style={[styles.thumbnail, styles.overlap]} />
+        {items.slice(0, 2).map((item, index) => (
+          <Image key={item.id} resizeMode="cover" source={typeof item.image === 'string' ? { uri: item.image } : item.image} style={[styles.thumbnail, index > 0 && styles.overlap]} />
+        ))}
       </View>
       <View style={styles.summary}>
         <AppText color="#FFFFFF" style={styles.title} weight="800">View cart</AppText>
-        <AppText color="#C9D6E0" style={styles.meta} weight="600">2 items · ₹398</AppText>
+        <AppText color="#C9D6E0" style={styles.meta} weight="600">{count} item{count === 1 ? '' : 's'} · ₹{total.toLocaleString('en-IN')}</AppText>
       </View>
       <View style={[styles.button, { backgroundColor: theme.colors.primary }]}>
         <ShoppingCart color="#FFFFFF" size={20} />

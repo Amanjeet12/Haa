@@ -25,6 +25,9 @@ import { SupportCreateScreen } from '../screens/SupportCreateScreen';
 import { SupportScreen } from '../screens/SupportScreen';
 import { HelpScreen } from '../screens/HelpScreen';
 import { SupportDetailScreen } from '../screens/SupportDetailScreen';
+import { OrderStatusScreen } from '../screens/OrderStatusScreen';
+import { OrderTrackingScreen } from '../screens/OrderTrackingScreen';
+import { OrderProductDetailsScreen } from '../screens/OrderProductDetailsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -105,6 +108,9 @@ export function RootNavigator() {
               component={BookingDetailsScreen}
               options={{ headerShown: false }}
             />
+            <Stack.Screen name="OrderStatus" component={OrderStatusScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="OrderTracking" component={OrderTrackingScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="OrderProductDetails" component={OrderProductDetailsScreen} options={{ headerShown: false }} />
             <Stack.Screen
               name="FamilyMemberForm"
               component={FamilyMemberFormScreen}

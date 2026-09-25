@@ -244,14 +244,14 @@ export function ReviewBookingScreen({ navigation }: Props) {
     }
     setAddressesLoading(true);
     try {
-      const fetchedAddresses = await getCustomerAddresses(authToken);
+      const fetchedAddresses = (await getCustomerAddresses(authToken)).filter(item => Boolean(item.billing_address));
       setAddresses(fetchedAddresses);
       setSelectedAddressId(currentId => {
         if (fetchedAddresses.some(item => item.address_id === currentId)) {
           return currentId;
         }
         const preferred =
-          fetchedAddresses.find(item => item.billing_address.isDefault) ??
+          fetchedAddresses.find(item => item.billing_address?.isDefault) ??
           fetchedAddresses[0];
         return preferred?.address_id ?? null;
       });
@@ -294,7 +294,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
       setBookingError('Select an available collection slot.');
       return;
     }
-    if (!selectedAddress) {
+    if (!selectedAddress?.billing_address) {
       setBookingError('Select a collection address.');
       return;
     }

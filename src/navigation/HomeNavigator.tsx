@@ -11,6 +11,7 @@ import { FrequentlyBoughtScreen } from '../screens/FrequentlyBoughtScreen';
 import { FirstAidScreen } from '../screens/FirstAidScreen';
 import { ProductDetailsScreen } from '../screens/ProductDetailsScreen';
 import { GlobalStoreScreen } from '../screens/GlobalStoreScreen';
+import { CategoryProductsScreen } from '../screens/CategoryProductsScreen';
 import { WomensHealthScreen } from '../screens/WomensHealthScreen';
 import { ReviewBookingScreen } from '../screens/ReviewBookingScreen';
 import { AddPatientTestsScreen } from '../screens/AddPatientTestsScreen';
@@ -47,6 +48,7 @@ export function HomeNavigator() {
       <Stack.Screen name="FirstAid" component={FirstAidScreen} />
       <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} />
       <Stack.Screen name="GlobalStore" component={GlobalStoreScreen} />
+      <Stack.Screen name="CategoryProducts" component={CategoryProductsScreen} />
       <Stack.Screen name="WomensHealth" component={WomensHealthScreen} />
       <Stack.Screen name="CitySearch" component={CitySearchScreen} />
       <Stack.Screen name="LabDetails" component={LabDetailsScreen} />

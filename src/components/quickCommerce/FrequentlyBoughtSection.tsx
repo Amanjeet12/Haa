@@ -20,7 +20,7 @@ const products: Array<{ brand: string; name: string; detail: string; discount: s
   { brand: 'INTIMATE CARE', name: 'Water-Based\nPersonal Lubricant', detail: '50 ml', discount: '', price: '₹299', oldPrice: '', image: { source: images.homeBanner, position: 'center' } },
 ];
 
-export function FrequentlyBoughtSection({ onSeeAll, onGroupPress }: { onSeeAll: () => void; onGroupPress: (category: string) => void }) {
+export function FrequentlyBoughtSection({ onSeeAll, onGroupPress, onAdd }: { onSeeAll: () => void; onGroupPress: (category: string) => void; onAdd: (product: typeof products[number]) => void }) {
   const { theme } = useAppTheme();
   const { width } = useWindowDimensions();
   const productCardWidth = (width - 36 - 18) / 3;
@@ -77,7 +77,7 @@ export function FrequentlyBoughtSection({ onSeeAll, onGroupPress }: { onSeeAll: 
                   <AppText style={styles.price} weight="800">{product.price}</AppText>
                   {product.oldPrice ? <AppText color={theme.colors.textMuted} style={styles.oldPrice}>{product.oldPrice}</AppText> : null}
                 </View>
-                <Pressable style={[styles.addButton, { backgroundColor: theme.colors.primary }]}><AppText color="#FFFFFF" style={styles.addText} weight="800">ADD</AppText></Pressable>
+                <Pressable onPress={() => onAdd(product)} style={[styles.addButton, { backgroundColor: theme.colors.primary }]}><AppText color="#FFFFFF" style={styles.addText} weight="800">ADD</AppText></Pressable>
               </View>
             </View>
           </View>

@@ -9,7 +9,7 @@ import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, Pre
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AddressInput, createCustomerAddress, deleteCustomerAddress, updateCustomerAddress } from '../api/addresses';
+import { AddressInput, BillingAddressInput, createCustomerAddress, deleteCustomerAddress, updateCustomerAddress } from '../api/addresses';
 import { AppText } from '../components';
 import { getCurrentLocation } from '../services/location';
 import { createPlacesSessionToken, getPlaceDetails, getPlaceSuggestions, PlaceSuggestion } from '../services/places';
@@ -38,6 +38,7 @@ export function AddressFormScreen({ navigation, route }: Props) {
   const [landmark, setLandmark] = useState(value?.landmark ?? '');
   const [address, setAddress] = useState(value?.address ?? location?.address ?? '');
   const [city, setCity] = useState(location?.city ?? value?.city ?? '');
+  const [state, setState] = useState(location?.state ?? value?.state ?? '');
   const [pincode, setPincode] = useState(location?.pincode ?? value?.pincode ?? '');
   const [coordinate, setCoordinate] = useState<Coordinate | null>(initialCoordinate);
   const [locationQuery, setLocationQuery] = useState('');
@@ -82,6 +83,7 @@ export function AddressFormScreen({ navigation, route }: Props) {
       const next = { latitude: place.latitude, longitude: place.longitude };
       setCoordinate(next); setAddress(place.address);
       if (place.city) setCity(place.city);
+      if (place.state) setState(place.state);
       if (place.pincode) setPincode(place.pincode);
       mapRef.current?.animateToRegion({ ...next, latitudeDelta: 0.008, longitudeDelta: 0.008 }, 400);
       sessionTokenRef.current = createPlacesSessionToken();
@@ -108,22 +110,23 @@ export function AddressFormScreen({ navigation, route }: Props) {
 
   const save = async () => {
     if (!token) return;
-    if (!address.trim() || !city.trim() || !pincode.trim() || !coordinate) {
-      setError('Enter the address, city and pincode, then choose its location on the map.');
+    if (!address.trim() || !city.trim() || !state.trim() || !pincode.trim() || !coordinate) {
+      setError('Enter the address, city, state and pincode, then choose its location on the map.');
       return;
     }
-    const input: AddressInput = {
-      billing_address: {
+    const details: BillingAddressInput = {
         isDefault, addressType, flatNo: flatNo.trim(), buildingName: buildingName.trim(),
         landmark: landmark.trim(), address: address.trim(),
         location: {
-          title: city.trim(), city: city.trim(),
+          title: city.trim(), city: city.trim(), state: state.trim(),
           type: addressType.charAt(0).toUpperCase() + addressType.slice(1),
           address: address.trim(), pincode: pincode.trim(),
           latitude: coordinate.latitude, longitude: coordinate.longitude,
         },
-      },
-      shipping_address: null,
+    };
+    const input: AddressInput = {
+      billing_address: details,
+      shipping_address: existing?.shipping_address ?? null,
     };
     setSaving(true); setError(null);
     try {
@@ -196,6 +199,7 @@ export function AddressFormScreen({ navigation, route }: Props) {
               <Field label="Landmark" value={landmark} onChangeText={setLandmark} />
               <Field label="Full address *" value={address} onChangeText={setAddress} multiline />
               <Field label="City *" value={city} onChangeText={setCity} onFocus={revealFormFields} />
+              <Field label="State *" value={state} onChangeText={setState} onFocus={revealFormFields} />
               <Field label="Pincode *" value={pincode} onChangeText={next => setPincode(next.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" onFocus={revealFormFields} />
               <Pressable onPress={() => setIsDefault(current => !current)} style={styles.defaultRow}>
                 <View style={[styles.checkbox, { borderColor: isDefault ? theme.colors.primary : theme.colors.border, backgroundColor: isDefault ? theme.colors.primary : theme.colors.surface }]}>{isDefault && <AppText color="#FFFFFF" weight="800">✓</AppText>}</View>

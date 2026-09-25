@@ -1,7 +1,7 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import CalendarDays from 'lucide-react-native/icons/calendar-days';
-import FileText from 'lucide-react-native/icons/file-text';
+import Package from 'lucide-react-native/icons/package';
 import House from 'lucide-react-native/icons/house';
 import ShoppingCart from 'lucide-react-native/icons/shopping-cart';
 import UserRound from 'lucide-react-native/icons/user-round';
@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CartScreen } from '../screens/CartScreen';
 import { BookingsScreen } from '../screens/BookingsScreen';
-import { ReportsScreen } from '../screens/ReportsScreen';
+import { OrdersScreen } from '../screens/OrdersScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { AppTheme, useAppTheme } from '../theme';
 import { MainTabParamList } from '../types/navigation';
@@ -49,8 +49,8 @@ function TabIcon({ color, focused, name, theme }: TabIconProps) {
           <ShoppingCart color={theme.colors.surface} size={19} />
         </View>
       );
-    case 'Reports':
-      icon = <FileText color={iconColor} size={19} />;
+    case 'Orders':
+      icon = <Package color={iconColor} size={19} />;
       break;
     case 'Profile':
       icon = <UserRound color={iconColor} size={19} />;
@@ -100,6 +100,7 @@ export function MainTabs() {
               'FirstAid',
               'ProductDetails',
               'GlobalStore',
+              'CategoryProducts',
               'WomensHealth',
               'Search',
               'CitySearch',
@@ -134,7 +135,7 @@ export function MainTabs() {
       <Tab.Screen name="Home" component={HomeNavigator} />
       <Tab.Screen name="Bookings" component={BookingsScreen} />
       <Tab.Screen name="Cart" component={CartScreen} />
-      <Tab.Screen name="Reports" component={ReportsScreen} />
+      <Tab.Screen name="Orders" component={OrdersScreen} />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}

@@ -3,7 +3,7 @@ import type { NavigationProp } from '@react-navigation/native';
 import CalendarDays from 'lucide-react-native/icons/calendar-days';
 import ChevronRight from 'lucide-react-native/icons/chevron-right';
 import CircleQuestionMark from 'lucide-react-native/icons/circle-question-mark';
-import FileText from 'lucide-react-native/icons/file-text';
+import Package from 'lucide-react-native/icons/package';
 import LogOut from 'lucide-react-native/icons/log-out';
 import MapPin from 'lucide-react-native/icons/map-pin';
 import Plus from 'lucide-react-native/icons/plus';
@@ -64,18 +64,8 @@ export function ProfileScreen() {
   const profilePhone = selfMember?.phone ?? customer?.phone ?? '';
   const profilePhoto = selfMember?.profilePhoto ?? customer?.profilePhoto;
   const homeAddress =
-    addresses.find(address => address.billing_address.isDefault) ??
-    addresses[0];
-  const readyReports = bookings.reduce(
-    (count, booking) =>
-      count +
-      booking.members.filter(member =>
-        Boolean(
-          member.result_pdf || member.tests.some(test => test.result_pdf),
-        ),
-      ).length,
-    0,
-  );
+    addresses.find(address => address.billing_address?.isDefault) ??
+    addresses.find(address => Boolean(address.billing_address));
 
   return (
     <LinearGradient
@@ -312,15 +302,11 @@ export function ProfileScreen() {
             ]}
           >
             <MenuRow
-              icon={<FileText color="#D64A5B" size={17} />}
+              icon={<Package color="#D64A5B" size={17} />}
               color="#FFF0F2"
-              title="Reports and health records"
-              subtitle={`${readyReports} ready · ${Math.max(
-                bookings.length - readyReports,
-                0,
-              )} processing`}
-              count={readyReports}
-              onPress={() => navigation.navigate('Reports')}
+              title="Orders"
+              subtitle="Your purchases and delivery updates"
+              onPress={() => navigation.navigate('Orders')}
             />
             <MenuRow
               icon={<CalendarDays color="#D64A5B" size={17} />}

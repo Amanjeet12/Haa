@@ -13,7 +13,8 @@ import { images } from '../assets/images';
 import { AppText } from '../components';
 import { LabFilterSheet, LabFilterValues } from '../components/labs';
 import { QuickCommerceCartBar } from '../components/quickCommerce/QuickCommerceCartBar';
-import { useAppSelector } from '../store';
+import { useAppDispatch, useAppSelector } from '../store';
+import { addCommerceItem } from '../store/commerceCartSlice';
 import { useAppTheme } from '../theme';
 import { HomeStackParamList } from '../types/navigation';
 
@@ -35,6 +36,7 @@ const initialFilters: LabFilterValues = { sort: 'none', price: 'all' };
 export function FirstAidScreen({ navigation }: Props) {
   const { theme } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const dispatch = useAppDispatch();
   const { width } = useWindowDimensions();
   const zone = useAppSelector(state => state.zones.selected);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -81,11 +83,11 @@ export function FirstAidScreen({ navigation }: Props) {
             <AppText style={styles.name} numberOfLines={2} weight="800">{item.name}</AppText>
             <View style={styles.meta}><AppText color={theme.colors.textMuted} style={styles.metaText}>{item.detail}</AppText><Clock3 size={8} color={theme.colors.textMuted} /><AppText color={theme.colors.textMuted} style={styles.metaText}>9 min</AppText></View>
             <AppText color={theme.colors.success} style={styles.seller} numberOfLines={1} weight="700">● {item.seller}</AppText>
-            <View style={styles.purchase}><View style={styles.prices}><AppText style={styles.price} weight="800">₹{item.price}</AppText><AppText color={theme.colors.textMuted} style={styles.oldPrice}>₹{item.oldPrice}</AppText></View><Pressable style={[styles.add, { backgroundColor: theme.colors.primary }]}><AppText color="#FFFFFF" style={styles.addText} weight="800">ADD</AppText></Pressable></View>
+            <View style={styles.purchase}><View style={styles.prices}><AppText style={styles.price} weight="800">₹{item.price}</AppText><AppText color={theme.colors.textMuted} style={styles.oldPrice}>₹{item.oldPrice}</AppText></View><Pressable onPress={() => dispatch(addCommerceItem({ source: 'ecommerce', product: { id: item.id, name: item.name, price: item.price, image: item.image, detail: item.detail } }))} style={[styles.add, { backgroundColor: theme.colors.primary }]}><AppText color="#FFFFFF" style={styles.addText} weight="800">ADD</AppText></Pressable></View>
           </Pressable>
         )}
       />
-      <QuickCommerceCartBar bottom={Math.max(insets.bottom, 8)} />
+      <QuickCommerceCartBar bottom={Math.max(insets.bottom, 8)} onPress={() => navigation.getParent()?.navigate('Cart')} />
       <LabFilterSheet visible={filtersOpen} value={filters} onClose={() => setFiltersOpen(false)} onApply={value => { setFilters(value); setFiltersOpen(false); }} />
     </SafeAreaView>
   );

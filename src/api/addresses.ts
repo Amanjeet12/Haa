@@ -2,6 +2,12 @@ import { apiBaseUrl } from '../config/environment';
 import { apiRequest } from './client';
 
 export type CustomerAddressDetails = {
+  name?: string;
+  phone?: string;
+  line1?: string;
+  line2?: string;
+  lat?: number;
+  lng?: number;
   flatNo?: string;
   flat_no?: string;
   buildingName?: string;
@@ -11,6 +17,7 @@ export type CustomerAddressDetails = {
   full_address?: string;
   landmark?: string;
   city?: string;
+  state?: string;
   pincode?: string;
   addressType?: string;
   address_type?: string;
@@ -19,6 +26,7 @@ export type CustomerAddressDetails = {
     type?: string;
     title?: string;
     city?: string;
+    state?: string;
     address?: string;
     pincode?: string;
     latitude?: number;
@@ -28,31 +36,34 @@ export type CustomerAddressDetails = {
   };
 };
 
-export type AddressInput = {
-  billing_address: {
-    isDefault: boolean;
-    addressType: string;
-    flatNo: string;
-    buildingName: string;
-    landmark: string;
+export type BillingAddressInput = {
+  isDefault: boolean;
+  addressType: string;
+  flatNo: string;
+  buildingName: string;
+  landmark: string;
+  address: string;
+  location: {
+    title: string;
+    city: string;
+    state?: string;
+    type: string;
     address: string;
-    location: {
-      title: string;
-      city: string;
-      type: string;
-      address: string;
-      pincode: string;
-      latitude: number;
-      longitude: number;
-    };
+    pincode: string;
+    latitude: number;
+    longitude: number;
   };
-  shipping_address: null;
+};
+
+export type AddressInput = {
+  billing_address: BillingAddressInput | CustomerAddressDetails | null;
+  shipping_address: CustomerAddressDetails | null;
 };
 
 export type CustomerAddress = {
   address_id: number;
   customer_id: number;
-  billing_address: CustomerAddressDetails;
+  billing_address: CustomerAddressDetails | null;
   shipping_address: CustomerAddressDetails | null;
   createdAt: string;
   updatedAt: string;
@@ -127,6 +138,7 @@ export async function deleteCustomerAddress(token: string, addressId: number) {
 
 export function addressTitle(address: CustomerAddress) {
   const details = address.billing_address;
+  if (!details) return 'Address';
   return (
     details.location?.type ||
     details.addressType ||
@@ -138,9 +150,11 @@ export function addressTitle(address: CustomerAddress) {
 
 export function addressLine(address: CustomerAddress) {
   const details = address.billing_address;
+  if (!details) return '';
   return (
     details.fullAddress ||
     details.full_address ||
+    [details.line1, details.line2].filter(Boolean).join(', ') ||
     details.address ||
     details.location?.address ||
     ''

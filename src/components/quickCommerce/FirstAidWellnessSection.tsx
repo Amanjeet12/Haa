@@ -13,7 +13,7 @@ const products = [
   { brand: 'PAIN RELIEF', name: 'Fast-Acting Relief\nSpray', detail: '55 g', discount: '10% OFF', price: '₹189', oldPrice: '₹210', image: images.homeBanner, seller: 'WellMart · 2 prices' },
 ] as const;
 
-export function FirstAidWellnessSection({ onSeeAll }: { onSeeAll: () => void }) {
+export function FirstAidWellnessSection({ onSeeAll, onAdd }: { onSeeAll: () => void; onAdd: (product: typeof products[number]) => void }) {
   const { theme } = useAppTheme();
   const { width } = useWindowDimensions();
   const productCardWidth = (width - 36 - 18) / 3;
@@ -48,7 +48,7 @@ export function FirstAidWellnessSection({ onSeeAll }: { onSeeAll: () => void }) 
                   <AppText style={styles.price} weight="800">{product.price}</AppText>
                   {product.oldPrice ? <AppText color={theme.colors.textMuted} style={styles.oldPrice}>{product.oldPrice}</AppText> : null}
                 </View>
-                <Pressable style={[styles.add, { backgroundColor: theme.colors.primary }]}><AppText color="#FFFFFF" style={styles.addText} weight="800">ADD</AppText></Pressable>
+                <Pressable onPress={() => onAdd(product)} style={[styles.add, { backgroundColor: theme.colors.primary }]}><AppText color="#FFFFFF" style={styles.addText} weight="800">ADD</AppText></Pressable>
               </View>
             </View>
           </View>

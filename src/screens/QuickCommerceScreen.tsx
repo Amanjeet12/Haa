@@ -1,45 +1,111 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import ArrowLeft from 'lucide-react-native/icons/arrow-left';
-import Bandage from 'lucide-react-native/icons/bandage';
-import HeartPulse from 'lucide-react-native/icons/heart-pulse';
 import PackageCheck from 'lucide-react-native/icons/package-check';
-import Pill from 'lucide-react-native/icons/pill';
 import Search from 'lucide-react-native/icons/search';
 import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal';
-import Sparkles from 'lucide-react-native/icons/sparkles';
 import Zap from 'lucide-react-native/icons/zap';
-import React, { useState } from 'react';
-import { ImageBackground, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Image, ImageBackground, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { images } from '../assets/images';
+import { getProductCategories, ProductCategory, ProductSubCategory } from '../api/productCategories';
+import { getQuickCommerceProducts, Product } from '../api/products';
 import { AppText } from '../components';
 import { LabFilterSheet, LabFilterValues } from '../components/labs';
-import { FrequentlyBoughtSection } from '../components/quickCommerce/FrequentlyBoughtSection';
-import { FirstAidWellnessSection } from '../components/quickCommerce/FirstAidWellnessSection';
 import { QuickCommerceCartBar } from '../components/quickCommerce/QuickCommerceCartBar';
-import { useAppSelector } from '../store';
+import { QuickCommerceProductSection } from '../components/quickCommerce/QuickCommerceProductSection';
+import { useAppDispatch, useAppSelector } from '../store';
+import { addCommerceItem, setCommerceItemQuantity } from '../store/commerceCartSlice';
 import { useAppTheme } from '../theme';
 import { HomeStackParamList } from '../types/navigation';
+import { toProductDetails } from '../utils/productDetails';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'QuickCommerce'>;
 const initialFilters: LabFilterValues = { sort: 'none', price: 'all' };
-const categories = [
-  { label: 'All', icon: HeartPulse, colors: ['#08BED1', '#8FE7E7'] },
-  { label: 'Protection', icon: PackageCheck, colors: ['#BDE2E3', '#E8F3F4'] },
-  { label: 'First aid', icon: Bandage, colors: ['#07B9CE', '#8BE7E7'] },
-  { label: 'Wellness', icon: Pill, colors: ['#F4A3B0', '#FBE6EA'] },
-  { label: 'Personal care', icon: Sparkles, colors: ['#E7D8F4', '#F7F0FA'] },
-] as const;
-
+type ProductSection = { category: ProductCategory; subCategory: ProductSubCategory; products: Product[] };
 export function QuickCommerceScreen({ navigation }: Props) {
   const { theme } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const dispatch = useAppDispatch();
   const selectedZone = useAppSelector(state => state.zones.selected);
+  const cart = useAppSelector(state => state.commerceCart);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<LabFilterValues>(initialFilters);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState(false);
+  const [productSections, setProductSections] = useState<ProductSection[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [productsError, setProductsError] = useState(false);
+  const [productsRetry, setProductsRetry] = useState(0);
   const appliedCount = Number(filters.sort !== 'none') + Number(filters.price !== 'all');
+  const selectedZoneId = selectedZone?.zone_id;
+  const quickQuantities = cart.source === 'ecommerce' ? Object.fromEntries(cart.items.map(item => [Number(item.id), item.quantity])) : {};
+
+  const loadCategories = useCallback(async () => {
+    setCategoriesLoading(true);
+    setCategoriesError(false);
+    try {
+      const result = await getProductCategories('zone_based');
+      setCategories(result.filter(category => category.isActive));
+    } catch {
+      setCategoriesError(true);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadCategories(); }, [loadCategories]);
+
+  useEffect(() => {
+    if (categoriesLoading || categoriesError || !selectedZoneId) {
+      setProductSections([]);
+      setProductsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setProductsLoading(true);
+    setProductsError(false);
+    const selections = categories.flatMap(category => {
+      const subCategory = category.sub_categories.find(item => item.isActive);
+      return subCategory ? [{ category, subCategory }] : [];
+    });
+    Promise.all(selections.map(async ({ category, subCategory }) => {
+      try {
+        const products = await getQuickCommerceProducts(selectedZoneId, category.category_id, subCategory.sub_category_id);
+        return { category, subCategory, products };
+      } catch {
+        return null;
+      }
+    })).then(sections => {
+      if (cancelled) return;
+      setProductSections(sections.filter((section): section is ProductSection => Boolean(section?.products.length)));
+      setProductsError(sections.length > 0 && sections.every(section => section === null));
+    }).finally(() => { if (!cancelled) setProductsLoading(false); });
+    return () => { cancelled = true; };
+  }, [categories, categoriesError, categoriesLoading, productsRetry, selectedZoneId]);
+
+  const addProduct = (product: Product) => dispatch(addCommerceItem({
+    source: 'ecommerce',
+    product: {
+      id: String(product.product_id),
+      name: product.product_name,
+      price: Number(product.final_price ?? product.offer_price ?? product.price),
+      image: product.images[0]?.url ?? images.careImage,
+      detail: product.short_description ?? product.unit,
+      brand: product.attributes?.brand,
+      vendorName: product.vendor?.business_name,
+      estimatedDelivery: product.attributes?.estimated_delivery,
+      zoneId: selectedZoneId,
+    },
+  }));
+
+  const removeProduct = (product: Product) => {
+    const item = cart.items.find(candidate => candidate.id === String(product.product_id));
+    if (item) dispatch(setCommerceItemQuantity({ id: item.id, quantity: item.quantity - 1 }));
+  };
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: theme.colors.background }]}>
@@ -88,24 +154,35 @@ export function QuickCommerceScreen({ navigation }: Props) {
           <AppText style={styles.sectionTitle} weight="800">Categories</AppText>
           <AppText color={theme.colors.textMuted} style={styles.swipeText}>Swipe to explore</AppText>
         </View>
-        <ScrollView contentContainerStyle={styles.categories} horizontal showsHorizontalScrollIndicator={false}>
-          {categories.map(({ label, icon: Icon, colors }, index) => (
-            <View key={label} style={styles.category}>
-              <LinearGradient colors={[...colors]} style={[styles.categoryArt, index === 0 && { borderColor: theme.colors.primary }]}>
-                <Icon color={theme.colors.text} size={30} strokeWidth={1.8} />
-              </LinearGradient>
-              <AppText color={index === 0 ? theme.colors.primary : theme.colors.text} style={styles.categoryLabel} weight="700">{label}</AppText>
-            </View>
-          ))}
-        </ScrollView>
-        <FrequentlyBoughtSection
-          onGroupPress={category => navigation.navigate('FrequentlyBought', { category })}
-          onSeeAll={() => navigation.navigate('FrequentlyBought')}
-        />
-        <FirstAidWellnessSection onSeeAll={() => navigation.navigate('FirstAid')} />
+        {categoriesLoading ? <ActivityIndicator color={theme.colors.primary} style={styles.categoriesState} /> : categoriesError ? (
+          <Pressable accessibilityRole="button" onPress={loadCategories} style={styles.categoriesState}><AppText color={theme.colors.textMuted} style={styles.categoriesMessage}>Could not load categories. Tap to retry.</AppText></Pressable>
+        ) : categories.length ? (
+          <ScrollView contentContainerStyle={styles.categories} horizontal showsHorizontalScrollIndicator={false}>
+            {categories.map(category => (
+              <Pressable key={category.category_id} onPress={() => navigation.navigate('CategoryProducts', { category, mode: 'quick' })} style={styles.category}>
+                <View style={[styles.categoryArt, { backgroundColor: theme.colors.surfaceMuted }]}>
+                  {category.image?.url ? <Image accessibilityLabel={category.image.alt || category.category_name} source={{ uri: category.image.url }} resizeMode="cover" style={styles.categoryImage} /> : <PackageCheck color={theme.colors.primary} size={30} strokeWidth={1.8} />}
+                </View>
+                <AppText numberOfLines={2} style={styles.categoryLabel} weight="700">{category.category_name}</AppText>
+              </Pressable>
+            ))}
+          </ScrollView>
+        ) : <AppText color={theme.colors.textMuted} style={styles.categoriesMessage}>No categories available yet.</AppText>}
+        {productsLoading ? <ActivityIndicator color={theme.colors.primary} style={styles.productsState} /> : productsError ? <Pressable onPress={() => setProductsRetry(current => current + 1)} style={styles.productsState}><AppText color={theme.colors.textMuted} style={styles.categoriesMessage}>Could not load products. Tap to retry.</AppText></Pressable> : !selectedZoneId ? <AppText color={theme.colors.textMuted} style={styles.categoriesMessage}>Choose a delivery location to see products.</AppText> : productSections.map(section => <QuickCommerceProductSection
+          key={`${section.category.category_id}-${section.subCategory.sub_category_id}`}
+          title={section.subCategory.sub_category_name}
+          description={section.subCategory.description}
+          imageUrl={section.subCategory.image?.url}
+          products={section.products}
+          quantities={quickQuantities}
+          onAdd={addProduct}
+          onRemove={removeProduct}
+          onProductPress={product => navigation.navigate('ProductDetails', { product: toProductDetails(product, 'ecommerce') })}
+          onSeeAll={() => navigation.navigate('CategoryProducts', { category: section.category, mode: 'quick', subCategoryId: section.subCategory.sub_category_id })}
+        />)}
       </ScrollView>
 
-      <QuickCommerceCartBar bottom={Math.max(insets.bottom, 8)} />
+      <QuickCommerceCartBar bottom={Math.max(insets.bottom, 8)} onPress={() => navigation.getParent()?.navigate('Cart')} />
 
       <LabFilterSheet visible={filtersOpen} value={filters} onClose={() => setFiltersOpen(false)} onApply={value => { setFilters(value); setFiltersOpen(false); }} />
     </SafeAreaView>
@@ -145,6 +222,10 @@ const styles = StyleSheet.create({
   swipeText: { fontSize: 10, lineHeight: 13 },
   categories: { gap: 9, paddingHorizontal: 18 },
   category: { width: 76, alignItems: 'center' },
-  categoryArt: { width: 76, height: 78, borderWidth: 2, borderColor: 'transparent', borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  categoryArt: { width: 76, height: 78, overflow: 'hidden', borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  categoryImage: { width: '100%', height: '100%' },
   categoryLabel: { marginTop: 7, textAlign: 'center', fontSize: 10, lineHeight: 12 },
+  categoriesState: { height: 108, alignItems: 'center', justifyContent: 'center' },
+  categoriesMessage: { minHeight: 76, paddingHorizontal: 18, textAlign: 'center', textAlignVertical: 'center', fontSize: 10, lineHeight: 14 },
+  productsState: { minHeight: 115, alignItems: 'center', justifyContent: 'center' },
 });
