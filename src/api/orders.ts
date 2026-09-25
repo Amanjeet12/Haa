@@ -56,7 +56,11 @@ export type CustomerOrderItem = {
   shop_type?: string;
   product_image?: { url?: string };
   product_snapshot?: OrderProductSnapshot;
-  product?: { product_name?: string; shop_type?: string; images?: Array<{ url?: string }> };
+  product?: {
+    product_name?: string;
+    shop_type?: string;
+    images?: Array<{ url?: string }>;
+  };
   image?: string;
 };
 
@@ -77,7 +81,11 @@ export type CustomerOrder = {
   packed_at?: string | null;
   out_for_delivery_at?: string | null;
   delivered_at?: string | null;
-  vendor?: { business_name?: string; vendor_type?: string; logo?: { url?: string } };
+  vendor?: {
+    business_name?: string;
+    vendor_type?: string;
+    logo?: { url?: string };
+  };
   total_amount?: number | string;
   grand_total?: number | string;
   createdAt?: string;
@@ -85,15 +93,26 @@ export type CustomerOrder = {
   items?: CustomerOrderItem[];
 };
 
-type OrderResponse = { success: number | string; msg?: string; data?: CustomerOrder };
-type OrdersResponse = { success: number | string; msg?: string; data?: CustomerOrder[] | { orders?: CustomerOrder[] } };
+type OrderResponse = {
+  success: number | string;
+  msg?: string;
+  data?: CustomerOrder;
+};
+type OrdersResponse = {
+  success: number | string;
+  msg?: string;
+  data?: CustomerOrder[] | { orders?: CustomerOrder[] };
+};
 
 export async function createCustomerOrder(token: string, input: OrderInput) {
-  const response = await apiRequest<OrderResponse>(`${apiBaseUrl}/customer/orders`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-    body: JSON.stringify(input),
-  });
+  const response = await apiRequest<OrderResponse>(
+    `${apiBaseUrl}/customer/orders`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(input),
+    },
+  );
   if (Number(response.success) !== 1) {
     throw new Error(response.msg || 'Unable to place the order.');
   }
@@ -101,9 +120,15 @@ export async function createCustomerOrder(token: string, input: OrderInput) {
 }
 
 export async function getCustomerOrders(token: string) {
-  const response = await apiRequest<OrdersResponse>(`${apiBaseUrl}/customer/orders`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (Number(response.success) !== 1) throw new Error(response.msg || 'Unable to load orders.');
-  return Array.isArray(response.data) ? response.data : response.data?.orders ?? [];
+  const response = await apiRequest<OrdersResponse>(
+    `${apiBaseUrl}/customer/orders`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+  if (Number(response.success) !== 1)
+    throw new Error(response.msg || 'Unable to load orders.');
+  return Array.isArray(response.data)
+    ? response.data
+    : response.data?.orders ?? [];
 }

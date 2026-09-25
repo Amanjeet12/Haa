@@ -157,7 +157,9 @@ export async function getPlaceDetails(
     longitude,
     city: place.addressComponents?.find(component =>
       component.types?.some(type =>
-        ['locality', 'postal_town', 'administrative_area_level_3'].includes(type),
+        ['locality', 'postal_town', 'administrative_area_level_3'].includes(
+          type,
+        ),
       ),
     )?.longText,
     state: place.addressComponents?.find(component =>

@@ -244,7 +244,9 @@ export function ReviewBookingScreen({ navigation }: Props) {
     }
     setAddressesLoading(true);
     try {
-      const fetchedAddresses = (await getCustomerAddresses(authToken)).filter(item => Boolean(item.billing_address));
+      const fetchedAddresses = (await getCustomerAddresses(authToken)).filter(
+        item => Boolean(item.billing_address),
+      );
       setAddresses(fetchedAddresses);
       setSelectedAddressId(currentId => {
         if (fetchedAddresses.some(item => item.address_id === currentId)) {

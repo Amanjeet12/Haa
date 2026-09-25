@@ -108,9 +108,21 @@ export function RootNavigator() {
               component={BookingDetailsScreen}
               options={{ headerShown: false }}
             />
-            <Stack.Screen name="OrderStatus" component={OrderStatusScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="OrderTracking" component={OrderTrackingScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="OrderProductDetails" component={OrderProductDetailsScreen} options={{ headerShown: false }} />
+            <Stack.Screen
+              name="OrderStatus"
+              component={OrderStatusScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="OrderTracking"
+              component={OrderTrackingScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="OrderProductDetails"
+              component={OrderProductDetailsScreen}
+              options={{ headerShown: false }}
+            />
             <Stack.Screen
               name="FamilyMemberForm"
               component={FamilyMemberFormScreen}

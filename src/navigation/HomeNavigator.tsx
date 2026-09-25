@@ -44,11 +44,17 @@ export function HomeNavigator() {
       <Stack.Screen name="Search" component={SearchScreen} />
       <Stack.Screen name="Labs" component={LabsScreen} />
       <Stack.Screen name="QuickCommerce" component={QuickCommerceScreen} />
-      <Stack.Screen name="FrequentlyBought" component={FrequentlyBoughtScreen} />
+      <Stack.Screen
+        name="FrequentlyBought"
+        component={FrequentlyBoughtScreen}
+      />
       <Stack.Screen name="FirstAid" component={FirstAidScreen} />
       <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} />
       <Stack.Screen name="GlobalStore" component={GlobalStoreScreen} />
-      <Stack.Screen name="CategoryProducts" component={CategoryProductsScreen} />
+      <Stack.Screen
+        name="CategoryProducts"
+        component={CategoryProductsScreen}
+      />
       <Stack.Screen name="WomensHealth" component={WomensHealthScreen} />
       <Stack.Screen name="CitySearch" component={CitySearchScreen} />
       <Stack.Screen name="LabDetails" component={LabDetailsScreen} />

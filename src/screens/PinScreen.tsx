@@ -60,7 +60,12 @@ export function PinScreen({ navigation, route }: Props) {
 
       <AppText variant="title" weight="500" style={styles.title}>
         Enter your{' '}
-        <AppText variant="title" weight="500" color={theme.colors.primary} style={{ fontSize: 36 }}>
+        <AppText
+          variant="title"
+          weight="500"
+          color={theme.colors.primary}
+          style={{ fontSize: 36 }}
+        >
           HAA PIN.
         </AppText>
       </AppText>

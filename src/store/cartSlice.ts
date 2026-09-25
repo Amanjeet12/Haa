@@ -99,9 +99,7 @@ const cartSlice = createSlice({
       const obsoleteIds = new Set([...legacyIds, beneficiary.id]);
       state.beneficiaries = [
         beneficiary,
-        ...state.beneficiaries.filter(
-          item => !obsoleteIds.has(item.id),
-        ),
+        ...state.beneficiaries.filter(item => !obsoleteIds.has(item.id)),
       ];
       state.items.forEach(item => {
         const migratedIds = item.beneficiaryIds.map(id =>

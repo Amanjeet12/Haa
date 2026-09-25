@@ -68,7 +68,9 @@ const zonesSlice = createSlice({
         state.selected =
           coordinateZone ??
           state.items.find(item => item.zone_id === state.selected?.zone_id) ??
-          state.items.find(item => item.zone_id === action.payload.storedZoneId) ??
+          state.items.find(
+            item => item.zone_id === action.payload.storedZoneId,
+          ) ??
           state.items[0] ??
           null;
         state.status = 'ready';

@@ -6,6 +6,7 @@ import Globe from 'lucide-react-native/icons/globe';
 import MapPin from 'lucide-react-native/icons/map-pin';
 import Search from 'lucide-react-native/icons/search';
 import ShoppingBasket from 'lucide-react-native/icons/shopping-basket';
+import Zap from 'lucide-react-native/icons/zap';
 import X from 'lucide-react-native/icons/x';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -74,6 +75,9 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   );
   const locationsLoading = zonesStatus === 'loading' || zonesStatus === 'idle';
   const filteredLocations = serviceLocations;
+  const quickCommerceAvailable = Boolean(
+    selectedZone?.has_zone_based_quick_delivery_vendor,
+  );
 
   const loadZones = useCallback(() => {
     dispatch(fetchZones());
@@ -327,17 +331,34 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
           <View style={styles.serviceRow}>
             <ServiceCard
-              icon={<ShoppingBasket color="#08233D" size={14} />}
+              icon={
+                quickCommerceAvailable ? (
+                  <ShoppingBasket color="#08233D" size={16} />
+                ) : (
+                  <Zap color={theme.colors.textMuted} size={18} />
+                )
+              }
               eyebrow="QUICK COMMERCE"
-              title="Essentials nearby."
-              status="15–25 min"
+              title={
+                quickCommerceAvailable
+                  ? 'Essentials nearby.'
+                  : "We're not here yet"
+              }
+              status={quickCommerceAvailable ? '15–25 min' : 'Join waitlist'}
               gradient={
                 theme.isDark
                   ? [theme.colors.surface, '#14282A']
                   : ['#FFFFFF', '#E9FAF6']
               }
-              statusBackground={theme.isDark ? theme.colors.surfaceMuted : '#DDF7EF'}
-              statusColor={theme.colors.success}
+              statusBackground={
+                theme.isDark ? theme.colors.surfaceMuted : '#DDF7EF'
+              }
+              statusColor={
+                quickCommerceAvailable
+                  ? theme.colors.success
+                  : theme.colors.textMuted
+              }
+              disabled={!quickCommerceAvailable}
               onPress={() => navigation.navigate('QuickCommerce')}
             />
             <ServiceCard
@@ -350,7 +371,9 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                   ? [theme.colors.surface, '#291A24']
                   : ['#FFFFFF', '#FCECF1']
               }
-              statusBackground={theme.isDark ? theme.colors.surfaceMuted : '#FCE7EC'}
+              statusBackground={
+                theme.isDark ? theme.colors.surfaceMuted : '#FCE7EC'
+              }
               statusColor={theme.colors.primary}
               onPress={() => navigation.navigate('GlobalStore')}
             />
@@ -622,62 +645,67 @@ function ServiceCard(props: ServiceCardProps) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled: Boolean(props.disabled) }}
       disabled={props.disabled}
       onPress={props.onPress}
       style={styles.serviceCardPressable}
     >
-    <LinearGradient
-      colors={gradientColors}
-      end={{ x: 1, y: 1 }}
-      start={{ x: 0, y: 0 }}
-      style={[
-        styles.serviceCard,
-        props.disabled && styles.serviceCardDisabled,
-        {
-          borderColor: theme.colors.border,
-          shadowColor: props.disabled ? 'transparent' : theme.colors.shadow,
-        },
-      ]}
-    >
-      <View
+      <LinearGradient
+        colors={gradientColors}
+        end={{ x: 1, y: 1 }}
+        start={{ x: 0, y: 0 }}
         style={[
-          styles.serviceIcon,
-          props.disabled && {
-            backgroundColor: theme.isDark
-              ? theme.colors.surfaceMuted
-              : '#FFFFFF',
-          },
-        ]}
-      >
-        {props.icon}
-      </View>
-      <AppText
-        color={theme.colors.textMuted}
-        style={styles.serviceEyebrow}
-        weight="700"
-      >
-        {props.eyebrow}
-      </AppText>
-      <AppText style={styles.serviceTitle} weight="800">
-        {props.title}
-      </AppText>
-      <View
-        style={[
-          styles.statusPill,
+          styles.serviceCard,
+          props.disabled && styles.serviceCardDisabled,
           {
-            backgroundColor: props.disabled
-              ? theme.isDark
-                ? theme.colors.surfaceMuted
-                : '#ECEDEB'
-              : props.statusBackground,
+            borderColor: theme.colors.border,
+            shadowColor: props.disabled ? 'transparent' : theme.colors.shadow,
           },
         ]}
       >
-        <AppText color={props.statusColor} style={styles.servicePillText} weight="700">
-          {props.status}
+        <View
+          style={[
+            styles.serviceIcon,
+            props.disabled && {
+              backgroundColor: theme.isDark
+                ? theme.colors.surfaceMuted
+                : '#FFFFFF',
+            },
+          ]}
+        >
+          {props.icon}
+        </View>
+        <AppText
+          color={theme.colors.textMuted}
+          style={styles.serviceEyebrow}
+          weight="700"
+        >
+          {props.eyebrow}
         </AppText>
-      </View>
-    </LinearGradient>
+        <AppText style={styles.serviceTitle} weight="800">
+          {props.title}
+        </AppText>
+        <View
+          style={[
+            styles.statusPill,
+            {
+              backgroundColor: props.disabled
+                ? theme.isDark
+                  ? theme.colors.surfaceMuted
+                  : '#ECEDEB'
+                : props.statusBackground,
+            },
+          ]}
+        >
+          <AppText
+            color={props.statusColor}
+            style={styles.servicePillText}
+            weight="700"
+          >
+            {props.status}
+          </AppText>
+        </View>
+      </LinearGradient>
     </Pressable>
   );
 }
@@ -811,14 +839,13 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   pillText: { fontSize: 8, lineHeight: 10 },
-  serviceRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
-  serviceCardPressable: { flex: 1 },
+  serviceRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
+  serviceCardPressable: { flex: 1, aspectRatio: 1.2 },
   serviceCard: {
     flex: 1,
-    minHeight: 112,
     borderWidth: 1,
-    borderRadius: 16,
-    padding: 11,
+    borderRadius: 24,
+    padding: 16,
     elevation: 2,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.07,
@@ -829,26 +856,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
   },
   serviceIcon: {
-    width: 27,
-    height: 27,
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 9,
+    borderRadius: 12,
     backgroundColor: '#FFFFFF',
   },
   serviceEyebrow: {
-    marginTop: 9,
-    fontSize: 7,
-    lineHeight: 9,
-    letterSpacing: 0.65,
+    marginTop: 13,
+    fontSize: 8,
+    lineHeight: 10,
+    letterSpacing: 0.8,
   },
-  serviceTitle: { marginTop: 4, fontSize: 12, lineHeight: 15 },
+  serviceTitle: { marginTop: 6, fontSize: 15, lineHeight: 19 },
   statusPill: {
     alignSelf: 'flex-start',
-    marginTop: 7,
-    borderRadius: 7,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
+    marginTop: 9,
+    borderRadius: 9,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
   },
   servicePillText: { fontSize: 7, lineHeight: 9 },
   wellnessHeading: { marginTop: 15, marginBottom: 7 },

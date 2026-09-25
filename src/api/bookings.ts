@@ -100,7 +100,10 @@ type CustomerBookingsResponse = {
   data: CustomerBooking[];
 };
 
-export async function getCustomerBookings(token: string, bookingStatus?: string) {
+export async function getCustomerBookings(
+  token: string,
+  bookingStatus?: string,
+) {
   const query = bookingStatus
     ? `?booking_status=${encodeURIComponent(bookingStatus)}`
     : '';

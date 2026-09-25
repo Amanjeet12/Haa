@@ -37,7 +37,9 @@ type ProductCategoriesResponse = {
   data: ProductCategory[];
 };
 
-export async function getProductCategories(vendorType: 'global' | 'zone_based' = 'global') {
+export async function getProductCategories(
+  vendorType: 'global' | 'zone_based' = 'global',
+) {
   const response = await apiRequest<ProductCategoriesResponse>(
     `${apiBaseUrl}/customer/product-categories?start=0&end=19&include_sub_categories=true&include_product_count=true&vendor_type=${vendorType}`,
   );

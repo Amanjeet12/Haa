@@ -17,7 +17,12 @@ zoneListener.startListening({
 });
 
 export const store = configureStore({
-  reducer: { auth: authReducer, zones: zonesReducer, cart: cartReducer, commerceCart: commerceCartReducer },
+  reducer: {
+    auth: authReducer,
+    zones: zonesReducer,
+    cart: cartReducer,
+    commerceCart: commerceCartReducer,
+  },
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware().prepend(zoneListener.middleware),
 });

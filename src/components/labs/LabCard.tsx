@@ -45,7 +45,11 @@ export function LabCard({ lab, onPress }: { lab: Lab; onPress?: () => void }) {
         style={[styles.cover, !lab.banner && fallbackCoverStyle]}
       >
         <LinearGradient
-          colors={['rgba(8,35,61,0)', 'rgba(8,35,61,0.08)', 'rgba(8,35,61,0.58)']}
+          colors={[
+            'rgba(8,35,61,0)',
+            'rgba(8,35,61,0.08)',
+            'rgba(8,35,61,0.58)',
+          ]}
           locations={[0, 0.54, 1]}
           style={styles.imageGradient}
         >
@@ -71,7 +75,10 @@ export function LabCard({ lab, onPress }: { lab: Lab; onPress?: () => void }) {
                 onLoad={({ nativeEvent }) => {
                   const { width, height } = nativeEvent.source;
                   if (width > 0 && height > 0) {
-                    setLogoSize({ uri: lab.image ?? '', aspectRatio: width / height });
+                    setLogoSize({
+                      uri: lab.image ?? '',
+                      aspectRatio: width / height,
+                    });
                   }
                 }}
               />
@@ -117,9 +124,7 @@ export function LabCard({ lab, onPress }: { lab: Lab; onPress?: () => void }) {
           ))}
         </View>
 
-        <View
-          style={[styles.meta, { borderBottomColor: theme.colors.border }]}
-        >
+        <View style={[styles.meta, { borderBottomColor: theme.colors.border }]}>
           <Clock3 color={theme.colors.textMuted} size={14} />
           <AppText color={theme.colors.textMuted} style={styles.metaText}>
             Reports within {lab.reportTime}
@@ -211,7 +216,12 @@ const styles = StyleSheet.create({
   metaText: { flexShrink: 1, fontSize: 9, lineHeight: 12 },
   from: { marginLeft: 'auto', fontSize: 9, lineHeight: 12 },
   price: { fontSize: 16, lineHeight: 19 },
-  specialties: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 10 },
+  specialties: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+    marginTop: 10,
+  },
   specialty: { borderRadius: 11, paddingHorizontal: 10, paddingVertical: 6 },
   specialtyText: { fontSize: 8, lineHeight: 10 },
 });

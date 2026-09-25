@@ -47,13 +47,19 @@ type ProductsResponse = {
   };
 };
 
-export async function getProductsPage(categoryId: number, subCategoryId?: number, start?: number, end?: number) {
+export async function getProductsPage(
+  categoryId: number,
+  subCategoryId?: number,
+  start?: number,
+  end?: number,
+) {
   const params = new URLSearchParams({
     vendor_type: 'global',
     category_id: String(categoryId),
     status: 'active',
   });
-  if (subCategoryId !== undefined) params.set('sub_category_id', String(subCategoryId));
+  if (subCategoryId !== undefined)
+    params.set('sub_category_id', String(subCategoryId));
   if (start !== undefined && end !== undefined) {
     params.set('start', String(start));
     params.set('end', String(end));
@@ -85,7 +91,8 @@ export async function getQuickCommerceProductsPage(
     vendor_type: 'zone_based',
     category_id: String(categoryId),
   });
-  if (subCategoryId !== undefined) params.set('sub_category_id', String(subCategoryId));
+  if (subCategoryId !== undefined)
+    params.set('sub_category_id', String(subCategoryId));
   params.set('shop_type', 'quick_delivery');
   params.set('status', 'active');
   if (start !== undefined && end !== undefined) {
@@ -103,6 +110,11 @@ export async function getQuickCommerceProductsPage(
   return { data: response.data, meta: response.meta };
 }
 
-export async function getQuickCommerceProducts(zoneId: number, categoryId: number, subCategoryId: number) {
-  return (await getQuickCommerceProductsPage(zoneId, categoryId, subCategoryId)).data;
+export async function getQuickCommerceProducts(
+  zoneId: number,
+  categoryId: number,
+  subCategoryId: number,
+) {
+  return (await getQuickCommerceProductsPage(zoneId, categoryId, subCategoryId))
+    .data;
 }

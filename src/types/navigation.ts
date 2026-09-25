@@ -8,7 +8,10 @@ export type RootStackParamList = {
   Home: NavigatorScreenParams<MainTabParamList> | undefined;
   OrderStatus: { success: boolean; orderNumber?: string; reason?: string };
   OrderTracking: { order: import('../api/orders').CustomerOrder };
-  OrderProductDetails: { item: import('../api/orders').CustomerOrderItem; vendorName?: string };
+  OrderProductDetails: {
+    item: import('../api/orders').CustomerOrderItem;
+    vendorName?: string;
+  };
   Settings: undefined;
   BookingDetails: { booking: import('../api/bookings').CustomerBooking };
   AppearancePreferences: undefined;
@@ -66,7 +69,11 @@ export type HomeStackParamList = {
     };
   };
   GlobalStore: undefined;
-  CategoryProducts: { category: import('../api/productCategories').ProductCategory; mode?: 'quick'; subCategoryId?: number };
+  CategoryProducts: {
+    category: import('../api/productCategories').ProductCategory;
+    mode?: 'quick';
+    subCategoryId?: number;
+  };
   WomensHealth: undefined;
   CitySearch: undefined;
   LabDetails: {

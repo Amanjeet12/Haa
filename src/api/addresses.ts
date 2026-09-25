@@ -92,7 +92,10 @@ type AddressMutationResponse = {
   data?: CustomerAddress;
 };
 
-export async function createCustomerAddress(token: string, input: AddressInput) {
+export async function createCustomerAddress(
+  token: string,
+  input: AddressInput,
+) {
   const response = await apiRequest<AddressMutationResponse>(
     `${apiBaseUrl}/customer/address`,
     {

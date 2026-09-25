@@ -128,9 +128,14 @@ export async function uploadProfileImage(
   const nested = typeof response.data === 'object' ? response.data : undefined;
   const url =
     (typeof response.data === 'string' ? response.data : undefined) ??
-    nested?.url ?? nested?.location ?? nested?.fileUrl ??
-    response.url ?? response.location ?? response.fileUrl;
-  if (!url) throw new Error(response.msg || 'Image upload did not return a URL.');
+    nested?.url ??
+    nested?.location ??
+    nested?.fileUrl ??
+    response.url ??
+    response.location ??
+    response.fileUrl;
+  if (!url)
+    throw new Error(response.msg || 'Image upload did not return a URL.');
   return normalizeProfilePhoto(url);
 }
 

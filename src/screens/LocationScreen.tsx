@@ -222,7 +222,12 @@ export function LocationScreen({ navigation }: Props) {
         </AppText>
         <AppText variant="title" weight="500" style={styles.title}>
           Where should we{' '}
-          <AppText variant="title" weight="500" color={theme.colors.primary} style={{ fontSize: 36 }}>
+          <AppText
+            variant="title"
+            weight="500"
+            color={theme.colors.primary}
+            style={{ fontSize: 36 }}
+          >
             serve you?
           </AppText>
         </AppText>

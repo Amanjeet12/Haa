@@ -23,7 +23,11 @@ import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '../components';
-import { screenGradientColors, screenGradientLocations, useAppTheme } from '../theme';
+import {
+  screenGradientColors,
+  screenGradientLocations,
+  useAppTheme,
+} from '../theme';
 import { RootStackParamList } from '../types/navigation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BookingDetails'>;
@@ -367,7 +371,7 @@ export function BookingDetailsScreen({ navigation, route }: Props) {
               label="Discount"
               value={`− ${formatINR(
                 Number(booking.total_normal_amount) -
-                Number(booking.total_final_amount),
+                  Number(booking.total_final_amount),
               )}`}
               green
             />

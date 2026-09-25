@@ -94,9 +94,21 @@ export function AddressesSheet({
             </View>
           ) : error ? (
             <Pressable onPress={onRetry} style={styles.state}>
-              <AppText style={styles.stateTitle} weight="700">Could not load addresses</AppText>
-              <AppText color={theme.colors.textMuted} style={styles.stateText}>{error}</AppText>
-              {onRetry ? <AppText color={theme.colors.primary} style={styles.stateText} weight="800">Tap to retry</AppText> : null}
+              <AppText style={styles.stateTitle} weight="700">
+                Could not load addresses
+              </AppText>
+              <AppText color={theme.colors.textMuted} style={styles.stateText}>
+                {error}
+              </AppText>
+              {onRetry ? (
+                <AppText
+                  color={theme.colors.primary}
+                  style={styles.stateText}
+                  weight="800"
+                >
+                  Tap to retry
+                </AppText>
+              ) : null}
             </Pressable>
           ) : (
             <ScrollView showsVerticalScrollIndicator={false}>

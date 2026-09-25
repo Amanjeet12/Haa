@@ -56,7 +56,12 @@ export function LoginScreen({ navigation }: Props) {
 
         <AppText variant="title" weight="500" style={styles.title}>
           Your care, kept{`\n`}
-          <AppText variant="title" weight="500" color={theme.colors.primary} style={{ fontSize: 36 }}>
+          <AppText
+            variant="title"
+            weight="500"
+            color={theme.colors.primary}
+            style={{ fontSize: 36 }}
+          >
             securely yours.
           </AppText>
         </AppText>
@@ -107,8 +112,13 @@ export function LoginScreen({ navigation }: Props) {
 
         <View style={styles.privacyNote}>
           <LockKeyhole color={theme.colors.textMuted} size={13} />
-          <AppText variant="caption" color={theme.colors.textMuted} style={{fontSize: 11}}>
-           We will verify this number before asking for your four-digit HAA PIN.
+          <AppText
+            variant="caption"
+            color={theme.colors.textMuted}
+            style={{ fontSize: 11 }}
+          >
+            We will verify this number before asking for your four-digit HAA
+            PIN.
           </AppText>
         </View>
       </View>
