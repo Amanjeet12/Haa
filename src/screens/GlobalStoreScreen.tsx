@@ -187,13 +187,6 @@ export function GlobalStoreScreen({ navigation }: Props) {
               {selectedZone?.zone_name ?? 'Rajbagh, Srinagar'}
             </AppText>
           </View>
-          <AppText
-            color={theme.colors.success}
-            style={styles.etaText}
-            weight="800"
-          >
-            18–25 min
-          </AppText>
         </View>
 
         <View style={styles.controls}>
@@ -201,6 +194,7 @@ export function GlobalStoreScreen({ navigation }: Props) {
             accessibilityHint="Product search will open on a separate page"
             accessibilityLabel="Search medicines and health essentials"
             accessibilityRole="button"
+            onPress={() => navigation.navigate('ProductSearch', { mode: 'global' })}
             style={[
               styles.search,
               {
@@ -511,7 +505,6 @@ const styles = StyleSheet.create({
   deliveryCopy: { flex: 1 },
   deliveryLabel: { fontSize: 9, lineHeight: 12, letterSpacing: 0.4 },
   deliveryPlace: { marginTop: 2, fontSize: 13, lineHeight: 17 },
-  etaText: { fontSize: 12, lineHeight: 15 },
   controls: {
     flexDirection: 'row',
     gap: 10,

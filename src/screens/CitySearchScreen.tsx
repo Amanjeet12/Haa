@@ -15,11 +15,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { zoneAvailabilityLabel } from '../api/zones';
 import { AppText } from '../components';
 import {
   createPlacesSessionToken,
-  getCitySuggestions,
+  getPlaceSuggestions,
   getPlaceDetails,
   PlaceSuggestion,
 } from '../services/places';
@@ -60,7 +59,7 @@ export function CitySearchScreen({ navigation }: Props) {
       try {
         setSuggestions(
           (
-            await getCitySuggestions(
+            await getPlaceSuggestions(
               value,
               sessionToken.current,
               controller.signal,
@@ -91,19 +90,26 @@ export function CitySearchScreen({ navigation }: Props) {
       const result = await dispatch(
         fetchZones({ lat: place.latitude, lng: place.longitude }),
       );
-      if (
-        fetchZones.fulfilled.match(result) &&
-        result.payload.items.some(zone => zone.is_coordinate_in_zone)
-      )
-        navigation.goBack();
-      else
-        setMessage(
-          `We don't deliver in ${suggestion.primaryText} yet. Services are coming soon.`,
-        );
-    } catch {
-      setMessage(
-        `We don't deliver in ${suggestion.primaryText} yet. Services are coming soon.`,
+      const matchedZone = fetchZones.fulfilled.match(result)
+        ? result.payload.items.find(zone => zone.is_coordinate_in_zone)
+        : undefined;
+
+      dispatch(
+        setSelectedZone(
+          matchedZone ?? {
+            zone_id: 0,
+            zone_name: suggestion.primaryText,
+            createdAt: '',
+            updatedAt: '',
+            has_active_labs: false,
+            has_zone_based_quick_delivery_vendor: false,
+            is_custom_location: true,
+          },
+        ),
       );
+      navigation.goBack();
+    } catch {
+      setMessage('Unable to select this location. Please try again.');
     } finally {
       setChecking(null);
       sessionToken.current = createPlacesSessionToken();
@@ -123,7 +129,7 @@ export function CitySearchScreen({ navigation }: Props) {
         </Pressable>
         <View>
           <AppText style={styles.title} weight="800">
-            Search city
+            Search location
           </AppText>
           <AppText color={theme.colors.textMuted} style={styles.subtitle}>
             Find labs and delivery near you
@@ -147,7 +153,7 @@ export function CitySearchScreen({ navigation }: Props) {
             setQuery(value);
             setMessage(null);
           }}
-          placeholder="Search city name"
+          placeholder="Search city, area, landmark or address"
           placeholderTextColor={theme.colors.textMuted}
           style={[
             styles.input,
@@ -199,7 +205,9 @@ export function CitySearchScreen({ navigation }: Props) {
               <View style={styles.status}>
                 <Clock3 color="#078A73" size={11} />
                 <AppText color="#078A73" style={styles.statusText} weight="600">
-                  {zoneAvailabilityLabel(zone)}
+                  {zone.has_zone_based_quick_delivery_vendor
+                    ? 'Quick Commerce and Global Store available'
+                    : 'Global Store available'}
                 </AppText>
               </View>
             </View>
@@ -212,7 +220,7 @@ export function CitySearchScreen({ navigation }: Props) {
             style={styles.sectionLabel}
             weight="700"
           >
-            OTHER CITIES FROM GOOGLE
+            SEARCH RESULTS
           </AppText>
         )}
         {suggestions
@@ -249,6 +257,16 @@ export function CitySearchScreen({ navigation }: Props) {
                 >
                   {item.secondaryText}
                 </AppText>
+                <View style={styles.status}>
+                  <Clock3 color="#078A73" size={11} />
+                  <AppText
+                    color="#078A73"
+                    style={styles.statusText}
+                    weight="600"
+                  >
+                    Global Store available
+                  </AppText>
+                </View>
               </View>
               {checking === item.placeId ? (
                 <ActivityIndicator color={theme.colors.primary} size="small" />

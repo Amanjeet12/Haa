@@ -103,6 +103,7 @@ export function MainTabs() {
               'CategoryProducts',
               'WomensHealth',
               'Search',
+              'ProductSearch',
               'CitySearch',
               'LabDetails',
               'AddPatientTests',

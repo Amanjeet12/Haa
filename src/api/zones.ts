@@ -9,6 +9,7 @@ export type Zone = {
   is_coordinate_in_zone?: boolean;
   has_active_labs?: boolean;
   has_zone_based_quick_delivery_vendor?: boolean;
+  is_custom_location?: boolean;
 };
 
 export function zoneAvailabilityLabel(zone: Zone) {

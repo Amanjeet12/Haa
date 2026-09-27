@@ -25,7 +25,14 @@ export function QuickCommerceCartBar({ bottom, onPress }: Props) {
       onPress={onPress}
       style={[styles.bar, { bottom, shadowColor: theme.colors.shadow }]}
     >
-      <View style={styles.thumbnails}>
+      <View
+        style={[
+          styles.thumbnails,
+          items.length > 1
+            ? styles.multipleThumbnails
+            : styles.singleThumbnail,
+        ]}
+      >
         {items.slice(0, 2).map((item, index) => (
           <Image
             key={item.id}
@@ -37,7 +44,9 @@ export function QuickCommerceCartBar({ bottom, onPress }: Props) {
           />
         ))}
       </View>
-      <View style={styles.summary}>
+      <View
+        style={[styles.summary, items.length === 1 && styles.singleItemSummary]}
+      >
         <AppText color="#FFFFFF" style={styles.title} weight="800">
           View cart
         </AppText>
@@ -72,11 +81,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
   },
   thumbnails: {
-    width: 74,
     height: 46,
     flexDirection: 'row',
     alignItems: 'center',
   },
+  singleThumbnail: { width: 42 },
+  multipleThumbnails: { width: 74 },
   thumbnail: {
     width: 42,
     height: 42,
@@ -86,6 +96,7 @@ const styles = StyleSheet.create({
   },
   overlap: { marginLeft: -14 },
   summary: { flex: 1, marginLeft: 2 },
+  singleItemSummary: { marginLeft: 9 },
   title: { fontSize: 12, lineHeight: 15 },
   meta: { marginTop: 2, fontSize: 9, lineHeight: 12 },
   button: {

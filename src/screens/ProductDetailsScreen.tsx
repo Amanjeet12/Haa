@@ -1,4 +1,5 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import ArrowLeft from 'lucide-react-native/icons/arrow-left';
 import CircleCheck from 'lucide-react-native/icons/circle-check';
 import Heart from 'lucide-react-native/icons/heart';
@@ -21,7 +22,7 @@ import {
   setCommerceItemQuantity,
 } from '../store/commerceCartSlice';
 import { useAppTheme } from '../theme';
-import { HomeStackParamList } from '../types/navigation';
+import { HomeStackParamList, MainTabParamList } from '../types/navigation';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'ProductDetails'>;
 
@@ -69,6 +70,10 @@ export function ProductDetailsScreen({ navigation, route }: Props) {
         },
       }),
     );
+  const goToCart = () =>
+    navigation
+      .getParent<BottomTabNavigationProp<MainTabParamList>>()
+      ?.navigate('Cart');
 
   return (
     <SafeAreaView
@@ -398,7 +403,7 @@ export function ProductDetailsScreen({ navigation, route }: Props) {
         ) : null}
         <Pressable
           disabled={product.isInStock === false}
-          onPress={addToCart}
+          onPress={quantity > 0 ? goToCart : addToCart}
           style={[
             styles.addToCart,
             {
@@ -410,7 +415,11 @@ export function ProductDetailsScreen({ navigation, route }: Props) {
           ]}
         >
           <AppText color="#FFFFFF" style={styles.addLabel} weight="800">
-            {product.isInStock === false ? 'Out of stock' : 'Add to cart'}
+            {product.isInStock === false
+              ? 'Out of stock'
+              : quantity > 0
+              ? 'Go to Cart'
+              : 'Add to cart'}
           </AppText>
           {product.isInStock !== false ? (
             <AppText color="#FFFFFF" style={styles.addPrice} weight="800">

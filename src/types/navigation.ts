@@ -41,6 +41,7 @@ export type MainTabParamList = {
 export type HomeStackParamList = {
   HomeLanding: undefined;
   Search: undefined;
+  ProductSearch: { mode: 'quick' | 'global' };
   Labs: undefined;
   QuickCommerce: undefined;
   FrequentlyBought: { category?: string } | undefined;

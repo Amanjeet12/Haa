@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 
 import { HomeScreen } from '../screens/HomeScreen';
 import { SearchScreen } from '../screens/SearchScreen';
+import { ProductSearchScreen } from '../screens/ProductSearchScreen';
 import { LabsScreen } from '../screens/LabsScreen';
 import { CitySearchScreen } from '../screens/CitySearchScreen';
 import { LabDetailsScreen } from '../screens/LabDetailsScreen';
@@ -42,6 +43,7 @@ export function HomeNavigator() {
     >
       <Stack.Screen name="HomeLanding" component={HomeScreen} />
       <Stack.Screen name="Search" component={SearchScreen} />
+      <Stack.Screen name="ProductSearch" component={ProductSearchScreen} />
       <Stack.Screen name="Labs" component={LabsScreen} />
       <Stack.Screen name="QuickCommerce" component={QuickCommerceScreen} />
       <Stack.Screen

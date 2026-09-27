@@ -90,7 +90,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   useEffect(() => {
     let active = true;
 
-    if (!selectedZone?.zone_id) {
+    if (!selectedZone?.zone_id || selectedZone.is_custom_location) {
       setAccreditedLabCount(null);
       setLabCountError(false);
       return () => {
@@ -123,6 +123,8 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     labCountZoneId === selectedZone?.zone_id && labCountError;
   const labCountLabel = !selectedZone
     ? 'Choose your location'
+    : selectedZone.is_custom_location
+    ? 'Labs unavailable in this area'
     : currentLabCountError
     ? 'Lab availability unavailable'
     : currentLabCount === null
@@ -184,14 +186,19 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                 style={styles.addressTitle}
                 weight="800"
               >
-                {selectedLocation?.name ?? 'Choose your location'}
+                {selectedLocation?.name ??
+                  selectedZone?.zone_name ??
+                  'Choose your location'}
               </AppText>
               <AppText
                 color={theme.colors.textMuted}
                 numberOfLines={1}
                 style={styles.addressDetail}
               >
-                {selectedLocation?.eta ?? 'Select an available service zone'}
+                {selectedLocation?.eta ??
+                  (selectedZone?.is_custom_location
+                    ? 'Global Store available'
+                    : 'Select an available service zone')}
               </AppText>
             </View>
             <ChevronDown color={theme.colors.textMuted} size={18} />

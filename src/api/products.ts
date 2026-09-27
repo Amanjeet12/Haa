@@ -79,6 +79,29 @@ export async function getProducts(categoryId: number, subCategoryId?: number) {
   return (await getProductsPage(categoryId, subCategoryId)).data;
 }
 
+export async function searchProducts(
+  search: string,
+  shopType: 'quick_delivery' | 'ecommerce',
+  zoneId?: number,
+) {
+  const params = new URLSearchParams({
+    shop_type: shopType,
+    search: search.trim(),
+  });
+  if (shopType === 'quick_delivery' && zoneId !== undefined) {
+    params.set('zone_id', String(zoneId));
+  }
+  const response = await apiRequest<ProductsResponse>(
+    `${apiBaseUrl}/customer/products?${params.toString()}`,
+  );
+
+  if (Number(response.success) !== 1 || !Array.isArray(response.data)) {
+    throw new Error(response.msg || 'Unable to search products.');
+  }
+
+  return response.data;
+}
+
 export async function getQuickCommerceProductsPage(
   zoneId: number,
   categoryId: number,
