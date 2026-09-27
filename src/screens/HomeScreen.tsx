@@ -78,6 +78,10 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const quickCommerceAvailable = Boolean(
     selectedZone?.has_zone_based_quick_delivery_vendor,
   );
+  const showGlobalStoreHero = Boolean(selectedZone && !quickCommerceAvailable);
+  const showGlobalStoreCare = Boolean(
+    selectedZone && !selectedZone.has_active_labs,
+  );
 
   const loadZones = useCallback(() => {
     dispatch(fetchZones());
@@ -205,9 +209,17 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
           </Pressable>
 
           <Pressable
-            accessibilityLabel="Search tests and labs"
+            accessibilityLabel={
+              showGlobalStoreCare
+                ? 'Search Global Store products'
+                : 'Search tests and labs'
+            }
             accessibilityRole="button"
-            onPress={() => navigation.navigate('Search')}
+            onPress={() =>
+              showGlobalStoreCare
+                ? navigation.navigate('ProductSearch', { mode: 'global' })
+                : navigation.navigate('Search')
+            }
             style={[
               styles.searchBar,
               {
@@ -222,7 +234,9 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
               color={theme.colors.textMuted}
               style={styles.searchPlaceholder}
             >
-              Search tests, products and care
+              {showGlobalStoreCare
+                ? 'Search medicines & health essentials'
+                : 'Search tests or labs'}
             </AppText>
           </Pressable>
 
@@ -250,20 +264,38 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
               style={styles.heroImageOverlay}
             />
             <AppText color="#FFA6B2" style={styles.eyebrow} weight="800">
-              — {nearbyLabsLabel.toUpperCase()}
+              —{' '}
+              {showGlobalStoreHero
+                ? 'GLOBAL HEALTH STORE'
+                : nearbyLabsLabel.toUpperCase()}
             </AppText>
             <AppText color="#FFFFFF" style={styles.heroTitle} weight="500">
-              Compare first.{' '}
+              {showGlobalStoreHero
+                ? `Wellbeing that goes\n`
+                : 'Compare first. '}
               <AppText color="#FFA6B2" style={styles.heroTitle} weight="500">
-                Book{`\n`}with confidence.
+                {showGlobalStoreHero
+                  ? 'where you do.'
+                  : `Book\nwith confidence.`}
               </AppText>
             </AppText>
             <AppText color="#D7E0E8" style={styles.heroBody}>
-              See accreditation, report time and the complete price.
+              {showGlobalStoreHero
+                ? 'Specialised products delivered across India.'
+                : 'See accreditation, report time and the complete price.'}
             </AppText>
             <Pressable
+              accessibilityLabel={
+                showGlobalStoreHero
+                  ? 'Explore the Global Health Store collection'
+                  : 'Find labs'
+              }
               accessibilityRole="button"
-              onPress={() => navigation.navigate('Labs')}
+              onPress={() =>
+                navigation.navigate(
+                  showGlobalStoreHero ? 'GlobalStore' : 'Labs',
+                )
+              }
               style={[
                 styles.heroButton,
                 { backgroundColor: theme.colors.primary },
@@ -274,7 +306,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                 style={styles.heroButtonText}
                 weight="700"
               >
-                Find labs
+                {showGlobalStoreHero ? 'Explore collection' : 'Find labs'}
               </AppText>
               <ArrowRight color="#FFFFFF" size={14} />
             </Pressable>
@@ -282,13 +314,21 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
           <View style={styles.sectionHeader}>
             <AppText style={styles.sectionTitle} weight="600">
-              Available for you
+              {showGlobalStoreCare
+                ? 'Care at this address'
+                : 'Available for you'}
             </AppText>
           </View>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Find home collection labs. ${labCountLabel}`}
-            onPress={() => navigation.navigate('Labs')}
+            accessibilityLabel={
+              showGlobalStoreCare
+                ? 'Explore specialised care in the Global Store'
+                : `Find home collection labs. ${labCountLabel}`
+            }
+            onPress={() =>
+              navigation.navigate(showGlobalStoreCare ? 'GlobalStore' : 'Labs')
+            }
             style={({ pressed }) => pressed && styles.pressed}
           >
             <LinearGradient
@@ -316,20 +356,30 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
               />
               <View style={styles.careCopy}>
                 <AppText color="#FFA6B2" style={styles.eyebrow} weight="800">
-                  AT-HOME LABS
+                  {showGlobalStoreCare ? 'GLOBAL STORE' : 'AT-HOME LABS'}
                 </AppText>
                 <AppText color="#FFFFFF" style={styles.careTitle} weight="800">
-                  Home collection in{`\n`}your zone.
+                  {showGlobalStoreCare
+                    ? `Specialised care,\ndelivered.`
+                    : `Home collection in\nyour zone.`}
                 </AppText>
                 <AppText color="#C9D6E0" style={styles.careBody}>
-                  Slots available tomorrow morning.
+                  {showGlobalStoreCare
+                    ? 'Shipping to 194101 in 4–6 days.'
+                    : 'Slots available tomorrow morning.'}
                 </AppText>
                 <View style={styles.availablePill}>
                   <AppText color="#087C67" style={styles.pillText} weight="700">
-                    {currentLabCount !== null && currentLabCount > 0
-                      ? '● '
-                      : ''}
-                    {labCountLabel}
+                    {showGlobalStoreCare ? (
+                      '● Available across India'
+                    ) : (
+                      <>
+                        {currentLabCount !== null && currentLabCount > 0
+                          ? '● '
+                          : ''}
+                        {labCountLabel}
+                      </>
+                    )}
                   </AppText>
                 </View>
               </View>
