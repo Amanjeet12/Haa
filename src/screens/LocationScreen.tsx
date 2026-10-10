@@ -26,7 +26,7 @@ import {
 import { useAppTheme } from '../theme';
 import { RootStackParamList } from '../types/navigation';
 import { useAppDispatch } from '../store';
-import { fetchZones } from '../store/zonesSlice';
+import { fetchZones, setSelectedZone } from '../store/zonesSlice';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Location'>;
 
@@ -131,6 +131,24 @@ export function LocationScreen({ navigation }: Props) {
       );
       setIsResolvingZone(false);
       if (fetchZones.fulfilled.match(result)) {
+        const normalizedPlaceName = selectedPlace.label.trim().toLowerCase();
+        const matchingZone = result.payload.items.find(
+          zone => zone.zone_name.trim().toLowerCase() === normalizedPlaceName,
+        );
+
+        dispatch(
+          setSelectedZone(
+            matchingZone ?? {
+              zone_id: 0,
+              zone_name: selectedPlace.label,
+              createdAt: '',
+              updatedAt: '',
+              has_active_labs: false,
+              has_zone_based_quick_delivery_vendor: false,
+              is_custom_location: true,
+            },
+          ),
+        );
         navigation.navigate('Login');
       } else {
         setError(
