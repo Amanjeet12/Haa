@@ -43,6 +43,29 @@ npm run android
 npm run ios
 ```
 
+## RevenueCat paywall testing
+
+Set `REVENUECAT_TEST_MODE=true`, `REVENUECAT_TEST_API_KEY` to your public
+Test Store SDK key, `REVENUECAT_OFFERING_ID=New Plan`, and
+`REVENUECAT_ENTITLEMENT_IDS=ai_analysis_pro,haa_plus` in local `.env`.
+Rebuild the native app after installing the SDK or changing these values.
+Open Make time for you, follow the health flow, and open HAA Plus to display
+the published RevenueCat paywall. Purchases are simulated and use a persistent
+anonymous RevenueCat test user. Purchase and restore results show a receipt with the product, dates, renewal
+status, active entitlements, transaction ID, and RevenueCat customer ID. If no
+subscription was recorded, the screen says so and offers another test. These
+results do not unlock production backend features.
+
+The paywall stays available on subsequent visits for repeat testing, even when
+a test entitlement is active. Use the Test Store purchase dialog to simulate
+success, cancellation, or failure. Configure products and their entitlement
+attachments in the RevenueCat dashboard. No real money is charged.
+
+Test Store initialization is disabled in release builds. Set test mode to false
+and rebuild to return to the custom design in `HaaPlusPreviewScreen.tsx`.
+Live store billing and authenticated customer entitlement enforcement are not
+part of this testing integration.
+
 ## Push notifications
 
 OneSignal uses app ID `0d7b5bcd-c378-4baa-8092-5a078c02347d` in

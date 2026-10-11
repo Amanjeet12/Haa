@@ -442,14 +442,21 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
           >
             Make time for you
           </AppText>
-          <View
-            style={[
+          <Pressable
+            accessibilityHint="Opens your personalized health view"
+            accessibilityLabel="Make time for you"
+            accessibilityRole="button"
+            onPress={() => navigation.navigate('HealthView')}
+            style={({ pressed }) => [
               styles.wellnessCard,
               {
-                backgroundColor: theme.colors.primarySoft2,
-                borderColor: '#F7CBD1',
+                backgroundColor: theme.isDark
+                  ? theme.colors.surface
+                  : theme.colors.primarySoft2,
+                borderColor: theme.isDark ? theme.colors.border : '#F7CBD1',
                 shadowColor: theme.colors.shadow,
               },
+              pressed && styles.pressed,
             ]}
           >
             <AppText
@@ -476,13 +483,13 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                 <ArrowRight color="#FFFFFF" size={18} />
               </View>
               <AppText style={styles.checkinText} weight="800">
-                Coming soon
+                Build my health view
               </AppText>
             </View>
             <View style={styles.ringOuter}>
               <View style={styles.ringInner} />
             </View>
-          </View>
+          </Pressable>
         </Screen>
       </LinearGradient>
 

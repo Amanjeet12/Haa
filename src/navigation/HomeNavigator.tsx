@@ -1,6 +1,11 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React, { useEffect } from 'react';
 
+import { HealthViewScreen } from '../screens/HealthViewScreen';
+import { HealthCheckInScreen } from '../screens/HealthCheckInScreen';
+import { HealthTrendsScreen } from '../screens/HealthTrendsScreen';
+import { HealthRecommendationsScreen } from '../screens/HealthRecommendationsScreen';
+import { HaaPlusScreen } from '../screens/HaaPlusScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { SearchScreen } from '../screens/SearchScreen';
 import { ProductSearchScreen } from '../screens/ProductSearchScreen';
@@ -42,6 +47,11 @@ export function HomeNavigator() {
       screenOptions={{ headerShown: false }}
     >
       <Stack.Screen name="HomeLanding" component={HomeScreen} />
+      <Stack.Screen name="HealthView" component={HealthViewScreen} />
+      <Stack.Screen name="HealthCheckIn" component={HealthCheckInScreen} />
+      <Stack.Screen name="HealthTrends" component={HealthTrendsScreen} />
+      <Stack.Screen name="HealthRecommendations" component={HealthRecommendationsScreen} />
+      <Stack.Screen name="HaaPlus" component={HaaPlusScreen} />
       <Stack.Screen name="Search" component={SearchScreen} />
       <Stack.Screen name="ProductSearch" component={ProductSearchScreen} />
       <Stack.Screen name="Labs" component={LabsScreen} />
