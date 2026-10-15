@@ -26,7 +26,11 @@ import {
 } from '@react-native-documents/picker';
 
 import { AppText, HealthFlowHeader } from '../components';
-import { CustomerBooking, getCustomerBookings } from '../api/bookings';
+import {
+  FamilyMemberTestBooking,
+  getFamilyMemberTestBookings,
+  reportReadyFamilyBookings,
+} from '../api/bookings';
 import { FamilyMember, getFamilyMembers } from '../api/familyMembers';
 import { useAppSelector } from '../store';
 import {
@@ -60,15 +64,13 @@ export function HealthViewScreen({ navigation, route }: Props) {
   const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersError, setMembersError] = useState<string | null>(null);
-  const [bookings, setBookings] = useState<CustomerBooking[]>([]);
+  const [bookings, setBookings] = useState<FamilyMemberTestBooking[]>([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [bookingsError, setBookingsError] = useState(false);
   const selectedBookingId = route.params?.bookingId ?? null;
   const [outsideReports, setOutsideReports] = useState<
     Array<{ uri: string; name: string }>
   >([]);
-
-  console.log('token', token);
 
   const loadMembers = useCallback(async () => {
     if (!token) {
@@ -99,26 +101,30 @@ export function HealthViewScreen({ navigation, route }: Props) {
   }, [token]);
 
   const loadBookings = useCallback(async () => {
-    if (!token) {
+    if (!token || selectedMemberId === null) {
       setBookings([]);
       return;
     }
     setBookingsLoading(true);
     setBookingsError(false);
     try {
-      setBookings(await getCustomerBookings(token));
+      setBookings(await getFamilyMemberTestBookings(token, selectedMemberId));
     } catch {
       setBookingsError(true);
     } finally {
       setBookingsLoading(false);
     }
-  }, [token]);
+  }, [token, selectedMemberId]);
 
   useFocusEffect(
     useCallback(() => {
       loadMembers();
+    }, [loadMembers]),
+  );
+  useFocusEffect(
+    useCallback(() => {
       loadBookings();
-    }, [loadMembers, loadBookings]),
+    }, [loadBookings]),
   );
 
   const openFamilyForm = () => {
@@ -130,18 +136,11 @@ export function HealthViewScreen({ navigation, route }: Props) {
   const selectedMember = members.find(
     member => member.member_id === selectedMemberId,
   );
-  const eligibleBookings = bookings.filter(
-    booking =>
-      booking.booking_status.toLowerCase() === 'completed' &&
-      booking.members.some(
-        item =>
-          item.member_id === selectedMemberId &&
-          (Boolean(item.result_pdf) ||
-            item.tests.some(test => Boolean(test.result_pdf))),
-      ),
+  const eligibleBookings = reportReadyFamilyBookings(bookings).filter(
+    booking => booking.family_member_id === selectedMemberId,
   );
   const selectedBooking = eligibleBookings.find(
-    booking => booking.booking_order_id === selectedBookingId,
+    booking => booking.booking_id === selectedBookingId,
   );
 
   const chooseOutsideReport = async () => {
@@ -402,7 +401,7 @@ export function HealthViewScreen({ navigation, route }: Props) {
             <View style={styles.pickerCopy}>
               <AppText style={styles.pickerTitle} weight="700">
                 {selectedBooking
-                  ? `Booking ${selectedBooking.booking_no}`
+                  ? selectedBooking.test.test_name
                   : 'Select a past booking'}
               </AppText>
               <AppText
@@ -410,7 +409,7 @@ export function HealthViewScreen({ navigation, route }: Props) {
                 style={styles.pickerDetail}
               >
                 {selectedBooking
-                  ? `${selectedBooking.lab.lab_name} · ${selectedBooking.booking_date}`
+                  ? `Booking ${selectedBooking.order.booking_no} · ${selectedBooking.lab.lab_name} · ${selectedBooking.booking_date}`
                   : 'Choose one booking with a generated report'}
               </AppText>
             </View>
@@ -431,24 +430,6 @@ export function HealthViewScreen({ navigation, route }: Props) {
               <AppText color={theme.colors.primary}>
                 Could not load booking details. Tap to retry.
               </AppText>
-            </Pressable>
-          ) : null}
-
-          {selectedBooking ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() =>
-                navigation
-                  .getParent()
-                  ?.getParent<NavigationProp<RootStackParamList>>()
-                  ?.navigate('BookingDetails', { booking: selectedBooking })
-              }
-              style={styles.viewBooking}
-            >
-              <AppText color={theme.colors.primary} weight="700">
-                View selected booking {selectedBooking.booking_no}
-              </AppText>
-              <ArrowRight color={theme.colors.primary} size={15} />
             </Pressable>
           ) : null}
 
@@ -573,7 +554,7 @@ export function HealthViewScreen({ navigation, route }: Props) {
               style={styles.footerEyebrow}
             >
               {selectedBooking
-                ? `Booking ${selectedBooking.booking_no} selected`
+                ? `Booking ${selectedBooking.order.booking_no} selected`
                 : 'Select a booking to continue'}
             </AppText>
             <AppText style={styles.footerTitle} weight="800">
@@ -589,7 +570,7 @@ export function HealthViewScreen({ navigation, route }: Props) {
             onPress={() => {
               if (selectedBooking && selectedMemberId !== null) {
                 navigation.navigate('HealthCheckIn', {
-                  bookingId: selectedBooking.booking_order_id,
+                  bookingId: selectedBooking.booking_id,
                   memberId: selectedMemberId,
                   outsideReports,
                 });

@@ -451,7 +451,7 @@ export function HealthCheckInScreen({ navigation, route }: Props) {
                       isAnswered(responses[question.ai_analysis_question_id]),
                     )
                     .map(question => ({
-                      questionId: question.ai_analysis_question_id,
+                      ai_analysis_question_id: question.ai_analysis_question_id,
                       answer: responses[question.ai_analysis_question_id],
                     })),
                 })

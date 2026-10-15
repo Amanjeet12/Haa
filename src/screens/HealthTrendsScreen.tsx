@@ -1,10 +1,9 @@
 import BookOpen from 'lucide-react-native/icons/book-open';
 import CalendarDays from 'lucide-react-native/icons/calendar-days';
-import ChevronRight from 'lucide-react-native/icons/chevron-right';
 import FileText from 'lucide-react-native/icons/file-text';
 import Pause from 'lucide-react-native/icons/pause';
 import Play from 'lucide-react-native/icons/play';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -24,12 +23,18 @@ import Svg, {
   Line,
   LinearGradient as SvgLinearGradient,
   Path,
-  Rect,
   Stop,
 } from 'react-native-svg';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { AppText, HealthFlowHeader } from '../components';
+import {
+  analyzeReport,
+  ReportTrend,
+  uploadReportPdf,
+  type ReportAnalysis,
+} from '../api/reportAnalyses';
+import { useAppSelector } from '../store';
 import {
   screenGradientColors,
   screenGradientLocations,
@@ -51,69 +56,87 @@ const audioSource = {
   },
 };
 
-const markers = [
-  { name: 'Vitamin D', value: '18', status: 'Trending down', color: '#DF1F2D' },
-  {
-    name: 'Haemoglobin',
-    value: '11.2',
-    status: 'Below range',
-    color: '#DF1F2D',
-  },
-  { name: 'Thyroid', value: '2.4', status: 'Steady', color: '#078B76' },
-];
+function statusColor(status: string) {
+  return status.toLowerCase() === 'normal' ? '#078B76' : '#DF1F2D';
+}
 
-const trendData = [
-  {
-    name: 'Vitamin D',
-    value: '18 ng/mL',
-    path: 'M18 48 C72 45 91 53 126 69 S191 88 224 95 S280 111 320 136',
-    points: [
-      [18, 48],
-      [126, 69],
-      [224, 95],
-      [320, 136],
-    ],
-    bandY: 26,
-    bandHeight: 54,
-    trendColor: '#64748B',
-    endColor: '#F59E0B',
-  },
-  {
-    name: 'Haemoglobin',
-    value: '11.2 g/dL',
-    path: 'M18 60 C70 61 93 70 126 76 S185 91 224 101 S281 108 320 114',
-    points: [
-      [18, 60],
-      [126, 76],
-      [224, 101],
-      [320, 114],
-    ],
-    bandY: 35,
-    bandHeight: 48,
-    trendColor: '#DF1F2D',
-    endColor: '#DF1F2D',
-  },
-  {
-    name: 'Thyroid',
-    value: '2.4 mIU/L',
-    path: 'M18 84 C67 80 91 87 126 82 S183 79 224 83 S278 77 320 80',
-    points: [
-      [18, 84],
-      [126, 82],
-      [224, 83],
-      [320, 80],
-    ],
-    bandY: 48,
-    bandHeight: 58,
-    trendColor: '#078B76',
-    endColor: '#078B76',
-  },
-] as const;
+function chartPoints(trend: ReportTrend): Array<[number, number]> {
+  const points = [...trend.points].sort((a, b) => a.date.localeCompare(b.date));
+  if (!points.length) return [];
+  const values = points.map(point => point.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const spread = max - min || Math.max(Math.abs(max) * 0.2, 1);
+  return points.map((point, index) => [
+    points.length === 1 ? 170 : 18 + (index * 302) / (points.length - 1),
+    130 - ((point.value - min) / spread) * 95,
+  ]);
+}
 
-export function HealthTrendsScreen({ navigation }: Props) {
+function sparklinePath(trend: ReportTrend) {
+  return chartPoints(trend)
+    .map(
+      ([x, y], index) =>
+        `${index ? 'L' : 'M'}${(x / 340) * 100} ${(y / 170) * 24}`,
+    )
+    .join(' ');
+}
+
+export function HealthTrendsScreen({ navigation, route }: Props) {
   const { theme } = useAppTheme();
+  const token = useAppSelector(state => state.auth.session?.token);
+  const [report, setReport] = useState<ReportAnalysis | null>(null);
+  const [reportLoading, setReportLoading] = useState(true);
+  const [reportError, setReportError] = useState<string | null>(null);
+  const started = useRef(false);
+  const uploadedUrls = useRef<Record<string, string>>({});
+  const runAnalysis = useCallback(async () => {
+    if (!token) {
+      setReportError('Log in to analyze this report.');
+      setReportLoading(false);
+      return;
+    }
+    setReportLoading(true);
+    setReportError(null);
+    try {
+      const pdfUrls: string[] = [];
+      for (const file of route.params.outsideReports) {
+        const url =
+          uploadedUrls.current[file.uri] ??
+          (await uploadReportPdf(token, file));
+        uploadedUrls.current[file.uri] = url;
+        pdfUrls.push(url);
+      }
+      setReport(
+        await analyzeReport(token, route.params.bookingId, {
+          ...(pdfUrls.length ? { pdf_urls: pdfUrls } : {}),
+          questionnaire_answers: route.params.answers,
+        }),
+      );
+    } catch (error) {
+      setReportError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to analyze this report.',
+      );
+    } finally {
+      setReportLoading(false);
+    }
+  }, [token, route.params]);
+  useEffect(() => {
+    if (!started.current) {
+      started.current = true;
+      runAnalysis();
+    }
+  }, [runAnalysis]);
   const [selectedTrendIndex, setSelectedTrendIndex] = useState(0);
-  const selectedTrend = trendData[selectedTrendIndex];
+  const findings = report?.analysis.findings ?? [];
+  const trends = report?.trends ?? [];
+  const selectedTrend = trends[selectedTrendIndex] ?? trends[0];
+  const selectedPoints = selectedTrend ? chartPoints(selectedTrend) : [];
+  const chartPath = selectedPoints
+    .map(([x, y], index) => `${index ? 'L' : 'M'}${x} ${y}`)
+    .join(' ');
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const audioRef = useRef<VideoRef>(null);
   const isFocused = useIsFocused();
@@ -143,161 +166,245 @@ export function HealthTrendsScreen({ navigation }: Props) {
       >
         <HealthFlowHeader
           title="My health trends"
-          subtitle="Reports + questionnaire - Krishna"
+          subtitle="Reports + questionnaire"
           onBack={navigation.goBack}
           rightIcon={<FileText color="#078B76" size={17} />}
         />
 
-        <ScrollView
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.topMeta}>
-            <AppText
-              color={theme.colors.primary}
-              style={styles.eyebrow}
-              weight="800"
-            >
-              UPDATED TODAY
+        {reportLoading || reportError ? (
+          <View style={styles.analysisState}>
+            {reportLoading ? (
+              <ActivityIndicator color={theme.colors.primary} size="large" />
+            ) : null}
+            <AppText style={styles.analysisStateText} weight="700">
+              {reportLoading
+                ? 'Analyzing your report and answers…'
+                : reportError}
             </AppText>
-            <View style={styles.statusPill}>
-              <AppText color="#078B76" style={styles.statusText} weight="700">
-                2 reports + check-in
-              </AppText>
-            </View>
+            {reportError ? (
+              <Pressable
+                onPress={runAnalysis}
+                style={[
+                  styles.retryButton,
+                  { backgroundColor: theme.colors.primary },
+                ]}
+              >
+                <AppText color="#FFFFFF" weight="700">
+                  Try again
+                </AppText>
+              </Pressable>
+            ) : null}
           </View>
-          <AppText style={styles.title} weight="800">
-            Krishna’s health signals{`\n`}at a glance.
-          </AppText>
-          <AppText color={theme.colors.textMuted} style={styles.subtitle}>
-            HAA AI found two trends worth understanding and one stable marker.
-          </AppText>
-
-          <View
-            style={[
-              styles.audioCard,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.border,
-                shadowColor: theme.colors.shadow,
-              },
-            ]}
+        ) : (
+          <ScrollView
+            contentContainerStyle={styles.content}
+            showsVerticalScrollIndicator={false}
           >
-            <Pressable
-              accessibilityLabel={
-                isAudioPlaying
-                  ? 'Pause audio conclusion'
-                  : 'Play audio conclusion'
-              }
-              accessibilityRole="button"
-              accessibilityState={{ busy: audioLoading }}
-              onPress={() => {
-                if (audioEnded) {
-                  audioRef.current?.seek(0);
-                  setAudioPosition(0);
-                  setAudioEnded(false);
-                }
-                setIsAudioPlaying(playing => !playing);
-              }}
-              style={[
-                styles.playButton,
-                { backgroundColor: theme.colors.primary },
-              ]}
-            >
-              {audioLoading ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : isAudioPlaying ? (
-                <Pause color="#FFFFFF" fill="#FFFFFF" size={18} />
-              ) : (
-                <Play color="#FFFFFF" fill="#FFFFFF" size={17} />
-              )}
-            </Pressable>
-            <View style={styles.audioCopy}>
+            <View style={styles.topMeta}>
               <AppText
                 color={theme.colors.primary}
-                style={styles.audioLabel}
+                style={styles.eyebrow}
                 weight="800"
               >
-                AUDIO CONCLUSION
+                ANALYZED {report?.report_date ?? ''}
               </AppText>
-              <AppText style={styles.audioTitle} weight="700">
-                Hear this report in simple words
-              </AppText>
-              <AppText
-                color={theme.colors.textMuted}
-                style={styles.audioDetail}
+              <View style={styles.statusPill}>
+                <AppText color="#078B76" style={styles.statusText} weight="700">
+                  Report + check-in
+                </AppText>
+              </View>
+            </View>
+            <AppText style={styles.title} weight="800">
+              {report?.analysis.headline}
+            </AppText>
+            <AppText color={theme.colors.textMuted} style={styles.subtitle}>
+              {report?.analysis.summary}
+            </AppText>
+
+            <View
+              style={[
+                styles.audioCard,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                  shadowColor: theme.colors.shadow,
+                },
+              ]}
+            >
+              <Pressable
+                accessibilityLabel="Audio conclusion coming soon"
+                accessibilityRole="button"
+                accessibilityState={{ disabled: true }}
+                disabled
+                onPress={() => {
+                  if (audioEnded) {
+                    audioRef.current?.seek(0);
+                    setAudioPosition(0);
+                    setAudioEnded(false);
+                  }
+                  setIsAudioPlaying(playing => !playing);
+                }}
+                style={[
+                  styles.playButton,
+                  { backgroundColor: theme.colors.primary },
+                ]}
               >
-                2 min · AI key parameters
-              </AppText>
-            </View>
-            <View
-              style={[
-                styles.languagePill,
-                { borderColor: theme.colors.border },
-              ]}
-            >
-              <AppText style={styles.language} weight="700">
-                English
-              </AppText>
-            </View>
-            <View
-              style={[
-                styles.audioProgressTrack,
-                { backgroundColor: theme.colors.surfaceMuted },
-              ]}
-            >
+                {audioLoading ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : isAudioPlaying ? (
+                  <Pause color="#FFFFFF" fill="#FFFFFF" size={18} />
+                ) : (
+                  <Play color="#FFFFFF" fill="#FFFFFF" size={17} />
+                )}
+              </Pressable>
+              <View style={styles.audioCopy}>
+                <AppText
+                  color={theme.colors.primary}
+                  style={styles.audioLabel}
+                  weight="800"
+                >
+                  AUDIO CONCLUSION
+                </AppText>
+                <AppText style={styles.audioTitle} weight="700">
+                  Hear this report in simple words
+                </AppText>
+                <AppText
+                  color={theme.colors.textMuted}
+                  style={styles.audioDetail}
+                >
+                  Audio conclusion coming soon
+                </AppText>
+              </View>
               <View
                 style={[
-                  styles.audioProgressFill,
-                  {
-                    backgroundColor: theme.colors.primary,
-                    width: `${audioProgress * 100}%`,
-                  },
+                  styles.languagePill,
+                  { borderColor: theme.colors.border },
                 ]}
+              >
+                <AppText style={styles.language} weight="700">
+                  English
+                </AppText>
+              </View>
+              <View
+                style={[
+                  styles.audioProgressTrack,
+                  { backgroundColor: theme.colors.surfaceMuted },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.audioProgressFill,
+                    {
+                      backgroundColor: theme.colors.primary,
+                      width: `${audioProgress * 100}%`,
+                    },
+                  ]}
+                />
+              </View>
+              <Video
+                ref={audioRef}
+                source={audioSource}
+                paused={!isAudioPlaying || !isFocused}
+                automaticallyWaitsToMinimizeStalling={false}
+                progressUpdateInterval={100}
+                playInBackground={false}
+                playWhenInactive={false}
+                onLoadStart={() => setAudioReady(false)}
+                onLoad={({ duration }) => {
+                  setAudioDuration(duration);
+                  setAudioReady(true);
+                }}
+                onBuffer={({ isBuffering }) => setAudioBuffering(isBuffering)}
+                onPlaybackStateChanged={({ isPlaying }) =>
+                  setActuallyPlaying(isPlaying)
+                }
+                onProgress={({ currentTime }) => setAudioPosition(currentTime)}
+                onEnd={() => {
+                  setIsAudioPlaying(false);
+                  setActuallyPlaying(false);
+                  setAudioEnded(true);
+                  setAudioPosition(audioDuration);
+                }}
+                onError={() => {
+                  setIsAudioPlaying(false);
+                  setActuallyPlaying(false);
+                  Alert.alert(
+                    'Audio unavailable',
+                    'Unable to play the audio conclusion. Please reopen this screen and try again.',
+                  );
+                }}
+                style={styles.hiddenAudio}
               />
             </View>
-            <Video
-              ref={audioRef}
-              source={audioSource}
-              paused={!isAudioPlaying || !isFocused}
-              automaticallyWaitsToMinimizeStalling={false}
-              progressUpdateInterval={100}
-              playInBackground={false}
-              playWhenInactive={false}
-              onLoadStart={() => setAudioReady(false)}
-              onLoad={({ duration }) => {
-                setAudioDuration(duration);
-                setAudioReady(true);
-              }}
-              onBuffer={({ isBuffering }) => setAudioBuffering(isBuffering)}
-              onPlaybackStateChanged={({ isPlaying }) =>
-                setActuallyPlaying(isPlaying)
-              }
-              onProgress={({ currentTime }) => setAudioPosition(currentTime)}
-              onEnd={() => {
-                setIsAudioPlaying(false);
-                setActuallyPlaying(false);
-                setAudioEnded(true);
-                setAudioPosition(audioDuration);
-              }}
-              onError={() => {
-                setIsAudioPlaying(false);
-                setActuallyPlaying(false);
-                Alert.alert(
-                  'Audio unavailable',
-                  'Unable to play the audio conclusion. Please reopen this screen and try again.',
-                );
-              }}
-              style={styles.hiddenAudio}
-            />
-          </View>
 
-          <View style={styles.markerRow}>
-            {markers.map((marker, index) => (
+            <View style={styles.markerRow}>
+              {findings.slice(0, 3).map(marker => {
+                const markerTrend = trends.find(
+                  trend =>
+                    trend.marker.toLowerCase() === marker.marker.toLowerCase(),
+                );
+                return (
+                  <View
+                    key={marker.marker}
+                    style={[
+                      styles.markerCard,
+                      {
+                        backgroundColor: theme.colors.surface,
+                        borderColor: theme.colors.border,
+                        shadowColor: theme.colors.shadow,
+                      },
+                    ]}
+                  >
+                    <AppText
+                      color={theme.colors.textMuted}
+                      style={styles.markerName}
+                    >
+                      {marker.marker}
+                    </AppText>
+                    <AppText style={styles.markerValue} weight="800">
+                      {marker.value} {marker.unit}
+                    </AppText>
+                    <AppText
+                      color={statusColor(marker.status)}
+                      style={styles.markerStatus}
+                      weight="700"
+                    >
+                      • {marker.status}
+                    </AppText>
+                    <AppText
+                      color={theme.colors.textMuted}
+                      style={styles.markerStatus}
+                      numberOfLines={2}
+                    >
+                      {marker.explanation}
+                    </AppText>
+                    {markerTrend && markerTrend.points.length > 1 ? (
+                      <View style={styles.sparkLine}>
+                        <Svg width="100%" height="24" viewBox="0 0 100 24">
+                          <Path
+                            d={sparklinePath(markerTrend)}
+                            fill="none"
+                            stroke={statusColor(marker.status)}
+                            strokeLinecap="round"
+                            strokeWidth="2.5"
+                          />
+                        </Svg>
+                      </View>
+                    ) : null}
+                  </View>
+                );
+              })}
+            </View>
+
+            <SectionHeader
+              title="Trend across reports"
+              aside="From your reports"
+              asideColor={theme.colors.primary}
+            />
+            {selectedTrend ? (
               <View
-                key={marker.name}
                 style={[
-                  styles.markerCard,
+                  styles.chartCard,
                   {
                     backgroundColor: theme.colors.surface,
                     borderColor: theme.colors.border,
@@ -305,241 +412,260 @@ export function HealthTrendsScreen({ navigation }: Props) {
                   },
                 ]}
               >
-                <AppText
-                  color={theme.colors.textMuted}
-                  style={styles.markerName}
-                >
-                  {marker.name}
-                </AppText>
-                <AppText style={styles.markerValue} weight="800">
-                  {marker.value}
-                </AppText>
-                <AppText
-                  color={marker.color}
-                  style={styles.markerStatus}
-                  weight="700"
-                >
-                  • {marker.status}
-                </AppText>
-                <View style={styles.sparkLine}>
-                  <Svg width="100%" height="24" viewBox="0 0 100 24">
-                    <Path
-                      d={
-                        index === 0
-                          ? 'M2 3 C25 1 38 6 53 11 S78 18 98 22'
-                          : index === 1
-                          ? 'M2 5 C22 6 30 11 48 13 S77 14 98 17'
-                          : 'M2 14 C24 14 37 15 53 13 S76 14 98 12'
-                      }
-                      fill="none"
-                      stroke={marker.color}
-                      strokeLinecap="round"
-                      strokeWidth="2.5"
-                    />
+                <View style={styles.chartHeading}>
+                  <View>
+                    <AppText style={styles.chartTitle} weight="700">
+                      {selectedTrend.marker}
+                    </AppText>
+                    <AppText
+                      color={theme.colors.textMuted}
+                      style={styles.chartSub}
+                    >
+                      Reported values by date
+                    </AppText>
+                  </View>
+                  <AppText
+                    color={theme.colors.primary}
+                    style={styles.chartValue}
+                    weight="800"
+                  >
+                    {selectedTrend.latest_value ??
+                      selectedTrend.points.at(-1)?.value ??
+                      '—'}{' '}
+                    {selectedTrend.unit}
+                  </AppText>
+                </View>
+                <View style={styles.chartTabs}>
+                  {trends.map((trend, index) => {
+                    const active = index === selectedTrendIndex;
+                    return (
+                      <Pressable
+                        key={trend.marker}
+                        accessibilityRole="tab"
+                        accessibilityState={{ selected: active }}
+                        onPress={() => setSelectedTrendIndex(index)}
+                        style={[
+                          styles.chartTab,
+                          {
+                            backgroundColor: active
+                              ? theme.colors.primarySoft
+                              : 'transparent',
+                            borderColor: active
+                              ? theme.colors.primary
+                              : theme.colors.border,
+                          },
+                        ]}
+                      >
+                        <AppText
+                          color={
+                            active ? theme.colors.primary : theme.colors.text
+                          }
+                          style={styles.tabText}
+                          weight={active ? '700' : '400'}
+                        >
+                          {trend.marker}
+                        </AppText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <View style={styles.chart}>
+                  <View style={styles.chartCallout}>
+                    <AppText color="#FFFFFF" style={styles.calloutText}>
+                      {selectedTrend.points.at(-1)?.date ?? ''} ·{' '}
+                      {selectedTrend.latest_value ??
+                        selectedTrend.points.at(-1)?.value ??
+                        '—'}{' '}
+                      {selectedTrend.unit}
+                    </AppText>
+                  </View>
+                  <Svg width="100%" height="170" viewBox="0 0 340 170">
+                    <Defs>
+                      <SvgLinearGradient
+                        id="trendFill"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <Stop
+                          offset="0"
+                          stopColor={statusColor(
+                            selectedTrend.points.at(-1)?.status ?? 'normal',
+                          )}
+                          stopOpacity="0.18"
+                        />
+                        <Stop
+                          offset="1"
+                          stopColor={statusColor(
+                            selectedTrend.points.at(-1)?.status ?? 'normal',
+                          )}
+                          stopOpacity="0.02"
+                        />
+                      </SvgLinearGradient>
+                    </Defs>
+                    {[32, 80, 128].map(y => (
+                      <Line
+                        key={y}
+                        x1="8"
+                        y1={y}
+                        x2="332"
+                        y2={y}
+                        stroke={theme.colors.border}
+                      />
+                    ))}
+                    {[62, 148, 234, 320].map(x => (
+                      <Line
+                        key={x}
+                        x1={x}
+                        y1="8"
+                        x2={x}
+                        y2="148"
+                        stroke={theme.colors.border}
+                      />
+                    ))}
+                    {selectedPoints.length > 1 ? (
+                      <Path
+                        d={`${chartPath} L${selectedPoints.at(-1)?.[0]} 150 L${
+                          selectedPoints[0][0]
+                        } 150 Z`}
+                        fill="url(#trendFill)"
+                      />
+                    ) : null}
+                    {selectedPoints.length > 1 ? (
+                      <Path
+                        d={chartPath}
+                        fill="none"
+                        stroke={statusColor(
+                          selectedTrend.points.at(-1)?.status ?? 'normal',
+                        )}
+                        strokeLinecap="round"
+                        strokeWidth="3.5"
+                      />
+                    ) : null}
+                    {selectedPoints.map(([cx, cy], index) => (
+                      <Circle
+                        key={`${cx}-${index}`}
+                        cx={cx}
+                        cy={cy}
+                        r="6"
+                        fill={theme.colors.surface}
+                        stroke={
+                          index === selectedPoints.length - 1
+                            ? statusColor(
+                                selectedTrend.points.at(-1)?.status ?? 'normal',
+                              )
+                            : '#08233D'
+                        }
+                        strokeWidth="3.5"
+                      />
+                    ))}
                   </Svg>
                 </View>
+                <Pressable
+                  style={[
+                    styles.detailButton,
+                    { backgroundColor: theme.colors.primary },
+                  ]}
+                >
+                  <AppText
+                    color="#FFFFFF"
+                    style={styles.detailText}
+                    weight="700"
+                  >
+                    {selectedTrend.points.length} report{' '}
+                    {selectedTrend.points.length === 1 ? 'result' : 'results'}
+                  </AppText>
+                </Pressable>
               </View>
-            ))}
-          </View>
+            ) : (
+              <AppText color={theme.colors.textMuted}>
+                No trend data is available for this report.
+              </AppText>
+            )}
 
-          <SectionHeader
-            title="Trend across reports"
-            aside="Last 12 months"
-            asideColor={theme.colors.primary}
-          />
+            <SectionHeader
+              title="Health focus"
+              aside="Urgent attention"
+              asideColor={theme.colors.textMuted}
+            />
+            {report?.analysis.urgent_attention.length ? (
+              report.analysis.urgent_attention.map((item, index) => (
+                <FocusCard
+                  key={`${item}-${index}`}
+                  icon={<BookOpen color={theme.colors.primary} size={15} />}
+                  title={item}
+                  detail="Discuss this with a clinician."
+                />
+              ))
+            ) : (
+              <AppText color={theme.colors.textMuted} style={styles.emptyFocus}>
+                No urgent attention noted in this analysis.
+              </AppText>
+            )}
+            <SectionHeader
+              title="Recommendations"
+              aside="From this analysis"
+              asideColor={theme.colors.textMuted}
+            />
+            {report?.analysis.recommendations.map((item, index) => (
+              <FocusCard
+                key={`${item}-${index}`}
+                icon={<CalendarDays color="#078B76" size={15} />}
+                title={item}
+                detail=""
+              />
+            ))}
+            <AppText color={theme.colors.textMuted} style={styles.disclaimer}>
+              {report?.analysis.disclaimer}
+            </AppText>
+          </ScrollView>
+        )}
+
+        {report ? (
           <View
             style={[
-              styles.chartCard,
+              styles.footer,
               {
                 backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.border,
-                shadowColor: theme.colors.shadow,
+                borderTopColor: theme.colors.border,
               },
             ]}
           >
-            <View style={styles.chartHeading}>
-              <View>
-                <AppText style={styles.chartTitle} weight="700">
-                  {selectedTrend.name}
-                </AppText>
-                <AppText color={theme.colors.textMuted} style={styles.chartSub}>
-                  Reference band shown in green
-                </AppText>
-              </View>
+            <View>
               <AppText
-                color={theme.colors.primary}
-                style={styles.chartValue}
-                weight="800"
+                color={theme.colors.textMuted}
+                style={styles.footerEyebrow}
               >
-                {selectedTrend.value}
+                {report?.analysis.recommendations.length ?? 0} recommendations
+                found
+              </AppText>
+              <AppText style={styles.footerTitle} weight="800">
+                See relevant HAA options
               </AppText>
             </View>
-            <View style={styles.chartTabs}>
-              {trendData.map((trend, index) => {
-                const active = index === selectedTrendIndex;
-                return (
-                  <Pressable
-                    key={trend.name}
-                    accessibilityRole="tab"
-                    accessibilityState={{ selected: active }}
-                    onPress={() => setSelectedTrendIndex(index)}
-                    style={[
-                      styles.chartTab,
-                      {
-                        backgroundColor: active
-                          ? theme.colors.primarySoft
-                          : 'transparent',
-                        borderColor: active
-                          ? theme.colors.primary
-                          : theme.colors.border,
-                      },
-                    ]}
-                  >
-                    <AppText
-                      color={active ? theme.colors.primary : theme.colors.text}
-                      style={styles.tabText}
-                      weight={active ? '700' : '400'}
-                    >
-                      {trend.name}
-                    </AppText>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <View style={styles.chart}>
-              <View style={styles.chartCallout}>
-                <AppText color="#FFFFFF" style={styles.calloutText}>
-                  Aug · {selectedTrend.value}
-                </AppText>
-              </View>
-              <Svg width="100%" height="170" viewBox="0 0 340 170">
-                <Defs>
-                  <SvgLinearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-                    <Stop offset="0" stopColor="#DF1F2D" stopOpacity="0.18" />
-                    <Stop offset="1" stopColor="#DF1F2D" stopOpacity="0.02" />
-                  </SvgLinearGradient>
-                </Defs>
-                <Rect
-                  x="8"
-                  y={selectedTrend.bandY}
-                  width="324"
-                  height={selectedTrend.bandHeight}
-                  rx="6"
-                  fill={theme.isDark ? '#12322F' : '#E8F7F2'}
-                />
-                {[32, 80, 128].map(y => (
-                  <Line
-                    key={y}
-                    x1="8"
-                    y1={y}
-                    x2="332"
-                    y2={y}
-                    stroke={theme.colors.border}
-                  />
-                ))}
-                {[62, 148, 234, 320].map(x => (
-                  <Line
-                    key={x}
-                    x1={x}
-                    y1="8"
-                    x2={x}
-                    y2="148"
-                    stroke={theme.colors.border}
-                  />
-                ))}
-                <Path
-                  d={`${selectedTrend.path} L320 150 L18 150 Z`}
-                  fill="url(#trendFill)"
-                />
-                <Path
-                  d={selectedTrend.path}
-                  fill="none"
-                  stroke={selectedTrend.trendColor}
-                  strokeLinecap="round"
-                  strokeWidth="3.5"
-                />
-                {selectedTrend.points.slice(0, -1).map(([cx, cy]) => (
-                  <Circle
-                    key={cx}
-                    cx={cx}
-                    cy={cy}
-                    r="6"
-                    fill={theme.colors.surface}
-                    stroke="#08233D"
-                    strokeWidth="3.5"
-                  />
-                ))}
-                <Circle
-                  cx={selectedTrend.points[3][0]}
-                  cy={selectedTrend.points[3][1]}
-                  r="6"
-                  fill={theme.colors.surface}
-                  stroke={selectedTrend.endColor}
-                  strokeWidth="3.5"
-                />
-              </Svg>
-            </View>
             <Pressable
+              onPress={() => {
+                if (report)
+                  navigation.navigate('HealthRecommendations', {
+                    analysis: report,
+                  });
+              }}
               style={[
-                styles.detailButton,
+                styles.recommendButton,
                 { backgroundColor: theme.colors.primary },
               ]}
             >
-              <AppText color="#FFFFFF" style={styles.detailText} weight="700">
-                Open {selectedTrend.name} details
+              <AppText
+                color="#FFFFFF"
+                style={styles.recommendText}
+                weight="700"
+              >
+                Recommendations
               </AppText>
             </Pressable>
           </View>
-
-          <SectionHeader
-            title="Health focus"
-            aside="AI-organised priorities"
-            asideColor={theme.colors.textMuted}
-          />
-          <FocusCard
-            icon={<BookOpen color={theme.colors.primary} size={15} />}
-            title="Understand Vitamin D trend"
-            detail="Down across three connected reports."
-          />
-          <FocusCard
-            icon={<CalendarDays color="#078B76" size={15} />}
-            title="Questions for your next appointment"
-            detail="A short, educational discussion guide."
-          />
-        </ScrollView>
-
-        <View
-          style={[
-            styles.footer,
-            {
-              backgroundColor: theme.colors.surface,
-              borderTopColor: theme.colors.border,
-            },
-          ]}
-        >
-          <View>
-            <AppText
-              color={theme.colors.textMuted}
-              style={styles.footerEyebrow}
-            >
-              Two priorities found
-            </AppText>
-            <AppText style={styles.footerTitle} weight="800">
-              See relevant HAA options
-            </AppText>
-          </View>
-          <Pressable
-            onPress={() => navigation.navigate('HealthRecommendations')}
-            style={[
-              styles.recommendButton,
-              { backgroundColor: theme.colors.primary },
-            ]}
-          >
-            <AppText color="#FFFFFF" style={styles.recommendText} weight="700">
-              Recommendations
-            </AppText>
-          </Pressable>
-        </View>
+        ) : null}
       </SafeAreaView>
     </LinearGradient>
   );
@@ -577,7 +703,7 @@ function FocusCard({
 }) {
   const { theme } = useAppTheme();
   return (
-    <Pressable
+    <View
       style={[
         styles.focusCard,
         {
@@ -598,17 +724,38 @@ function FocusCard({
         <AppText style={styles.focusTitle} weight="700">
           {title}
         </AppText>
-        <AppText color={theme.colors.textMuted} style={styles.focusDetail}>
-          {detail}
-        </AppText>
+        {detail ? (
+          <AppText color={theme.colors.textMuted} style={styles.focusDetail}>
+            {detail}
+          </AppText>
+        ) : null}
       </View>
-      <ChevronRight color={theme.colors.textMuted} size={15} />
-    </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  analysisState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+  },
+  analysisStateText: {
+    marginTop: 16,
+    textAlign: 'center',
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  retryButton: {
+    marginTop: 18,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  emptyFocus: { marginTop: 10, fontSize: 11, lineHeight: 16 },
+  disclaimer: { marginTop: 20, marginBottom: 10, fontSize: 10, lineHeight: 15 },
   header: {
     height: 64,
     paddingHorizontal: 16,
@@ -788,9 +935,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  focusCopy: { flex: 1, marginLeft: 9 },
-  focusTitle: { fontSize: 11, lineHeight: 12 },
-  focusDetail: { marginTop: 2, fontSize: 9, lineHeight: 11 },
+  focusCopy: {
+    flex: 1,
+    marginLeft: 9,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+  },
+  focusTitle: { fontSize: 11, lineHeight: 14, textAlign: 'start'},
+  focusDetail: {
+    marginTop: 2,
+    fontSize: 9,
+    lineHeight: 11,
+    textAlign: 'center',
+  },
   footer: {
     minHeight: 76,
     paddingHorizontal: 16,

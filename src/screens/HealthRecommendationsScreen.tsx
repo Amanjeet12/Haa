@@ -1,7 +1,6 @@
 import Bookmark from 'lucide-react-native/icons/bookmark';
-import Droplet from 'lucide-react-native/icons/droplet';
 import Leaf from 'lucide-react-native/icons/leaf';
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,29 +19,9 @@ type Props = NativeStackScreenProps<
   'HealthRecommendations'
 >;
 
-const categories = ['Lab tests', 'Quick care', 'Global store'];
-const recommendations = [
-  {
-    name: 'Vitamin D - 25-OH Test',
-    detail: 'Afiya Healthcare · Home collection',
-    reason:
-      'Suggested because this marker moved down across three connected reports.',
-    price: '₹699',
-    icon: 'leaf',
-  },
-  {
-    name: 'Iron Studies Profile',
-    detail: 'Compare 4 verified lab partners',
-    reason:
-      'May add context to a haemoglobin result when a clinician considers it appropriate.',
-    price: '₹899',
-    icon: 'drop',
-  },
-] as const;
-
-export function HealthRecommendationsScreen({ navigation }: Props) {
+export function HealthRecommendationsScreen({ navigation, route }: Props) {
   const { theme } = useAppTheme();
-  const [activeCategory, setActiveCategory] = useState('Lab tests');
+  const { analysis } = route.params;
 
   return (
     <LinearGradient
@@ -56,10 +35,9 @@ export function HealthRecommendationsScreen({ navigation }: Props) {
       >
         <HealthFlowHeader
           title="For your health view"
-          subtitle="Relevant options - Krishna"
+          subtitle="From your report analysis"
           onBack={navigation.goBack}
           rightIcon={<Bookmark color="#078B76" size={17} />}
-          onRightPress={() => navigation.navigate('HaaPlus')}
         />
 
         <ScrollView
@@ -74,7 +52,7 @@ export function HealthRecommendationsScreen({ navigation }: Props) {
             PERSONALISED RECOMMENDATIONS
           </AppText>
           <AppText style={styles.title} weight="800">
-            Useful options for{`\n`}Krishna.
+            Recommendations from{`\n`}your report.
           </AppText>
 
           <View
@@ -91,61 +69,27 @@ export function HealthRecommendationsScreen({ navigation }: Props) {
               Why you’re seeing these
             </AppText>
             <AppText color={theme.colors.textMuted} style={styles.whyBody}>
-              Vitamin D is trending down, haemoglobin is slightly below range,
-              and your check-in mentions lower energy. Recommendations help you
-              explore—not self-diagnose or self-treat.
+              {analysis.analysis.summary}
             </AppText>
-          </View>
-
-          <View style={styles.tabs}>
-            {categories.map(category => {
-              const active = category === activeCategory;
-              return (
-                <Pressable
-                  key={category}
-                  onPress={() => setActiveCategory(category)}
-                  style={[
-                    styles.tab,
-                    {
-                      backgroundColor: active
-                        ? theme.colors.text
-                        : theme.colors.surface,
-                      borderColor: theme.colors.border,
-                    },
-                  ]}
-                >
-                  <AppText
-                    color={
-                      active ? theme.colors.surface : theme.colors.textMuted
-                    }
-                    style={styles.tabText}
-                    weight="700"
-                  >
-                    {category}
-                  </AppText>
-                </Pressable>
-              );
-            })}
           </View>
 
           <View style={styles.sectionHeader}>
             <View>
               <AppText style={styles.sectionTitle} weight="800">
-                Recommended lab follow-up
+                Recommended next steps
               </AppText>
               <AppText color={theme.colors.textMuted} style={styles.sectionSub}>
-                Confirm timing and suitability with a clinician, especially
-                before repeating a recent test.
+                Discuss these suggestions with your clinician.
               </AppText>
             </View>
             <AppText color={theme.colors.textMuted} style={styles.available}>
-              Available in your zone
+              {analysis.analysis.recommendations.length} suggestions
             </AppText>
           </View>
 
-          {recommendations.map(item => (
+          {analysis.analysis.recommendations.map((item, index) => (
             <View
-              key={item.name}
+              key={`${item}-${index}`}
               style={[
                 styles.recommendationCard,
                 {
@@ -162,36 +106,17 @@ export function HealthRecommendationsScreen({ navigation }: Props) {
                     { backgroundColor: theme.colors.primarySoft },
                   ]}
                 >
-                  {item.icon === 'leaf' ? (
-                    <Leaf color="#28C58B" size={24} />
-                  ) : (
-                    <Droplet
-                      color={theme.colors.primary}
-                      fill={theme.colors.primary}
-                      size={22}
-                    />
-                  )}
+                  <Leaf color="#28C58B" size={24} />
                 </View>
                 <View style={styles.testCopy}>
                   <AppText style={styles.testName} weight="800">
-                    {item.name}
+                    Recommendation {index + 1}
                   </AppText>
                   <AppText
                     color={theme.colors.textMuted}
                     style={styles.testDetail}
                   >
-                    {item.detail}
-                  </AppText>
-                </View>
-                <View style={styles.priceCopy}>
-                  <AppText style={styles.price} weight="800">
-                    {item.price}
-                  </AppText>
-                  <AppText
-                    color={theme.colors.textMuted}
-                    style={styles.priceLabel}
-                  >
-                    from
+                    From your report analysis
                   </AppText>
                 </View>
               </View>
@@ -203,46 +128,14 @@ export function HealthRecommendationsScreen({ navigation }: Props) {
               >
                 <View style={styles.reasonDiamond} />
                 <AppText color={theme.colors.textMuted} style={styles.reason}>
-                  {item.reason}
+                  {item}
                 </AppText>
-              </View>
-              <View
-                style={[
-                  styles.cardActions,
-                  { borderTopColor: theme.colors.border },
-                ]}
-              >
-                <Pressable
-                  style={[
-                    styles.primaryAction,
-                    { backgroundColor: theme.colors.primary },
-                  ]}
-                >
-                  <AppText
-                    color="#FFFFFF"
-                    style={styles.actionText}
-                    weight="700"
-                  >
-                    {item.icon === 'leaf' ? 'View labs' : 'Compare labs'}
-                  </AppText>
-                </Pressable>
-                <Pressable
-                  style={[
-                    styles.saveAction,
-                    { borderColor: theme.colors.primary },
-                  ]}
-                >
-                  <AppText
-                    color={theme.colors.primary}
-                    style={styles.actionText}
-                    weight="700"
-                  >
-                    Save
-                  </AppText>
-                </Pressable>
               </View>
             </View>
           ))}
+          <AppText color={theme.colors.textMuted} style={styles.sectionSub}>
+            {analysis.analysis.disclaimer}
+          </AppText>
         </ScrollView>
 
         <View
@@ -259,14 +152,14 @@ export function HealthRecommendationsScreen({ navigation }: Props) {
               color={theme.colors.textMuted}
               style={styles.footerEyebrow}
             >
-              Recommendations selected
+              {analysis.analysis.recommendations.length} recommendations
             </AppText>
             <AppText style={styles.footerTitle} weight="800">
               From reports + check-in
             </AppText>
           </View>
           <Pressable
-            onPress={() => navigation.navigate('HaaPlus')}
+            onPress={navigation.goBack}
             style={[
               styles.backButton,
               { backgroundColor: theme.colors.primary },

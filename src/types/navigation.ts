@@ -51,9 +51,14 @@ export type HomeStackParamList = {
     bookingId: number;
     memberId: number;
     outsideReports: Array<{ uri: string; name: string }>;
-    answers: Array<{ questionId: number; answer: string | string[] }>;
+    answers: Array<{
+      ai_analysis_question_id: number;
+      answer: string | string[];
+    }>;
   };
-  HealthRecommendations: undefined;
+  HealthRecommendations: {
+    analysis: import('../api/reportAnalyses').ReportAnalysis;
+  };
   HaaPlus: undefined;
   Search: undefined;
   ProductSearch: { mode: 'quick' | 'global' };

@@ -94,6 +94,55 @@ export type CustomerBooking = {
   total_tests: number;
 };
 
+export type FamilyMemberTestBooking = {
+  booking_id: number;
+  booking_order_id: number;
+  family_member_id: number;
+  booking_date: string;
+  booking_status: string;
+  result_pdf: string | null;
+  test: { test_id: number; test_name: string; test_code: string };
+  lab: { lab_id: number; lab_name: string };
+  order: { booking_order_id: number; booking_no: string };
+};
+
+type FamilyMemberBookingsResponse = {
+  success: number | string;
+  msg: string;
+  data: {
+    family_member: { member_id: number };
+    bookings: FamilyMemberTestBooking[];
+  };
+};
+
+export async function getFamilyMemberTestBookings(
+  token: string,
+  memberId: number,
+) {
+  const response = await apiRequest<FamilyMemberBookingsResponse>(
+    `${apiBaseUrl}/customer/bookings-family-members/${memberId}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (
+    Number(response.success) !== 1 ||
+    response.data?.family_member?.member_id !== memberId ||
+    !Array.isArray(response.data?.bookings)
+  ) {
+    throw new Error(response.msg || 'Unable to fetch family member bookings.');
+  }
+  return response.data.bookings;
+}
+
+export function reportReadyFamilyBookings(bookings: FamilyMemberTestBooking[]) {
+  return bookings.filter(
+    booking =>
+      Number.isInteger(booking.booking_id) &&
+      booking.booking_id > 0 &&
+      booking.booking_status.toLowerCase() === 'completed' &&
+      Boolean(booking.result_pdf),
+  );
+}
+
 type CustomerBookingsResponse = {
   success: number | string;
   msg: string;

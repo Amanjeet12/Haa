@@ -12,7 +12,11 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { CustomerBooking, getCustomerBookings } from '../api/bookings';
+import {
+  FamilyMemberTestBooking,
+  getFamilyMemberTestBookings,
+  reportReadyFamilyBookings,
+} from '../api/bookings';
 import { AppText, HealthFlowHeader } from '../components';
 import { useAppSelector } from '../store';
 import {
@@ -27,7 +31,7 @@ type Props = NativeStackScreenProps<HomeStackParamList, 'HealthBookingPicker'>;
 export function HealthBookingPickerScreen({ navigation, route }: Props) {
   const { theme } = useAppTheme();
   const token = useAppSelector(state => state.auth.session?.token);
-  const [bookings, setBookings] = useState<CustomerBooking[]>([]);
+  const [bookings, setBookings] = useState<FamilyMemberTestBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const { memberId, selectedBookingId } = route.params;
@@ -40,27 +44,20 @@ export function HealthBookingPickerScreen({ navigation, route }: Props) {
     setLoading(true);
     setError(false);
     try {
-      setBookings(await getCustomerBookings(token));
+      setBookings(await getFamilyMemberTestBookings(token, memberId));
     } catch {
       setError(true);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, memberId]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const eligible = bookings.filter(
-    booking =>
-      booking.booking_status.toLowerCase() === 'completed' &&
-      booking.members.some(
-        item =>
-          item.member_id === memberId &&
-          (Boolean(item.result_pdf) ||
-            item.tests.some(test => Boolean(test.result_pdf))),
-      ),
+  const eligible = reportReadyFamilyBookings(bookings).filter(
+    booking => booking.family_member_id === memberId,
   );
 
   return (
@@ -104,18 +101,15 @@ export function HealthBookingPickerScreen({ navigation, route }: Props) {
             </AppText>
           ) : null}
           {eligible.map(booking => {
-            const selected = booking.booking_order_id === selectedBookingId;
-            const member = booking.members.find(
-              item => item.member_id === memberId,
-            );
+            const selected = booking.booking_id === selectedBookingId;
             return (
               <Pressable
-                key={booking.booking_order_id}
+                key={booking.booking_id}
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
                 onPress={() =>
                   navigation.popTo('HealthView', {
-                    bookingId: booking.booking_order_id,
+                    bookingId: booking.booking_id,
                   })
                 }
                 style={[
@@ -137,12 +131,10 @@ export function HealthBookingPickerScreen({ navigation, route }: Props) {
                   <FileText color={theme.colors.primary} size={19} />
                 </View>
                 <View style={styles.copy}>
-                  <AppText weight="800">
-                    {member?.tests[0]?.test.test_name ?? booking.lab.lab_name}
-                  </AppText>
+                  <AppText weight="800">{booking.test.test_name}</AppText>
                   <AppText color={theme.colors.textMuted} style={styles.detail}>
-                    Booking {booking.booking_no} · {booking.lab.lab_name} ·{' '}
-                    {booking.booking_date}
+                    Booking {booking.order.booking_no} · {booking.lab.lab_name}{' '}
+                    · {booking.booking_date}
                   </AppText>
                 </View>
                 {selected ? <Check color="#078B76" size={19} /> : null}
