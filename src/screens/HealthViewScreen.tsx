@@ -4,8 +4,17 @@ import FileText from 'lucide-react-native/icons/file-text';
 import Plus from 'lucide-react-native/icons/plus';
 import ShieldCheck from 'lucide-react-native/icons/shield-check';
 import UserPlus from 'lucide-react-native/icons/user-plus';
-import React, { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import type { NavigationProp } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -17,38 +26,20 @@ import {
 } from '@react-native-documents/picker';
 
 import { AppText, HealthFlowHeader } from '../components';
+import { CustomerBooking, getCustomerBookings } from '../api/bookings';
+import { FamilyMember, getFamilyMembers } from '../api/familyMembers';
+import { useAppSelector } from '../store';
 import {
   screenGradientColors,
   screenGradientLocations,
   useAppTheme,
 } from '../theme';
-import type { HomeStackParamList } from '../types/navigation';
+import type {
+  HomeStackParamList,
+  RootStackParamList,
+} from '../types/navigation';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'HealthView'>;
-
-const people = [
-  { id: 'self', initial: 'K', name: 'Krishna', detail: 'Self · 2 reports' },
-  { id: 'father', initial: 'F', name: 'Father', detail: '1 linked report' },
-  { id: 'mother', initial: 'M', name: 'Mother', detail: '1 linked report' },
-];
-
-const reports = [
-  {
-    title: 'Annual Health Checkup',
-    detail: 'Afiya Healthcare · 12 Aug 2026',
-    connected: true,
-  },
-  {
-    title: 'Wellness Package',
-    detail: 'Dr Lal PathLabs · 05 Feb 2025',
-    connected: true,
-  },
-  {
-    title: 'Add an outside report',
-    detail: 'PDF or clear report images',
-    connected: false,
-  },
-];
 
 const pilotItems = [
   ['Reports trends', 'See how the same markers move across connected reports.'],
@@ -62,21 +53,127 @@ const pilotItems = [
   ],
 ];
 
-export function HealthViewScreen({ navigation }: Props) {
+export function HealthViewScreen({ navigation, route }: Props) {
   const { theme } = useAppTheme();
-  const [selectedPerson, setSelectedPerson] = useState('self');
-  const [outsideReportName, setOutsideReportName] = useState<string | null>(
-    null,
+  const token = useAppSelector(state => state.auth.session?.token);
+  const [members, setMembers] = useState<FamilyMember[]>([]);
+  const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [membersError, setMembersError] = useState<string | null>(null);
+  const [bookings, setBookings] = useState<CustomerBooking[]>([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [bookingsError, setBookingsError] = useState(false);
+  const selectedBookingId = route.params?.bookingId ?? null;
+  const [outsideReports, setOutsideReports] = useState<
+    Array<{ uri: string; name: string }>
+  >([]);
+
+  console.log('token', token);
+
+  const loadMembers = useCallback(async () => {
+    if (!token) {
+      setMembers([]);
+      setSelectedMemberId(null);
+      return;
+    }
+    setMembersLoading(true);
+    setMembersError(null);
+    try {
+      const family = await getFamilyMembers(token);
+      setMembers(family);
+      setSelectedMemberId(current =>
+        family.some(member => member.member_id === current)
+          ? current
+          : (
+              family.find(
+                member =>
+                  member.isDefault || member.relation.toLowerCase() === 'self',
+              ) ?? family[0]
+            )?.member_id ?? null,
+      );
+    } catch {
+      setMembersError('Unable to load family members.');
+    } finally {
+      setMembersLoading(false);
+    }
+  }, [token]);
+
+  const loadBookings = useCallback(async () => {
+    if (!token) {
+      setBookings([]);
+      return;
+    }
+    setBookingsLoading(true);
+    setBookingsError(false);
+    try {
+      setBookings(await getCustomerBookings(token));
+    } catch {
+      setBookingsError(true);
+    } finally {
+      setBookingsLoading(false);
+    }
+  }, [token]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadMembers();
+      loadBookings();
+    }, [loadMembers, loadBookings]),
+  );
+
+  const openFamilyForm = () => {
+    navigation
+      .getParent()
+      ?.getParent<NavigationProp<RootStackParamList>>()
+      ?.navigate(token ? 'FamilyMemberForm' : 'Login');
+  };
+  const selectedMember = members.find(
+    member => member.member_id === selectedMemberId,
+  );
+  const eligibleBookings = bookings.filter(
+    booking =>
+      booking.booking_status.toLowerCase() === 'completed' &&
+      booking.members.some(
+        item =>
+          item.member_id === selectedMemberId &&
+          (Boolean(item.result_pdf) ||
+            item.tests.some(test => Boolean(test.result_pdf))),
+      ),
+  );
+  const selectedBooking = eligibleBookings.find(
+    booking => booking.booking_order_id === selectedBookingId,
   );
 
   const chooseOutsideReport = async () => {
+    if (outsideReports.length >= 3) return;
     try {
-      const [document] = await pick({ type: [types.pdf, types.images] });
-      if (!document.hasRequestedType) {
-        Alert.alert('Unsupported file', 'Choose a PDF or report image.');
+      const documents = await pick({
+        type: [types.pdf],
+        allowMultiSelection: true,
+      });
+      if (
+        documents.some(
+          document =>
+            !document.hasRequestedType || document.type !== 'application/pdf',
+        )
+      ) {
+        Alert.alert('Unsupported file', 'Choose PDF files only.');
         return;
       }
-      setOutsideReportName(document.name ?? 'Selected report');
+      const unique = documents.filter(
+        document => !outsideReports.some(report => report.uri === document.uri),
+      );
+      if (outsideReports.length + unique.length > 3) {
+        Alert.alert('Three PDF limit', 'You can attach up to three PDFs.');
+        return;
+      }
+      setOutsideReports(current => [
+        ...current,
+        ...unique.map(document => ({
+          uri: document.uri,
+          name: document.name ?? 'Selected PDF',
+        })),
+      ]);
     } catch (error) {
       if (
         isErrorWithCode(error) &&
@@ -133,13 +230,17 @@ export function HealthViewScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.peopleGrid}>
-            {people.map(person => {
-              const selected = selectedPerson === person.id;
+            {members.map(member => {
+              const selected = selectedMemberId === member.member_id;
               return (
                 <Pressable
-                  key={person.id}
+                  key={member.member_id}
                   accessibilityRole="button"
-                  onPress={() => setSelectedPerson(person.id)}
+                  accessibilityState={{ selected }}
+                  onPress={() => {
+                    setSelectedMemberId(member.member_id);
+                    navigation.setParams({ bookingId: undefined });
+                  }}
                   style={[
                     styles.personCard,
                     {
@@ -167,18 +268,18 @@ export function HealthViewScreen({ navigation }: Props) {
                       style={styles.avatarText}
                       weight="800"
                     >
-                      {person.initial}
+                      {member.name.trim().charAt(0).toUpperCase()}
                     </AppText>
                   </View>
                   <View style={styles.personCopy}>
                     <AppText style={styles.personName} weight="700">
-                      {person.name}
+                      {member.name}
                     </AppText>
                     <AppText
                       color={theme.colors.textMuted}
                       style={styles.personDetail}
                     >
-                      {person.detail}
+                      {member.relation}
                     </AppText>
                   </View>
                   {selected ? (
@@ -191,6 +292,7 @@ export function HealthViewScreen({ navigation }: Props) {
             })}
             <Pressable
               accessibilityRole="button"
+              onPress={openFamilyForm}
               style={[
                 styles.personCard,
                 {
@@ -221,6 +323,28 @@ export function HealthViewScreen({ navigation }: Props) {
             </Pressable>
           </View>
 
+          {membersLoading ? (
+            <ActivityIndicator
+              style={styles.membersStatus}
+              color={theme.colors.primary}
+            />
+          ) : null}
+          {membersError ? (
+            <Pressable onPress={loadMembers} style={styles.membersStatus}>
+              <AppText color={theme.colors.primary}>
+                Unable to load family members. Tap to retry.
+              </AppText>
+            </Pressable>
+          ) : null}
+          {!token ? (
+            <AppText
+              color={theme.colors.textMuted}
+              style={styles.membersStatus}
+            >
+              Log in to see your family members.
+            </AppText>
+          ) : null}
+
           <View
             style={[
               styles.privacyBanner,
@@ -235,72 +359,161 @@ export function HealthViewScreen({ navigation }: Props) {
                 style={styles.privacyText}
                 weight="700"
               >
-                Krishna · SELF
+                {selectedMember
+                  ? `${
+                      selectedMember.name
+                    } · ${selectedMember.relation.toUpperCase()}`
+                  : 'your selected profile'}
               </AppText>
             </AppText>
           </View>
 
           <SectionHeader
-            title="Reports ready to connect"
-            aside="From HAA lab partners"
+            title="Past bookings with reports"
+            aside="Choose one booking"
           />
-          <View
+          <Pressable
+            accessibilityRole="button"
+            disabled={selectedMemberId === null}
+            onPress={() => {
+              if (selectedMemberId !== null) {
+                navigation.navigate('HealthBookingPicker', {
+                  memberId: selectedMemberId,
+                  selectedBookingId: selectedBookingId ?? undefined,
+                });
+              }
+            }}
             style={[
-              styles.reportPanel,
+              styles.bookingPickerRow,
               {
                 backgroundColor: theme.colors.surface,
                 borderColor: theme.colors.border,
               },
             ]}
           >
-            {reports.map((report, index) => (
+            <View
+              style={[
+                styles.pickerIcon,
+                { backgroundColor: theme.colors.primarySoft },
+              ]}
+            >
+              <FileText color={theme.colors.primary} size={17} />
+            </View>
+            <View style={styles.pickerCopy}>
+              <AppText style={styles.pickerTitle} weight="700">
+                {selectedBooking
+                  ? `Booking ${selectedBooking.booking_no}`
+                  : 'Select a past booking'}
+              </AppText>
+              <AppText
+                color={theme.colors.textMuted}
+                style={styles.pickerDetail}
+              >
+                {selectedBooking
+                  ? `${selectedBooking.lab.lab_name} · ${selectedBooking.booking_date}`
+                  : 'Choose one booking with a generated report'}
+              </AppText>
+            </View>
+            {selectedBooking ? (
+              <Check color="#078B76" size={17} />
+            ) : (
+              <ArrowRight color={theme.colors.primary} size={17} />
+            )}
+          </Pressable>
+          {bookingsLoading ? (
+            <ActivityIndicator
+              style={styles.membersStatus}
+              color={theme.colors.primary}
+            />
+          ) : null}
+          {bookingsError ? (
+            <Pressable onPress={loadBookings} style={styles.membersStatus}>
+              <AppText color={theme.colors.primary}>
+                Could not load booking details. Tap to retry.
+              </AppText>
+            </Pressable>
+          ) : null}
+
+          {selectedBooking ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() =>
+                navigation
+                  .getParent()
+                  ?.getParent<NavigationProp<RootStackParamList>>()
+                  ?.navigate('BookingDetails', { booking: selectedBooking })
+              }
+              style={styles.viewBooking}
+            >
+              <AppText color={theme.colors.primary} weight="700">
+                View selected booking {selectedBooking.booking_no}
+              </AppText>
+              <ArrowRight color={theme.colors.primary} size={15} />
+            </Pressable>
+          ) : null}
+
+          <View style={styles.pdfPanel}>
+            {outsideReports.length < 3 ? (
               <Pressable
-                key={report.title}
                 accessibilityRole="button"
-                onPress={report.connected ? undefined : chooseOutsideReport}
+                onPress={chooseOutsideReport}
                 style={[
-                  styles.reportRow,
-                  index < reports.length - 1 && {
-                    borderBottomColor: theme.colors.border,
-                    borderBottomWidth: StyleSheet.hairlineWidth,
+                  styles.bookingPickerRow,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
                   },
                 ]}
               >
                 <View
                   style={[
-                    styles.reportIcon,
+                    styles.pickerIcon,
                     { backgroundColor: theme.colors.primarySoft },
                   ]}
                 >
-                  <FileText color={theme.colors.primary} size={16} />
+                  <Plus color={theme.colors.primary} size={18} />
                 </View>
-                <View style={styles.reportCopy}>
-                  <AppText style={styles.reportTitle} weight="700">
-                    {report.title}
+                <View style={styles.pickerCopy}>
+                  <AppText style={styles.pickerTitle} weight="700">
+                    Add PDF reports
                   </AppText>
                   <AppText
                     color={theme.colors.textMuted}
-                    style={styles.reportDetail}
+                    style={styles.pickerDetail}
                   >
-                    {report.connected
-                      ? report.detail
-                      : outsideReportName ?? report.detail}
+                    Optional · Up to 3 PDF files
                   </AppText>
                 </View>
-                {report.connected || outsideReportName ? (
-                  <View style={styles.checkCircle}>
-                    <Check color="#FFFFFF" size={11} />
-                  </View>
-                ) : (
-                  <AppText
-                    color={theme.colors.primary}
-                    style={styles.addLabel}
-                    weight="800"
-                  >
-                    ADD
-                  </AppText>
-                )}
+                <Plus color={theme.colors.primary} size={17} />
               </Pressable>
+            ) : null}
+            {outsideReports.map(report => (
+              <View
+                key={report.uri}
+                style={[
+                  styles.attachedPdfRow,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                  },
+                ]}
+              >
+                <FileText color={theme.colors.primary} size={16} />
+                <AppText style={styles.reportCopy} numberOfLines={1}>
+                  {report.name}
+                </AppText>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove ${report.name}`}
+                  onPress={() =>
+                    setOutsideReports(current =>
+                      current.filter(item => item.uri !== report.uri),
+                    )
+                  }
+                >
+                  <AppText color={theme.colors.primary}>Remove</AppText>
+                </Pressable>
+              </View>
             ))}
           </View>
 
@@ -359,18 +572,36 @@ export function HealthViewScreen({ navigation }: Props) {
               color={theme.colors.textMuted}
               style={styles.footerEyebrow}
             >
-              2 reports found
+              {selectedBooking
+                ? `Booking ${selectedBooking.booking_no} selected`
+                : 'Select a booking to continue'}
             </AppText>
             <AppText style={styles.footerTitle} weight="800">
-              Ready to build your view
+              {selectedBooking
+                ? 'Ready to build your view'
+                : 'Booking required'}
             </AppText>
           </View>
           <Pressable
             accessibilityRole="button"
-            onPress={() => navigation.navigate('HealthCheckIn')}
+            accessibilityState={{ disabled: !selectedBooking }}
+            disabled={!selectedBooking}
+            onPress={() => {
+              if (selectedBooking && selectedMemberId !== null) {
+                navigation.navigate('HealthCheckIn', {
+                  bookingId: selectedBooking.booking_order_id,
+                  memberId: selectedMemberId,
+                  outsideReports,
+                });
+              }
+            }}
             style={[
               styles.continueButton,
-              { backgroundColor: theme.colors.primary },
+              {
+                backgroundColor: selectedBooking
+                  ? theme.colors.primary
+                  : theme.colors.textMuted,
+              },
             ]}
           >
             <AppText color="#FFFFFF" style={styles.continueText} weight="700">
@@ -451,6 +682,7 @@ const styles = StyleSheet.create({
     rowGap: 9,
     marginTop: 17,
   },
+  membersStatus: { marginTop: 10, alignSelf: 'center' },
   personCard: {
     width: '48.5%',
     minHeight: 63,
@@ -502,6 +734,42 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 14, lineHeight: 18 },
   sectionAside: { fontSize: 8, lineHeight: 11 },
   reportPanel: { borderWidth: 1, borderRadius: 15, overflow: 'hidden' },
+  bookingPickerRow: {
+    minHeight: 65,
+    borderWidth: 1,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  pickerCopy: { flex: 1 },
+  pickerIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  pickerTitle: { fontSize: 11, lineHeight: 15 },
+  pickerDetail: { marginTop: 3, fontSize: 9, lineHeight: 12 },
+  pdfPanel: { marginTop: 18, gap: 8 },
+  attachedPdfRow: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  viewBooking: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+    alignSelf: 'flex-start',
+  },
   reportRow: {
     minHeight: 64,
     flexDirection: 'row',

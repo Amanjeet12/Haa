@@ -40,9 +40,19 @@ export type MainTabParamList = {
 
 export type HomeStackParamList = {
   HomeLanding: undefined;
-  HealthView: undefined;
-  HealthCheckIn: undefined;
-  HealthTrends: undefined;
+  HealthView: { bookingId?: number } | undefined;
+  HealthBookingPicker: { memberId: number; selectedBookingId?: number };
+  HealthCheckIn: {
+    bookingId: number;
+    memberId: number;
+    outsideReports: Array<{ uri: string; name: string }>;
+  };
+  HealthTrends: {
+    bookingId: number;
+    memberId: number;
+    outsideReports: Array<{ uri: string; name: string }>;
+    answers: Array<{ questionId: number; answer: string | string[] }>;
+  };
   HealthRecommendations: undefined;
   HaaPlus: undefined;
   Search: undefined;

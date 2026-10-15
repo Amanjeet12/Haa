@@ -5,13 +5,28 @@ import Info from 'lucide-react-native/icons/info';
 import LockKeyhole from 'lucide-react-native/icons/lock-keyhole';
 import ShieldCheck from 'lucide-react-native/icons/shield-check';
 import Sparkles from 'lucide-react-native/icons/sparkles';
-import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { AppText, HealthFlowHeader } from '../components';
+import {
+  AiAnalysisQuestion,
+  getAiAnalysisQuestions,
+} from '../api/aiAnalysisQuestions';
+import { useAppSelector } from '../store';
 import {
   screenGradientColors,
   screenGradientLocations,
@@ -21,56 +36,99 @@ import type { HomeStackParamList } from '../types/navigation';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'HealthCheckIn'>;
 
-const answers = [
-  {
-    id: 'usual',
-    icon: '☀️',
-    title: 'About the same as usual',
-    detail: 'No noticeable difference',
-  },
-  {
-    id: 'lower',
-    icon: '🌤️',
-    title: 'A little lower than usual',
-    detail: 'I feel tired more often',
-  },
-  {
-    id: 'lower_most',
-    icon: '↓',
-    title: 'Much lower than usual',
-    detail: 'It regularly affects my day',
-  },
-  {
-    id: 'unsure',
-    icon: '?',
-    title: "I'm not sure",
-    detail: 'It changes from day to day',
-  },
-];
+type Answer = string | string[];
 
-const symptoms = [
-  'Tiredness',
-  'Muscle aches',
-  'Low mood',
-  'Poor sleep',
-  'Breathlessness',
-  'None of these',
-];
+function isAnswered(answer?: Answer) {
+  return Array.isArray(answer) ? answer.length > 0 : Boolean(answer?.trim());
+}
 
-export function HealthCheckInScreen({ navigation }: Props) {
+export function HealthCheckInScreen({ navigation, route }: Props) {
   const { theme } = useAppTheme();
-  const [answer, setAnswer] = useState('lower');
-  const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([
-    'Tiredness',
-  ]);
+  const token = useAppSelector(state => state.auth.session?.token);
+  const [questions, setQuestions] = useState<AiAnalysisQuestion[]>([]);
+  const [responses, setResponses] = useState<Record<number, Answer>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const questionOffsets = useRef<Record<number, number>>({});
+  const focusedQuestionId = useRef<number | null>(null);
 
-  const toggleSymptom = (symptom: string) => {
-    setSelectedSymptoms(current =>
-      current.includes(symptom)
-        ? current.filter(item => item !== symptom)
-        : [...current.filter(item => item !== 'None of these'), symptom],
-    );
+  useEffect(() => {
+    const shown = Keyboard.addListener('keyboardDidShow', event => {
+      setKeyboardVisible(true);
+      setKeyboardHeight(Math.max(220, event.endCoordinates.height));
+    });
+    const hidden = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false);
+      setKeyboardHeight(0);
+      focusedQuestionId.current = null;
+    });
+    return () => {
+      shown.remove();
+      hidden.remove();
+    };
+  }, []);
+
+  const scrollToQuestion = (id: number) => {
+    focusedQuestionId.current = id;
+    scrollRef.current?.scrollTo({
+      y: Math.max(0, (questionOffsets.current[id] ?? 0) - 12),
+      animated: true,
+    });
   };
+
+  const loadQuestions = useCallback(async () => {
+    if (!token) {
+      setError('Log in to answer the health questions.');
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      setQuestions(await getAiAnalysisQuestions(token));
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : 'Could not load questions.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    loadQuestions();
+  }, [loadQuestions]);
+
+  const selectOption = (question: AiAnalysisQuestion, option: string) => {
+    setResponses(current => {
+      const id = question.ai_analysis_question_id;
+      if (question.question_type === 'single_choice')
+        return { ...current, [id]: option };
+      const selected = Array.isArray(current[id])
+        ? (current[id] as string[])
+        : [];
+      return {
+        ...current,
+        [id]: selected.includes(option)
+          ? selected.filter(value => value !== option)
+          : [...selected, option],
+      };
+    });
+  };
+
+  const answeredCount = questions.filter(question =>
+    isAnswered(responses[question.ai_analysis_question_id]),
+  ).length;
+  const canContinue =
+    questions.length > 0 &&
+    questions.every(question =>
+      isAnswered(responses[question.ai_analysis_question_id]),
+    );
 
   return (
     <LinearGradient
@@ -89,215 +147,332 @@ export function HealthCheckInScreen({ navigation }: Props) {
           rightIcon={<LockKeyhole color="#078B76" size={17} />}
         />
 
-        <ScrollView
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <View style={styles.progressLabels}>
-            <AppText color={theme.colors.textMuted} style={styles.progressText}>
-              Questionnaire
-            </AppText>
-            <AppText
-              color={theme.colors.textMuted}
-              style={styles.progressText}
-              weight="700"
-            >
-              2 of 4
-            </AppText>
-          </View>
-          <View
-            style={[
-              styles.progressTrack,
-              { backgroundColor: theme.colors.primarySoft },
+          <ScrollView
+            ref={scrollRef}
+            contentContainerStyle={[
+              styles.content,
+              keyboardVisible && { paddingBottom: keyboardHeight + 32 },
             ]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            onContentSizeChange={() => {
+              if (focusedQuestionId.current !== null && keyboardVisible) {
+                scrollToQuestion(focusedQuestionId.current);
+              }
+            }}
           >
+            <View style={styles.progressLabels}>
+              <AppText
+                color={theme.colors.textMuted}
+                style={styles.progressText}
+              >
+                Questionnaire
+              </AppText>
+              <AppText
+                color={theme.colors.textMuted}
+                style={styles.progressText}
+                weight="700"
+              >
+                {answeredCount} of {questions.length}
+              </AppText>
+            </View>
             <View
               style={[
-                styles.progressFill,
-                { backgroundColor: theme.colors.primary },
+                styles.progressTrack,
+                { backgroundColor: theme.colors.primarySoft },
               ]}
-            />
-          </View>
+            >
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    backgroundColor: theme.colors.primary,
+                    width: `${
+                      questions.length
+                        ? (answeredCount / questions.length) * 100
+                        : 0
+                    }%`,
+                  },
+                ]}
+              />
+            </View>
 
-          <AppText
-            color={theme.colors.primary}
-            style={styles.eyebrow}
-            weight="800"
-          >
-            ENERGY AND DAILY LIFE
-          </AppText>
-          <AppText style={styles.title} weight="800">
-            Over the last two weeks, how has your energy felt?
-          </AppText>
-          <AppText color={theme.colors.textMuted} style={styles.subtitle}>
-            Choose the closest answer. This adds context to your reports—it does
-            not diagnose a cause.
-          </AppText>
+            <AppText
+              color={theme.colors.primary}
+              style={styles.eyebrow}
+              weight="800"
+            >
+              YOUR HEALTH CONTEXT
+            </AppText>
+            <AppText style={styles.title} weight="800">
+              Tell us how you've been feeling
+            </AppText>
+            <AppText color={theme.colors.textMuted} style={styles.subtitle}>
+              Your answers add context to your reports. They do not diagnose a
+              cause.
+            </AppText>
 
-          <View style={styles.answers}>
-            {answers.map(item => {
-              const selected = answer === item.id;
+            {loading ? (
+              <ActivityIndicator
+                color={theme.colors.primary}
+                style={styles.state}
+              />
+            ) : null}
+            {error ? (
+              <Pressable onPress={loadQuestions} style={styles.state}>
+                <AppText color={theme.colors.primary}>
+                  {error} Tap to retry.
+                </AppText>
+              </Pressable>
+            ) : null}
+            {!loading && !error && !questions.length ? (
+              <AppText color={theme.colors.textMuted} style={styles.state}>
+                No health questions are available yet.
+              </AppText>
+            ) : null}
+
+            {questions.map((question, index) => {
+              const answer = responses[question.ai_analysis_question_id];
               return (
-                <Pressable
-                  key={item.id}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: selected }}
-                  onPress={() => setAnswer(item.id)}
-                  style={[
-                    styles.answerCard,
-                    {
-                      backgroundColor: theme.colors.surface,
-                      borderColor: selected
-                        ? theme.colors.primary
-                        : theme.colors.border,
-                    },
-                  ]}
+                <View
+                  key={question.ai_analysis_question_id}
+                  style={styles.questionBlock}
+                  onLayout={event => {
+                    questionOffsets.current[question.ai_analysis_question_id] =
+                      event.nativeEvent.layout.y;
+                  }}
                 >
-                  <View
-                    style={[
-                      styles.answerIcon,
-                      {
-                        backgroundColor: selected
-                          ? theme.colors.primarySoft
-                          : theme.colors.surfaceMuted,
-                      },
-                    ]}
-                  >
-                    <AppText style={styles.answerEmoji}>{item.icon}</AppText>
-                  </View>
-                  <View style={styles.answerCopy}>
-                    <AppText style={styles.answerTitle} weight="700">
-                      {item.title}
+                  <View style={styles.questionTop}>
+                    <AppText
+                      color={theme.colors.primary}
+                      style={styles.questionNumber}
+                      weight="800"
+                    >
+                      QUESTION {index + 1}
                     </AppText>
                     <AppText
                       color={theme.colors.textMuted}
-                      style={styles.answerDetail}
+                      style={styles.optional}
                     >
-                      {item.detail}
+                      Answer to continue
                     </AppText>
                   </View>
-                  <View
-                    style={[
-                      styles.radio,
-                      {
-                        borderColor: selected
-                          ? theme.colors.primary
-                          : theme.colors.border,
-                      },
-                      selected && { backgroundColor: theme.colors.primary },
-                    ]}
-                  >
-                    {selected ? (
-                      <Check color="#FFFFFF" size={10} />
-                    ) : (
-                      <ChevronRight color={theme.colors.textMuted} size={11} />
-                    )}
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <AppText style={styles.symptomHeading} weight="700">
-            Have you noticed any of these?
-          </AppText>
-          <View style={styles.chips}>
-            {symptoms.map(symptom => {
-              const selected = selectedSymptoms.includes(symptom);
-              return (
-                <Pressable
-                  key={symptom}
-                  onPress={() => toggleSymptom(symptom)}
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: selected
-                        ? theme.colors.primarySoft
-                        : theme.colors.surface,
-                      borderColor: selected
-                        ? theme.colors.primary
-                        : theme.colors.border,
-                    },
-                  ]}
-                >
-                  <AppText
-                    color={selected ? theme.colors.primary : theme.colors.text}
-                    style={styles.chipText}
-                    weight="700"
-                  >
-                    {symptom}
+                  <AppText style={styles.questionTitle} weight="800">
+                    {question.question}
                   </AppText>
-                </Pressable>
+                  {question.question_type === 'single_choice' ? (
+                    <View style={styles.answers}>
+                      {question.options.map(option => {
+                        const selected = answer === option;
+                        return (
+                          <Pressable
+                            key={option}
+                            accessibilityRole="radio"
+                            accessibilityState={{ checked: selected }}
+                            onPress={() => selectOption(question, option)}
+                            style={[
+                              styles.answerCard,
+                              {
+                                backgroundColor: theme.colors.surface,
+                                borderColor: selected
+                                  ? theme.colors.primary
+                                  : theme.colors.border,
+                              },
+                            ]}
+                          >
+                            <View style={styles.answerCopy}>
+                              <AppText style={styles.answerTitle} weight="700">
+                                {option}
+                              </AppText>
+                            </View>
+                            <View
+                              style={[
+                                styles.radio,
+                                {
+                                  borderColor: selected
+                                    ? theme.colors.primary
+                                    : theme.colors.border,
+                                },
+                                selected && {
+                                  backgroundColor: theme.colors.primary,
+                                },
+                              ]}
+                            >
+                              {selected ? (
+                                <Check color="#FFFFFF" size={10} />
+                              ) : (
+                                <ChevronRight
+                                  color={theme.colors.textMuted}
+                                  size={11}
+                                />
+                              )}
+                            </View>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  ) : null}
+                  {question.question_type === 'multiple_choice' ? (
+                    <View style={styles.chips}>
+                      {question.options.map(option => {
+                        const selected =
+                          Array.isArray(answer) && answer.includes(option);
+                        return (
+                          <Pressable
+                            key={option}
+                            accessibilityRole="checkbox"
+                            accessibilityState={{ checked: selected }}
+                            onPress={() => selectOption(question, option)}
+                            style={[
+                              styles.chip,
+                              {
+                                backgroundColor: selected
+                                  ? theme.colors.primarySoft
+                                  : theme.colors.surface,
+                                borderColor: selected
+                                  ? theme.colors.primary
+                                  : theme.colors.border,
+                              },
+                            ]}
+                          >
+                            <AppText
+                              color={
+                                selected
+                                  ? theme.colors.primary
+                                  : theme.colors.text
+                              }
+                              style={styles.chipText}
+                              weight="700"
+                            >
+                              {option}
+                            </AppText>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  ) : null}
+                  {question.question_type === 'text' ? (
+                    <TextInput
+                      accessibilityLabel={question.question}
+                      multiline
+                      placeholder="Write your answer here"
+                      placeholderTextColor={theme.colors.textMuted}
+                      value={typeof answer === 'string' ? answer : ''}
+                      onChangeText={value =>
+                        setResponses(current => ({
+                          ...current,
+                          [question.ai_analysis_question_id]: value,
+                        }))
+                      }
+                      onFocus={() =>
+                        scrollToQuestion(question.ai_analysis_question_id)
+                      }
+                      style={[
+                        styles.textInput,
+                        {
+                          backgroundColor: theme.colors.surface,
+                          borderColor: theme.colors.border,
+                          color: theme.colors.text,
+                        },
+                      ]}
+                      textAlignVertical="top"
+                    />
+                  ) : null}
+                </View>
               );
             })}
-          </View>
 
+            <View
+              style={[
+                styles.whyCard,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                  shadowColor: theme.colors.shadow,
+                },
+              ]}
+            >
+              <View style={styles.whyTitleRow}>
+                <Info color={theme.colors.text} size={15} />
+                <AppText style={styles.whyTitle} weight="800">
+                  Why HAA asks this
+                </AppText>
+              </View>
+              <AppText color={theme.colors.textMuted} style={styles.whyBody}>
+                Your answers add personal context to the selected lab report
+                without assuming what caused a symptom.
+              </AppText>
+            </View>
+            <View style={styles.saveNote}>
+              <ShieldCheck color="#078B76" size={13} />
+              <AppText color={theme.colors.textMuted} style={styles.saveText}>
+                You control your questionnaire answers and can update them
+                anytime.
+              </AppText>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+
+        {!keyboardVisible ? (
           <View
             style={[
-              styles.whyCard,
+              styles.footer,
               {
                 backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.border,
-                shadowColor: theme.colors.shadow,
+                borderTopColor: theme.colors.border,
               },
             ]}
           >
-            <View style={styles.whyTitleRow}>
-              <Info color={theme.colors.text} size={15} />
-              <AppText style={styles.whyTitle} weight="800">
-                Why HAA asks this
-              </AppText>
-            </View>
-            <AppText color={theme.colors.textMuted} style={styles.whyBody}>
-              Your latest report includes Vitamin D and haemoglobin results.
-              Your answer helps HAA explain what is worth discussing without
-              assuming the result caused a symptom.
-            </AppText>
-          </View>
-          <View style={styles.saveNote}>
-            <ShieldCheck color="#078B76" size={13} />
-            <AppText color={theme.colors.textMuted} style={styles.saveText}>
-              You control your questionnaire answers and can update them
-              anytime.
-            </AppText>
-          </View>
-        </ScrollView>
-
-        <View
-          style={[
-            styles.footer,
-            {
-              backgroundColor: theme.colors.surface,
-              borderTopColor: theme.colors.border,
-            },
-          ]}
-        >
-          <Pressable
-            onPress={navigation.goBack}
-            style={[styles.backButton, { borderColor: theme.colors.border }]}
-          >
-            <AppText
-              color={theme.colors.primary}
-              style={styles.backText}
-              weight="700"
+            <Pressable
+              onPress={navigation.goBack}
+              style={[styles.backButton, { borderColor: theme.colors.border }]}
             >
-              Back
-            </AppText>
-          </Pressable>
-          <Pressable
-            onPress={() => navigation.navigate('HealthTrends')}
-            style={[
-              styles.buildButton,
-              { backgroundColor: theme.colors.primary },
-            ]}
-          >
-            <Sparkles color="#FFFFFF" size={14} />
-            <AppText color="#FFFFFF" style={styles.buildText} weight="700">
-              Build my health view
-            </AppText>
-            <ArrowRight color="#FFFFFF" size={14} />
-          </Pressable>
-        </View>
+              <AppText
+                color={theme.colors.primary}
+                style={styles.backText}
+                weight="700"
+              >
+                Back
+              </AppText>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !canContinue }}
+              disabled={!canContinue}
+              onPress={() =>
+                navigation.navigate('HealthTrends', {
+                  ...route.params,
+                  answers: questions
+                    .filter(question =>
+                      isAnswered(responses[question.ai_analysis_question_id]),
+                    )
+                    .map(question => ({
+                      questionId: question.ai_analysis_question_id,
+                      answer: responses[question.ai_analysis_question_id],
+                    })),
+                })
+              }
+              style={[
+                styles.buildButton,
+                {
+                  backgroundColor: canContinue
+                    ? theme.colors.primary
+                    : theme.colors.textMuted,
+                },
+              ]}
+            >
+              <Sparkles color="#FFFFFF" size={14} />
+              <AppText color="#FFFFFF" style={styles.buildText} weight="700">
+                Build my health view
+              </AppText>
+              <ArrowRight color="#FFFFFF" size={14} />
+            </Pressable>
+          </View>
+        ) : null}
       </SafeAreaView>
     </LinearGradient>
   );
@@ -336,7 +511,21 @@ const styles = StyleSheet.create({
     marginTop: 7,
     overflow: 'hidden',
   },
-  progressFill: { width: '50%', height: '100%', borderRadius: 2 },
+  progressFill: { height: '100%', borderRadius: 2 },
+  state: { marginTop: 22, alignSelf: 'center' },
+  questionBlock: { marginTop: 22 },
+  questionTop: { flexDirection: 'row', justifyContent: 'space-between' },
+  questionNumber: { fontSize: 9, letterSpacing: 0.5 },
+  optional: { fontSize: 9 },
+  questionTitle: { fontSize: 16, lineHeight: 21, marginTop: 7 },
+  textInput: {
+    minHeight: 96,
+    borderWidth: 1,
+    borderRadius: 13,
+    padding: 12,
+    marginTop: 13,
+    fontSize: 12,
+  },
   eyebrow: { marginTop: 19, fontSize: 9, lineHeight: 12, letterSpacing: 0.6 },
   title: { marginTop: 6, fontSize: 22, lineHeight: 24, letterSpacing: -0.6 },
   subtitle: { marginTop: 8, fontSize: 9, lineHeight: 13 },
