@@ -94,6 +94,8 @@ export function MainTabs() {
           display:
             route.name === 'Home' &&
             [
+              'Blog',
+              'Blogs',
               'Labs',
               'HealthView',
               'HealthCheckIn',

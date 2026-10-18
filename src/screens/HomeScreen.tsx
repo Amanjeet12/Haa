@@ -12,6 +12,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   ImageBackground,
+  Image,
   ActivityIndicator,
   Modal,
   Pressable,
@@ -33,7 +34,11 @@ import { HomeStackParamList } from '../types/navigation';
 import { useAppDispatch, useAppSelector } from '../store';
 import { fetchZones, setSelectedZone } from '../store/zonesSlice';
 import { zoneAvailabilityLabel } from '../api/zones';
-import { getLabsByZone } from '../api/labs';
+import { ApiLab, getLabsByZone } from '../api/labs';
+import { Blog, getBlogs } from '../api/blogs';
+import { getEcommerceEnabled } from '../api/ecommerceSettings';
+import { FeaturedLabs } from '../components/labs/FeaturedLabs';
+import { BookingChooser } from '../components/BookingChooser';
 
 type ServiceLocation = {
   id: string;
@@ -55,11 +60,16 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const zonesStatus = useAppSelector(state => state.zones.status);
   const locationsError = useAppSelector(state => state.zones.error);
   const [locationOpen, setLocationOpen] = useState(false);
+  const [ecommerceEnabled, setEcommerceEnabled] = useState<boolean | null>(
+    null,
+  );
+  const [blogs, setBlogs] = useState<Blog[]>([]);
   const [accreditedLabCount, setAccreditedLabCount] = useState<number | null>(
     null,
   );
   const [labCountError, setLabCountError] = useState(false);
   const [labCountZoneId, setLabCountZoneId] = useState<number | null>(null);
+  const [areaLabs, setAreaLabs] = useState<ApiLab[]>([]);
   const serviceLocations = useMemo(
     () =>
       zones.map(zone => ({
@@ -93,9 +103,39 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
   useEffect(() => {
     let active = true;
+    getEcommerceEnabled()
+      .then(enabled => {
+        if (active) setEcommerceEnabled(enabled);
+      })
+      .catch(() => {
+        if (active) setEcommerceEnabled(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (ecommerceEnabled !== false) return;
+    let active = true;
+    getBlogs()
+      .then(items => {
+        if (active) setBlogs(items);
+      })
+      .catch(() => {
+        if (active) setBlogs([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [ecommerceEnabled]);
+
+  useEffect(() => {
+    let active = true;
 
     if (!selectedZone?.zone_id || selectedZone.is_custom_location) {
       setAccreditedLabCount(null);
+      setAreaLabs([]);
       setLabCountError(false);
       return () => {
         active = false;
@@ -103,6 +143,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     }
 
     setAccreditedLabCount(null);
+    setAreaLabs([]);
     setLabCountError(false);
     setLabCountZoneId(selectedZone.zone_id);
     getLabsByZone(selectedZone.zone_id, 0, 19)
@@ -110,16 +151,22 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         if (!Number.isInteger(page.meta?.total) || page.meta.total < 0) {
           throw new Error('Invalid lab total');
         }
-        if (active) setAccreditedLabCount(page.meta.total);
+        if (active) {
+          setAccreditedLabCount(page.meta.total);
+          setAreaLabs(page.data.slice(0, 5));
+        }
       })
       .catch(() => {
-        if (active) setLabCountError(true);
+        if (active) {
+          setLabCountError(true);
+          setAreaLabs([]);
+        }
       });
 
     return () => {
       active = false;
     };
-  }, [selectedZone?.zone_id]);
+  }, [selectedZone?.zone_id, selectedZone?.is_custom_location]);
 
   const currentLabCount =
     labCountZoneId === selectedZone?.zone_id ? accreditedLabCount : null;
@@ -312,129 +359,267 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             </Pressable>
           </LinearGradient>
 
-          <View style={styles.sectionHeader}>
-            <AppText style={styles.sectionTitle} weight="600">
-              {showGlobalStoreCare
-                ? 'Care at this address'
-                : 'Available for you'}
-            </AppText>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={
-              showGlobalStoreCare
-                ? 'Explore specialised care in the Global Store'
-                : `Find home collection labs. ${labCountLabel}`
-            }
-            onPress={() =>
-              navigation.navigate(showGlobalStoreCare ? 'GlobalStore' : 'Labs')
-            }
-            style={({ pressed }) => pressed && styles.pressed}
-          >
-            <LinearGradient
-              colors={['#071F35', '#123B50', '#6A3543']}
-              end={{ x: 1, y: 0.5 }}
-              start={{ x: 0, y: 0.5 }}
-              style={styles.careCard}
-            >
-              <ImageBackground
-                source={images.careImage}
-                resizeMode="cover"
-                style={styles.careImage}
-                imageStyle={styles.careImageCorners}
-              />
-              <LinearGradient
-                colors={[
-                  'rgba(4,25,43,0.96)',
-                  'rgba(6,35,56,0.72)',
-                  'rgba(40,23,35,0.2)',
-                ]}
-                end={{ x: 1, y: 0.5 }}
-                locations={[0, 0.58, 1]}
-                start={{ x: 0, y: 0.5 }}
-                style={styles.careImageOverlay}
-              />
-              <View style={styles.careCopy}>
-                <AppText color="#FFA6B2" style={styles.eyebrow} weight="800">
-                  {showGlobalStoreCare ? 'GLOBAL STORE' : 'AT-HOME LABS'}
-                </AppText>
-                <AppText color="#FFFFFF" style={styles.careTitle} weight="800">
+          {ecommerceEnabled === true ? (
+            <>
+              <View style={styles.sectionHeader}>
+                <AppText style={styles.sectionTitle} weight="600">
                   {showGlobalStoreCare
-                    ? `Specialised care,\ndelivered.`
-                    : `Home collection in\nyour zone.`}
+                    ? 'Care at this address'
+                    : 'Available for you'}
                 </AppText>
-                <AppText color="#C9D6E0" style={styles.careBody}>
-                  {showGlobalStoreCare
-                    ? 'Shipping to 194101 in 4–6 days.'
-                    : 'Slots available tomorrow morning.'}
-                </AppText>
-                <View style={styles.availablePill}>
-                  <AppText color="#087C67" style={styles.pillText} weight="700">
-                    {showGlobalStoreCare ? (
-                      '● Available across India'
-                    ) : (
-                      <>
-                        {currentLabCount !== null && currentLabCount > 0
-                          ? '● '
-                          : ''}
-                        {labCountLabel}
-                      </>
-                    )}
-                  </AppText>
-                </View>
               </View>
-            </LinearGradient>
-          </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  showGlobalStoreCare
+                    ? 'Explore specialised care in the Global Store'
+                    : `Find home collection labs. ${labCountLabel}`
+                }
+                onPress={() =>
+                  navigation.navigate(
+                    showGlobalStoreCare ? 'GlobalStore' : 'Labs',
+                  )
+                }
+                style={({ pressed }) => pressed && styles.pressed}
+              >
+                <LinearGradient
+                  colors={['#071F35', '#123B50', '#6A3543']}
+                  end={{ x: 1, y: 0.5 }}
+                  start={{ x: 0, y: 0.5 }}
+                  style={styles.careCard}
+                >
+                  <ImageBackground
+                    source={images.careImage}
+                    resizeMode="cover"
+                    style={styles.careImage}
+                    imageStyle={styles.careImageCorners}
+                  />
+                  <LinearGradient
+                    colors={[
+                      'rgba(4,25,43,0.96)',
+                      'rgba(6,35,56,0.72)',
+                      'rgba(40,23,35,0.2)',
+                    ]}
+                    end={{ x: 1, y: 0.5 }}
+                    locations={[0, 0.58, 1]}
+                    start={{ x: 0, y: 0.5 }}
+                    style={styles.careImageOverlay}
+                  />
+                  <View style={styles.careCopy}>
+                    <AppText
+                      color="#FFA6B2"
+                      style={styles.eyebrow}
+                      weight="800"
+                    >
+                      {showGlobalStoreCare ? 'GLOBAL STORE' : 'AT-HOME LABS'}
+                    </AppText>
+                    <AppText
+                      color="#FFFFFF"
+                      style={styles.careTitle}
+                      weight="800"
+                    >
+                      {showGlobalStoreCare
+                        ? `Specialised care,\ndelivered.`
+                        : `Home collection in\nyour zone.`}
+                    </AppText>
+                    <AppText color="#C9D6E0" style={styles.careBody}>
+                      {showGlobalStoreCare
+                        ? 'Shipping to 194101 in 4–6 days.'
+                        : 'Slots available tomorrow morning.'}
+                    </AppText>
+                    <View style={styles.availablePill}>
+                      <AppText
+                        color="#087C67"
+                        style={styles.pillText}
+                        weight="700"
+                      >
+                        {showGlobalStoreCare ? (
+                          '● Available across India'
+                        ) : (
+                          <>
+                            {currentLabCount !== null && currentLabCount > 0
+                              ? '● '
+                              : ''}
+                            {labCountLabel}
+                          </>
+                        )}
+                      </AppText>
+                    </View>
+                  </View>
+                </LinearGradient>
+              </Pressable>
 
-          <View style={styles.serviceRow}>
-            <ServiceCard
-              icon={
-                quickCommerceAvailable ? (
-                  <ShoppingBasket color="#08233D" size={16} />
-                ) : (
-                  <Zap color={theme.colors.textMuted} size={18} />
-                )
-              }
-              eyebrow="QUICK COMMERCE"
-              title={
-                quickCommerceAvailable
-                  ? 'Essentials nearby.'
-                  : "We're not here yet"
-              }
-              status={quickCommerceAvailable ? '15–25 min' : 'Join waitlist'}
-              gradient={
-                theme.isDark
-                  ? [theme.colors.surface, '#14282A']
-                  : ['#FFFFFF', '#E9FAF6']
-              }
-              statusBackground={
-                theme.isDark ? theme.colors.surfaceMuted : '#DDF7EF'
-              }
-              statusColor={
-                quickCommerceAvailable
-                  ? theme.colors.success
-                  : theme.colors.textMuted
-              }
-              disabled={!quickCommerceAvailable}
-              onPress={() => navigation.navigate('QuickCommerce')}
-            />
-            <ServiceCard
-              icon={<Globe color="#08233D" size={14} />}
-              eyebrow="GLOBAL STORE"
-              title="Always available."
-              status="Across India"
-              gradient={
-                theme.isDark
-                  ? [theme.colors.surface, '#291A24']
-                  : ['#FFFFFF', '#FCECF1']
-              }
-              statusBackground={
-                theme.isDark ? theme.colors.surfaceMuted : '#FCE7EC'
-              }
-              statusColor={theme.colors.primary}
-              onPress={() => navigation.navigate('GlobalStore')}
-            />
-          </View>
+              <View style={styles.serviceRow}>
+                <ServiceCard
+                  icon={
+                    quickCommerceAvailable ? (
+                      <ShoppingBasket color="#08233D" size={16} />
+                    ) : (
+                      <Zap color={theme.colors.textMuted} size={18} />
+                    )
+                  }
+                  eyebrow="QUICK COMMERCE"
+                  title={
+                    quickCommerceAvailable
+                      ? 'Essentials nearby.'
+                      : "We're not here yet"
+                  }
+                  status={
+                    quickCommerceAvailable ? '15–25 min' : 'Join waitlist'
+                  }
+                  gradient={
+                    theme.isDark
+                      ? [theme.colors.surface, '#14282A']
+                      : ['#FFFFFF', '#E9FAF6']
+                  }
+                  statusBackground={
+                    theme.isDark ? theme.colors.surfaceMuted : '#DDF7EF'
+                  }
+                  statusColor={
+                    quickCommerceAvailable
+                      ? theme.colors.success
+                      : theme.colors.textMuted
+                  }
+                  disabled={!quickCommerceAvailable}
+                  onPress={() => navigation.navigate('QuickCommerce')}
+                />
+                <ServiceCard
+                  icon={<Globe color="#08233D" size={14} />}
+                  eyebrow="GLOBAL STORE"
+                  title="Always available."
+                  status="Across India"
+                  gradient={
+                    theme.isDark
+                      ? [theme.colors.surface, '#291A24']
+                      : ['#FFFFFF', '#FCECF1']
+                  }
+                  statusBackground={
+                    theme.isDark ? theme.colors.surfaceMuted : '#FCE7EC'
+                  }
+                  statusColor={theme.colors.primary}
+                  onPress={() => navigation.navigate('GlobalStore')}
+                />
+              </View>
+            </>
+          ) : null}
+
+          {ecommerceEnabled === false ? (
+            <>
+              <BookingChooser
+                onIndividualTests={() => navigation.navigate('Labs')}
+                onHealthPackages={() => navigation.navigate('Labs')}
+                onFindLab={() => navigation.navigate('Search')}
+              />
+
+              {labCountZoneId === selectedZone?.zone_id &&
+              areaLabs.length > 0 &&
+              !currentLabCountError ? (
+                <FeaturedLabs
+                  labs={areaLabs}
+                  onSeeAll={() => navigation.navigate('Labs')}
+                  onSelect={lab => navigation.navigate('LabDetails', { lab })}
+                />
+              ) : null}
+
+              {blogs.length > 0 ? (
+                <View style={styles.blogSection}>
+                  <View style={styles.blogHeader}>
+                    <View style={styles.blogHeaderCopy}>
+                      <AppText style={styles.sectionTitle} weight="700">
+                        Good to know
+                      </AppText>
+                      <AppText
+                        color={theme.colors.textMuted}
+                        style={styles.blogSubtitle}
+                      >
+                        Simple reads to help you feel prepared.
+                      </AppText>
+                    </View>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => navigation.navigate('Blogs', { blogs })}
+                    >
+                      <AppText
+                        color={theme.colors.primary}
+                        style={styles.blogViewAll}
+                        weight="700"
+                      >
+                        View all blogs
+                      </AppText>
+                    </Pressable>
+                  </View>
+                  {blogs.slice(0, 1).map(blog => (
+                    <Pressable
+                      key={blog.blog_id}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Read article: ${blog.name}`}
+                      onPress={() => navigation.navigate('Blog', { blog })}
+                      style={[
+                        styles.blogCard,
+                        {
+                          backgroundColor: theme.colors.surface,
+                          borderColor: theme.colors.border,
+                        },
+                      ]}
+                    >
+                      {blog.banner?.url ? (
+                        <Image
+                          accessibilityLabel={blog.banner.alt || blog.name}
+                          source={{ uri: blog.banner.url }}
+                          resizeMode="cover"
+                          style={styles.blogImage}
+                        />
+                      ) : (
+                        <View
+                          style={[
+                            styles.blogImage,
+                            { backgroundColor: theme.colors.primarySoft },
+                          ]}
+                        />
+                      )}
+                      <View style={styles.blogCopy}>
+                        <AppText
+                          color={theme.colors.primary}
+                          style={styles.blogCategory}
+                          weight="800"
+                          numberOfLines={1}
+                        >
+                          {(
+                            blog.tags?.[0]?.tag_name || 'HEALTHCARE'
+                          ).toUpperCase()}
+                        </AppText>
+                        <AppText
+                          style={styles.blogTitle}
+                          weight="700"
+                          numberOfLines={2}
+                        >
+                          {blog.name}
+                        </AppText>
+                        {blog.meta?.description ? (
+                          <AppText
+                            color={theme.colors.textMuted}
+                            style={styles.blogDescription}
+                            numberOfLines={2}
+                          >
+                            {blog.meta.description}
+                          </AppText>
+                        ) : null}
+                        <View style={styles.blogReadButton}>
+                          <AppText
+                            color={theme.colors.primary}
+                            style={styles.blogReadText}
+                            weight="700"
+                          >
+                            Read article →
+                          </AppText>
+                        </View>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
+            </>
+          ) : null}
 
           <AppText
             style={[styles.sectionTitle, styles.wellnessHeading]}
@@ -942,6 +1127,31 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   servicePillText: { fontSize: 7, lineHeight: 9 },
+  blogSection: { marginTop: 20 },
+  blogHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 11,
+  },
+  blogHeaderCopy: { flex: 1 },
+  blogSubtitle: { marginTop: 3, fontSize: 11, lineHeight: 15 },
+  blogViewAll: { marginLeft: 8, fontSize: 11, lineHeight: 16 },
+  blogCard: {
+    flexDirection: 'row',
+    minHeight: 146,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderRadius: 18,
+    marginBottom: 10,
+  },
+  blogImage: { width: 112, height: '100%', minHeight: 146 },
+  blogCopy: { flex: 1, paddingHorizontal: 12, paddingVertical: 13 },
+  blogCategory: { fontSize: 9, lineHeight: 12, letterSpacing: 0.5 },
+  blogTitle: { marginTop: 6, fontSize: 14, lineHeight: 18 },
+  blogDescription: { marginTop: 5, fontSize: 10, lineHeight: 14 },
+  blogReadButton: { alignSelf: 'flex-start', marginTop: 9 },
+  blogReadText: { fontSize: 11, lineHeight: 15 },
   wellnessHeading: { marginTop: 15, marginBottom: 7 },
   wellnessCard: {
     minHeight: 190,
