@@ -11,7 +11,6 @@ import { HealthRecommendationsScreen } from '../screens/HealthRecommendationsScr
 import { HaaPlusScreen } from '../screens/HaaPlusScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { BlogScreen } from '../screens/BlogScreen';
-import { BlogsScreen } from '../screens/BlogsScreen';
 import { SearchScreen } from '../screens/SearchScreen';
 import { ProductSearchScreen } from '../screens/ProductSearchScreen';
 import { LabsScreen } from '../screens/LabsScreen';
@@ -64,7 +63,6 @@ export function HomeNavigator() {
     >
       <Stack.Screen name="HomeLanding" component={HomeScreen} />
       <Stack.Screen name="Blog" component={BlogScreen} />
-      <Stack.Screen name="Blogs" component={BlogsScreen} />
       <Stack.Screen name="HealthView" component={HealthViewLandingScreen} />
       <Stack.Screen
         name="HealthReportSelection"

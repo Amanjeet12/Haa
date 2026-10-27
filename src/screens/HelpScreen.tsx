@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import ChevronLeft from 'lucide-react-native/icons/chevron-left';
 import ChevronRight from 'lucide-react-native/icons/chevron-right';
 import Ellipsis from 'lucide-react-native/icons/ellipsis';
@@ -9,9 +10,17 @@ import MessageCircle from 'lucide-react-native/icons/message-circle';
 import Package from 'lucide-react-native/icons/package';
 import Phone from 'lucide-react-native/icons/phone';
 import CreditCard from 'lucide-react-native/icons/credit-card';
-import React from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { getSupportTickets, SupportTicket } from '../api/support';
 import { AppText } from '../components';
 import { useAppSelector } from '../store';
 import { useAppTheme } from '../theme';
@@ -44,6 +53,32 @@ const topics = [
 export function HelpScreen({ navigation }: Props) {
   const { theme } = useAppTheme();
   const token = useAppSelector(state => state.auth.session?.token);
+  const [requests, setRequests] = useState<SupportTicket[]>([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
+  const [requestsError, setRequestsError] = useState(false);
+  const loadRequests = useCallback(async () => {
+    if (!token) return;
+    setRequestsLoading(true);
+    setRequestsError(false);
+    try {
+      setRequests(
+        (await getSupportTickets(token)).sort(
+          (a, b) =>
+            new Date(b.updatedAt || b.createdAt).getTime() -
+            new Date(a.updatedAt || a.createdAt).getTime(),
+        ),
+      );
+    } catch {
+      setRequestsError(true);
+    } finally {
+      setRequestsLoading(false);
+    }
+  }, [token]);
+  useFocusEffect(
+    useCallback(() => {
+      loadRequests();
+    }, [loadRequests]),
+  );
   const guarded = (action: () => void) => {
     if (token) {
       action();
@@ -179,6 +214,135 @@ export function HelpScreen({ navigation }: Props) {
             );
           })}
         </View>
+        {token ? (
+          <View style={styles.requestsSection}>
+            <View style={styles.requestsHeader}>
+              <AppText weight="800" style={styles.requestsTitle}>
+                Recent support tickets
+              </AppText>
+              {requests.length > 3 ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => navigation.navigate('SupportRequests')}
+                >
+                  <AppText
+                    color={theme.colors.primary}
+                    style={styles.viewAll}
+                    weight="700"
+                  >
+                    View all
+                  </AppText>
+                </Pressable>
+              ) : null}
+            </View>
+            {requestsLoading && !requests.length ? (
+              <ActivityIndicator
+                color={theme.colors.primary}
+                style={styles.requestsState}
+              />
+            ) : requestsError && !requests.length ? (
+              <Pressable
+                onPress={loadRequests}
+                style={[styles.requestsEmpty, panel]}
+              >
+                <AppText color={theme.colors.textMuted}>
+                  Could not load requests. Tap to retry.
+                </AppText>
+              </Pressable>
+            ) : requests.length ? (
+              <View style={styles.requestList}>
+                {requests.slice(0, 3).map(request => (
+                  <Pressable
+                    key={request.support_id}
+                    accessibilityRole="button"
+                    onPress={() =>
+                      navigation.navigate('SupportDetail', { ticket: request })
+                    }
+                    style={[styles.requestCard, panel]}
+                  >
+                    <View style={styles.requestTopRow}>
+                      <AppText
+                        style={styles.requestSubject}
+                        weight="800"
+                        numberOfLines={1}
+                      >
+                        {request.subject}
+                      </AppText>
+                      <View
+                        style={[
+                          styles.requestStatus,
+                          { backgroundColor: theme.colors.surfaceMuted },
+                        ]}
+                      >
+                        <AppText
+                          color={theme.colors.textMuted}
+                          style={styles.requestStatusText}
+                          weight="700"
+                        >
+                          {request.status.replaceAll('_', ' ')}
+                        </AppText>
+                      </View>
+                    </View>
+                    <AppText
+                      color={theme.colors.textMuted}
+                      style={styles.requestDescription}
+                      numberOfLines={1}
+                    >
+                      {request.description}
+                    </AppText>
+                    <View style={styles.requestMeta}>
+                      <AppText
+                        color={theme.colors.primary}
+                        style={styles.requestType}
+                        weight="700"
+                      >
+                        {request.type.replaceAll('_', ' ')}
+                      </AppText>
+                      <AppText
+                        color={theme.colors.textMuted}
+                        style={styles.requestDate}
+                      >
+                        {new Date(
+                          request.updatedAt || request.createdAt,
+                        ).toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </AppText>
+                    </View>
+                    {request.messages[request.messages.length - 1]?.text ? (
+                      <AppText
+                        color={theme.colors.textMuted}
+                        style={styles.requestLatest}
+                        numberOfLines={1}
+                      >
+                        Latest:{' '}
+                        {request.messages[request.messages.length - 1].text}
+                      </AppText>
+                    ) : null}
+                    <View style={styles.requestLink}>
+                      <AppText
+                        color={theme.colors.primary}
+                        style={styles.requestLinkText}
+                        weight="700"
+                      >
+                        View full request
+                      </AppText>
+                      <ChevronRight size={14} color={theme.colors.primary} />
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            ) : (
+              <View style={[styles.requestsEmpty, panel]}>
+                <AppText color={theme.colors.textMuted}>
+                  No support requests yet.
+                </AppText>
+              </View>
+            )}
+          </View>
+        ) : null}
         <AppText weight="800" style={styles.section}>
           Help by topic
         </AppText>
@@ -302,4 +466,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  requestsSection: { marginTop: 22 },
+  requestsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  requestsTitle: { fontSize: 15 },
+  viewAll: { fontSize: 11 },
+  requestsState: { marginVertical: 20 },
+  requestsEmpty: { borderWidth: 1, borderRadius: 15, padding: 16 },
+  requestList: { gap: 10 },
+  requestCard: { borderWidth: 1, borderRadius: 15, padding: 12 },
+  requestTopRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  requestSubject: { flex: 1, fontSize: 12, lineHeight: 16 },
+  requestStatus: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  requestStatusText: {
+    fontSize: 8,
+    lineHeight: 10,
+    textTransform: 'capitalize',
+  },
+  requestDescription: { marginTop: 8, fontSize: 10, lineHeight: 14 },
+  requestMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 9,
+  },
+  requestType: { fontSize: 8, lineHeight: 11, textTransform: 'capitalize' },
+  requestDate: { fontSize: 8, lineHeight: 11 },
+  requestLatest: { marginTop: 5, fontSize: 9, lineHeight: 12 },
+  requestLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 12,
+  },
+  requestLinkText: { fontSize: 9, lineHeight: 12 },
 });

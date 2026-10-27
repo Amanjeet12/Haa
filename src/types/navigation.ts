@@ -43,7 +43,6 @@ export type MainTabParamList = {
 export type HomeStackParamList = {
   HomeLanding: undefined;
   Blog: { blog: import('../api/blogs').Blog };
-  Blogs: { blogs: import('../api/blogs').Blog[] };
   HealthView: { bookingId?: number } | undefined;
   HealthReportSelection: { memberId: number; bookingId?: number };
   HealthBookingPicker: { memberId: number; selectedBookingId?: number };

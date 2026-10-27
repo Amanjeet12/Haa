@@ -19,7 +19,6 @@ import { useAppTheme } from '../theme';
 import { AppText } from './AppText';
 
 const reasons = [
-  'Unable to attend the scheduled collection.',
   'I need to change the collection date or time.',
   'I booked by mistake.',
   'I no longer need this test.',
@@ -190,7 +189,7 @@ export function BookingCancellationModal({
               style={[styles.button, { borderColor: theme.colors.border }]}
             >
               <AppText style={styles.buttonText} weight="700">
-                Keep booking
+                Close
               </AppText>
             </Pressable>
             <Pressable

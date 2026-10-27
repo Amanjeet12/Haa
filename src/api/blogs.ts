@@ -10,6 +10,7 @@ export type Blog = {
   createdAt?: string;
   tags?: Array<{ blog_tag_id: number; tag_name: string; slug: string }>;
   content?: string;
+  contentHtml?: string;
   body?: string;
   description?: string;
 };
@@ -30,12 +31,12 @@ export async function getBlogs(): Promise<Blog[]> {
   return response.data;
 }
 
-export async function getBlog(slug: string): Promise<Blog> {
+export async function getBlog(blogId: number): Promise<Blog> {
   const response = await apiRequest<{
     success: number | string;
     msg: string;
     data: Blog;
-  }>(`${apiBaseUrl}/customer/blogs/${encodeURIComponent(slug)}`);
+  }>(`${apiBaseUrl}/customer/blogs/${encodeURIComponent(blogId)}`);
   if (Number(response.success) !== 1 || !response.data) {
     throw new Error(response.msg || 'Unable to fetch blog.');
   }

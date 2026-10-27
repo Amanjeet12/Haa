@@ -291,7 +291,7 @@ export function ProfileScreen() {
             </>
           )}
 
-          <SectionTitle title="Your health and orders" />
+          <SectionTitle title="Your Bookings" />
           <View
             style={[
               styles.menuCard,
@@ -301,13 +301,13 @@ export function ProfileScreen() {
               },
             ]}
           >
-            <MenuRow
+            {/* <MenuRow
               icon={<Package color="#D64A5B" size={17} />}
               color="#FFF0F2"
               title="Orders"
               subtitle="Your purchases and delivery updates"
               onPress={() => navigation.navigate('Orders')}
-            />
+            /> */}
             <MenuRow
               icon={<CalendarDays color="#D64A5B" size={17} />}
               color="#FFF0F2"

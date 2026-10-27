@@ -91,6 +91,11 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const quickCommerceAvailable = Boolean(
     selectedZone?.has_zone_based_quick_delivery_vendor,
   );
+  const unserviceableLocation = Boolean(
+    selectedZone &&
+      !selectedZone.has_active_labs &&
+      !selectedZone.has_zone_based_quick_delivery_vendor,
+  );
   const showGlobalStoreHero = Boolean(selectedZone && !quickCommerceAvailable);
   const showGlobalStoreCare = Boolean(
     selectedZone && !selectedZone.has_active_labs,
@@ -119,7 +124,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   }, []);
 
   useEffect(() => {
-    if (ecommerceEnabled !== false) return;
+    if (ecommerceEnabled !== false && !unserviceableLocation) return;
     let active = true;
     getBlogs()
       .then(items => {
@@ -131,7 +136,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     return () => {
       active = false;
     };
-  }, [ecommerceEnabled]);
+  }, [ecommerceEnabled, unserviceableLocation]);
 
   useEffect(() => {
     let active = true;
@@ -251,443 +256,515 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
               >
                 {selectedLocation?.eta ??
                   (selectedZone?.is_custom_location
-                    ? 'Global Store available'
+                    ? 'Services coming soon'
                     : 'Select an available service zone')}
               </AppText>
             </View>
             <ChevronDown color={theme.colors.textMuted} size={18} />
           </Pressable>
 
-          <Pressable
-            accessibilityLabel={
-              showGlobalStoreCare
-                ? 'Search Global Store products'
-                : 'Search tests and labs'
-            }
-            accessibilityRole="button"
-            onPress={() =>
-              showGlobalStoreCare
-                ? navigation.navigate('ProductSearch', { mode: 'global' })
-                : navigation.navigate('Search')
-            }
-            style={[
-              styles.searchBar,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.border,
-                shadowColor: theme.colors.shadow,
-              },
-            ]}
-          >
-            <Search color={theme.colors.textMuted} size={18} />
-            <AppText
-              color={theme.colors.textMuted}
-              style={styles.searchPlaceholder}
-            >
-              {showGlobalStoreCare
-                ? 'Search medicines & health essentials'
-                : 'Search tests or labs'}
-            </AppText>
-          </Pressable>
-
-          <LinearGradient
-            colors={['#102A46', '#1B3550', '#7E4548']}
-            end={{ x: 1, y: 0.5 }}
-            start={{ x: 0, y: 0.5 }}
-            style={styles.hero}
-          >
-            <ImageBackground
-              source={images.homeBanner}
-              resizeMode="cover"
-              style={styles.heroImage}
-              imageStyle={styles.heroImageCorners}
-            />
-            <LinearGradient
-              colors={[
-                'rgba(5,23,43,0.9)',
-                'rgba(10,37,62,0.54)',
-                'rgba(93,37,47,0.22)',
-              ]}
-              end={{ x: 1, y: 0.5 }}
-              locations={[0, 0.56, 1]}
-              start={{ x: 0, y: 0.5 }}
-              style={styles.heroImageOverlay}
-            />
-            <AppText color="#FFA6B2" style={styles.eyebrow} weight="800">
-              —{' '}
-              {showGlobalStoreHero
-                ? 'GLOBAL HEALTH STORE'
-                : nearbyLabsLabel.toUpperCase()}
-            </AppText>
-            <AppText color="#FFFFFF" style={styles.heroTitle} weight="500">
-              {showGlobalStoreHero
-                ? `Wellbeing that goes\n`
-                : 'Compare first. '}
-              <AppText color="#FFA6B2" style={styles.heroTitle} weight="500">
-                {showGlobalStoreHero
-                  ? 'where you do.'
-                  : `Book\nwith confidence.`}
-              </AppText>
-            </AppText>
-            <AppText color="#D7E0E8" style={styles.heroBody}>
-              {showGlobalStoreHero
-                ? 'Specialised products delivered across India.'
-                : 'See accreditation, report time and the complete price.'}
-            </AppText>
-            <Pressable
-              accessibilityLabel={
-                showGlobalStoreHero
-                  ? 'Explore the Global Health Store collection'
-                  : 'Find labs'
-              }
-              accessibilityRole="button"
-              onPress={() =>
-                navigation.navigate(
-                  showGlobalStoreHero ? 'GlobalStore' : 'Labs',
-                )
-              }
+          {unserviceableLocation ? (
+            <View
               style={[
-                styles.heroButton,
-                { backgroundColor: theme.colors.primary },
+                styles.unserviceableState,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                },
               ]}
             >
-              <AppText
-                color="#FFFFFF"
-                style={styles.heroButtonText}
-                weight="700"
+              <View
+                style={[
+                  styles.unserviceableIllustration,
+                  { backgroundColor: theme.colors.primarySoft },
+                ]}
               >
-                {showGlobalStoreHero ? 'Explore collection' : 'Find labs'}
-              </AppText>
-              <ArrowRight color="#FFFFFF" size={14} />
-            </Pressable>
-          </LinearGradient>
-
-          {ecommerceEnabled === true ? (
-            <>
-              <View style={styles.sectionHeader}>
-                <AppText style={styles.sectionTitle} weight="600">
-                  {showGlobalStoreCare
-                    ? 'Care at this address'
-                    : 'Available for you'}
-                </AppText>
+                <MapPin
+                  color={theme.colors.primary}
+                  size={38}
+                  strokeWidth={1.8}
+                />
+                <View
+                  style={[
+                    styles.unserviceableIndicator,
+                    {
+                      backgroundColor: theme.colors.primary,
+                      borderColor: theme.colors.surface,
+                    },
+                  ]}
+                >
+                  <X color="#FFFFFF" size={12} strokeWidth={3} />
+                </View>
               </View>
+              <AppText style={styles.unserviceableTitle} weight="800">
+                Unfortunately, we do not serve your location yet.
+              </AppText>
+              <AppText
+                color={theme.colors.textMuted}
+                style={styles.unserviceableBody}
+              >
+                We’re working to expand our services to more locations. Please
+                try selecting another location.
+              </AppText>
               <Pressable
                 accessibilityRole="button"
+                onPress={() => navigation.navigate('CitySearch')}
+                style={({ pressed }) => [
+                  styles.changeLocationButton,
+                  { backgroundColor: theme.colors.primary },
+                  pressed && styles.pressed,
+                ]}
+              >
+                <AppText
+                  color="#FFFFFF"
+                  style={styles.changeLocationText}
+                  weight="700"
+                >
+                  Change Location
+                </AppText>
+              </Pressable>
+            </View>
+          ) : (
+            <>
+              <Pressable
                 accessibilityLabel={
                   showGlobalStoreCare
-                    ? 'Explore specialised care in the Global Store'
-                    : `Find home collection labs. ${labCountLabel}`
+                    ? 'Search Global Store products'
+                    : 'Search tests and labs'
                 }
+                accessibilityRole="button"
                 onPress={() =>
-                  navigation.navigate(
-                    showGlobalStoreCare ? 'GlobalStore' : 'Labs',
-                  )
+                  showGlobalStoreCare
+                    ? navigation.navigate('ProductSearch', { mode: 'global' })
+                    : navigation.navigate('Search')
                 }
-                style={({ pressed }) => pressed && styles.pressed}
+                style={[
+                  styles.searchBar,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                    shadowColor: theme.colors.shadow,
+                  },
+                ]}
               >
-                <LinearGradient
-                  colors={['#071F35', '#123B50', '#6A3543']}
-                  end={{ x: 1, y: 0.5 }}
-                  start={{ x: 0, y: 0.5 }}
-                  style={styles.careCard}
+                <Search color={theme.colors.textMuted} size={18} />
+                <AppText
+                  color={theme.colors.textMuted}
+                  style={styles.searchPlaceholder}
                 >
-                  <ImageBackground
-                    source={images.careImage}
-                    resizeMode="cover"
-                    style={styles.careImage}
-                    imageStyle={styles.careImageCorners}
-                  />
-                  <LinearGradient
-                    colors={[
-                      'rgba(4,25,43,0.96)',
-                      'rgba(6,35,56,0.72)',
-                      'rgba(40,23,35,0.2)',
-                    ]}
-                    end={{ x: 1, y: 0.5 }}
-                    locations={[0, 0.58, 1]}
-                    start={{ x: 0, y: 0.5 }}
-                    style={styles.careImageOverlay}
-                  />
-                  <View style={styles.careCopy}>
-                    <AppText
-                      color="#FFA6B2"
-                      style={styles.eyebrow}
-                      weight="800"
-                    >
-                      {showGlobalStoreCare ? 'GLOBAL STORE' : 'AT-HOME LABS'}
-                    </AppText>
-                    <AppText
-                      color="#FFFFFF"
-                      style={styles.careTitle}
-                      weight="800"
-                    >
-                      {showGlobalStoreCare
-                        ? `Specialised care,\ndelivered.`
-                        : `Home collection in\nyour zone.`}
-                    </AppText>
-                    <AppText color="#C9D6E0" style={styles.careBody}>
-                      {showGlobalStoreCare
-                        ? 'Shipping to 194101 in 4–6 days.'
-                        : 'Slots available tomorrow morning.'}
-                    </AppText>
-                    <View style={styles.availablePill}>
-                      <AppText
-                        color="#087C67"
-                        style={styles.pillText}
-                        weight="700"
-                      >
-                        {showGlobalStoreCare ? (
-                          '● Available across India'
-                        ) : (
-                          <>
-                            {currentLabCount !== null && currentLabCount > 0
-                              ? '● '
-                              : ''}
-                            {labCountLabel}
-                          </>
-                        )}
-                      </AppText>
-                    </View>
-                  </View>
-                </LinearGradient>
+                  {showGlobalStoreCare
+                    ? 'Search medicines & health essentials'
+                    : 'Search tests or labs'}
+                </AppText>
               </Pressable>
 
-              <View style={styles.serviceRow}>
-                <ServiceCard
-                  icon={
-                    quickCommerceAvailable ? (
-                      <ShoppingBasket color="#08233D" size={16} />
-                    ) : (
-                      <Zap color={theme.colors.textMuted} size={18} />
+              <LinearGradient
+                colors={['#102A46', '#1B3550', '#7E4548']}
+                end={{ x: 1, y: 0.5 }}
+                start={{ x: 0, y: 0.5 }}
+                style={styles.hero}
+              >
+                <ImageBackground
+                  source={images.homeBanner}
+                  resizeMode="cover"
+                  style={styles.heroImage}
+                  imageStyle={styles.heroImageCorners}
+                />
+                <LinearGradient
+                  colors={[
+                    'rgba(5,23,43,0.9)',
+                    'rgba(10,37,62,0.54)',
+                    'rgba(93,37,47,0.22)',
+                  ]}
+                  end={{ x: 1, y: 0.5 }}
+                  locations={[0, 0.56, 1]}
+                  start={{ x: 0, y: 0.5 }}
+                  style={styles.heroImageOverlay}
+                />
+                <AppText color="#FFA6B2" style={styles.eyebrow} weight="800">
+                  —{' '}
+                  {showGlobalStoreHero
+                    ? 'GLOBAL HEALTH STORE'
+                    : nearbyLabsLabel.toUpperCase()}
+                </AppText>
+                <AppText color="#FFFFFF" style={styles.heroTitle} weight="500">
+                  {showGlobalStoreHero
+                    ? `Wellbeing that goes\n`
+                    : 'Compare first. '}
+                  <AppText
+                    color="#FFA6B2"
+                    style={styles.heroTitle}
+                    weight="500"
+                  >
+                    {showGlobalStoreHero
+                      ? 'where you do.'
+                      : `Book\nwith confidence.`}
+                  </AppText>
+                </AppText>
+                <AppText color="#D7E0E8" style={styles.heroBody}>
+                  {showGlobalStoreHero
+                    ? 'Specialised products delivered across India.'
+                    : 'See accreditation, report time and the complete price.'}
+                </AppText>
+                <Pressable
+                  accessibilityLabel={
+                    showGlobalStoreHero
+                      ? 'Explore the Global Health Store collection'
+                      : 'Find labs'
+                  }
+                  accessibilityRole="button"
+                  onPress={() =>
+                    navigation.navigate(
+                      showGlobalStoreHero ? 'GlobalStore' : 'Labs',
                     )
                   }
-                  eyebrow="QUICK COMMERCE"
-                  title={
-                    quickCommerceAvailable
-                      ? 'Essentials nearby.'
-                      : "We're not here yet"
-                  }
-                  status={
-                    quickCommerceAvailable ? '15–25 min' : 'Join waitlist'
-                  }
-                  gradient={
-                    theme.isDark
-                      ? [theme.colors.surface, '#14282A']
-                      : ['#FFFFFF', '#E9FAF6']
-                  }
-                  statusBackground={
-                    theme.isDark ? theme.colors.surfaceMuted : '#DDF7EF'
-                  }
-                  statusColor={
-                    quickCommerceAvailable
-                      ? theme.colors.success
-                      : theme.colors.textMuted
-                  }
-                  disabled={!quickCommerceAvailable}
-                  onPress={() => navigation.navigate('QuickCommerce')}
-                />
-                <ServiceCard
-                  icon={<Globe color="#08233D" size={14} />}
-                  eyebrow="GLOBAL STORE"
-                  title="Always available."
-                  status="Across India"
-                  gradient={
-                    theme.isDark
-                      ? [theme.colors.surface, '#291A24']
-                      : ['#FFFFFF', '#FCECF1']
-                  }
-                  statusBackground={
-                    theme.isDark ? theme.colors.surfaceMuted : '#FCE7EC'
-                  }
-                  statusColor={theme.colors.primary}
-                  onPress={() => navigation.navigate('GlobalStore')}
-                />
-              </View>
-            </>
-          ) : null}
+                  style={[
+                    styles.heroButton,
+                    { backgroundColor: theme.colors.primary },
+                  ]}
+                >
+                  <AppText
+                    color="#FFFFFF"
+                    style={styles.heroButtonText}
+                    weight="700"
+                  >
+                    {showGlobalStoreHero ? 'Explore collection' : 'Find labs'}
+                  </AppText>
+                  <ArrowRight color="#FFFFFF" size={14} />
+                </Pressable>
+              </LinearGradient>
 
-          {ecommerceEnabled === false ? (
-            <>
-              <BookingChooser
-                onIndividualTests={() => navigation.navigate('Labs')}
-                onHealthPackages={() => navigation.navigate('Labs')}
-                onFindLab={() => navigation.navigate('Search')}
-              />
-
-              {labCountZoneId === selectedZone?.zone_id &&
-              areaLabs.length > 0 &&
-              !currentLabCountError ? (
-                <FeaturedLabs
-                  labs={areaLabs}
-                  onSeeAll={() => navigation.navigate('Labs')}
-                  onSelect={lab => navigation.navigate('LabDetails', { lab })}
-                />
-              ) : null}
-
-              {blogs.length > 0 ? (
-                <View style={styles.blogSection}>
-                  <View style={styles.blogHeader}>
-                    <View style={styles.blogHeaderCopy}>
-                      <AppText style={styles.sectionTitle} weight="700">
-                        Good to know
-                      </AppText>
-                      <AppText
-                        color={theme.colors.textMuted}
-                        style={styles.blogSubtitle}
-                      >
-                        Simple reads to help you feel prepared.
-                      </AppText>
-                    </View>
-                    <Pressable
-                      accessibilityRole="button"
-                      onPress={() => navigation.navigate('Blogs', { blogs })}
-                    >
-                      <AppText
-                        color={theme.colors.primary}
-                        style={styles.blogViewAll}
-                        weight="700"
-                      >
-                        View all blogs
-                      </AppText>
-                    </Pressable>
+              {ecommerceEnabled === true ? (
+                <>
+                  <View style={styles.sectionHeader}>
+                    <AppText style={styles.sectionTitle} weight="600">
+                      {showGlobalStoreCare
+                        ? 'Care at this address'
+                        : 'Available for you'}
+                    </AppText>
                   </View>
-                  {blogs.slice(0, 1).map(blog => (
-                    <Pressable
-                      key={blog.blog_id}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Read article: ${blog.name}`}
-                      onPress={() => navigation.navigate('Blog', { blog })}
-                      style={[
-                        styles.blogCard,
-                        {
-                          backgroundColor: theme.colors.surface,
-                          borderColor: theme.colors.border,
-                        },
-                      ]}
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      showGlobalStoreCare
+                        ? 'Explore specialised care in the Global Store'
+                        : `Find home collection labs. ${labCountLabel}`
+                    }
+                    onPress={() =>
+                      navigation.navigate(
+                        showGlobalStoreCare ? 'GlobalStore' : 'Labs',
+                      )
+                    }
+                    style={({ pressed }) => pressed && styles.pressed}
+                  >
+                    <LinearGradient
+                      colors={['#071F35', '#123B50', '#6A3543']}
+                      end={{ x: 1, y: 0.5 }}
+                      start={{ x: 0, y: 0.5 }}
+                      style={styles.careCard}
                     >
-                      {blog.banner?.url ? (
-                        <Image
-                          accessibilityLabel={blog.banner.alt || blog.name}
-                          source={{ uri: blog.banner.url }}
-                          resizeMode="cover"
-                          style={styles.blogImage}
-                        />
-                      ) : (
-                        <View
-                          style={[
-                            styles.blogImage,
-                            { backgroundColor: theme.colors.primarySoft },
-                          ]}
-                        />
-                      )}
-                      <View style={styles.blogCopy}>
+                      <ImageBackground
+                        source={images.careImage}
+                        resizeMode="cover"
+                        style={styles.careImage}
+                        imageStyle={styles.careImageCorners}
+                      />
+                      <LinearGradient
+                        colors={[
+                          'rgba(4,25,43,0.96)',
+                          'rgba(6,35,56,0.72)',
+                          'rgba(40,23,35,0.2)',
+                        ]}
+                        end={{ x: 1, y: 0.5 }}
+                        locations={[0, 0.58, 1]}
+                        start={{ x: 0, y: 0.5 }}
+                        style={styles.careImageOverlay}
+                      />
+                      <View style={styles.careCopy}>
                         <AppText
-                          color={theme.colors.primary}
-                          style={styles.blogCategory}
+                          color="#FFA6B2"
+                          style={styles.eyebrow}
                           weight="800"
-                          numberOfLines={1}
                         >
-                          {(
-                            blog.tags?.[0]?.tag_name || 'HEALTHCARE'
-                          ).toUpperCase()}
+                          {showGlobalStoreCare
+                            ? 'GLOBAL STORE'
+                            : 'AT-HOME LABS'}
                         </AppText>
                         <AppText
-                          style={styles.blogTitle}
-                          weight="700"
-                          numberOfLines={2}
+                          color="#FFFFFF"
+                          style={styles.careTitle}
+                          weight="800"
                         >
-                          {blog.name}
+                          {showGlobalStoreCare
+                            ? `Specialised care,\ndelivered.`
+                            : `Home collection in\nyour zone.`}
                         </AppText>
-                        {blog.meta?.description ? (
+                        <AppText color="#C9D6E0" style={styles.careBody}>
+                          {showGlobalStoreCare
+                            ? 'Shipping to 194101 in 4–6 days.'
+                            : 'Slots available tomorrow morning.'}
+                        </AppText>
+                        <View style={styles.availablePill}>
                           <AppText
-                            color={theme.colors.textMuted}
-                            style={styles.blogDescription}
-                            numberOfLines={2}
-                          >
-                            {blog.meta.description}
-                          </AppText>
-                        ) : null}
-                        <View style={styles.blogReadButton}>
-                          <AppText
-                            color={theme.colors.primary}
-                            style={styles.blogReadText}
+                            color="#087C67"
+                            style={styles.pillText}
                             weight="700"
                           >
-                            Read article →
+                            {showGlobalStoreCare ? (
+                              '● Available across India'
+                            ) : (
+                              <>
+                                {currentLabCount !== null && currentLabCount > 0
+                                  ? '● '
+                                  : ''}
+                                {labCountLabel}
+                              </>
+                            )}
                           </AppText>
                         </View>
                       </View>
-                    </Pressable>
-                  ))}
-                </View>
+                    </LinearGradient>
+                  </Pressable>
+
+                  <View style={styles.serviceRow}>
+                    <ServiceCard
+                      icon={
+                        quickCommerceAvailable ? (
+                          <ShoppingBasket color="#08233D" size={16} />
+                        ) : (
+                          <Zap color={theme.colors.textMuted} size={18} />
+                        )
+                      }
+                      eyebrow="QUICK COMMERCE"
+                      title={
+                        quickCommerceAvailable
+                          ? 'Essentials nearby.'
+                          : "We're not here yet"
+                      }
+                      status={
+                        quickCommerceAvailable ? '15–25 min' : 'Join waitlist'
+                      }
+                      gradient={
+                        theme.isDark
+                          ? [theme.colors.surface, '#14282A']
+                          : ['#FFFFFF', '#E9FAF6']
+                      }
+                      statusBackground={
+                        theme.isDark ? theme.colors.surfaceMuted : '#DDF7EF'
+                      }
+                      statusColor={
+                        quickCommerceAvailable
+                          ? theme.colors.success
+                          : theme.colors.textMuted
+                      }
+                      disabled={!quickCommerceAvailable}
+                      onPress={() => navigation.navigate('QuickCommerce')}
+                    />
+                    <ServiceCard
+                      icon={<Globe color="#08233D" size={14} />}
+                      eyebrow="GLOBAL STORE"
+                      title="Always available."
+                      status="Across India"
+                      gradient={
+                        theme.isDark
+                          ? [theme.colors.surface, '#291A24']
+                          : ['#FFFFFF', '#FCECF1']
+                      }
+                      statusBackground={
+                        theme.isDark ? theme.colors.surfaceMuted : '#FCE7EC'
+                      }
+                      statusColor={theme.colors.primary}
+                      onPress={() => navigation.navigate('GlobalStore')}
+                    />
+                  </View>
+                </>
+              ) : null}
+
+              {ecommerceEnabled === false ? (
+                <>
+                  <BookingChooser
+                    onIndividualTests={() => navigation.navigate('Labs')}
+                    onHealthPackages={() => navigation.navigate('Labs')}
+                    onFindLab={() => navigation.navigate('Search')}
+                  />
+
+                  {labCountZoneId === selectedZone?.zone_id &&
+                  areaLabs.length > 0 &&
+                  !currentLabCountError ? (
+                    <FeaturedLabs
+                      labs={areaLabs}
+                      onSeeAll={() => navigation.navigate('Labs')}
+                      onSelect={lab =>
+                        navigation.navigate('LabDetails', { lab })
+                      }
+                    />
+                  ) : null}
+                </>
               ) : null}
             </>
+          )}
+
+          {unserviceableLocation ||
+          (ecommerceEnabled === false && blogs.length > 0) ? (
+            <View style={styles.blogSection}>
+              <View style={styles.blogHeader}>
+                <View style={styles.blogHeaderCopy}>
+                  <AppText style={styles.sectionTitle} weight="700">
+                    Good to know
+                  </AppText>
+                  <AppText
+                    color={theme.colors.textMuted}
+                    style={styles.blogSubtitle}
+                  >
+                    Simple reads to help you feel prepared.
+                  </AppText>
+                </View>
+              </View>
+              {unserviceableLocation && blogs.length === 0 ? (
+                <AppText color={theme.colors.textMuted}>
+                  No articles available right now.
+                </AppText>
+              ) : null}
+              {blogs.map(blog => (
+                <Pressable
+                  key={blog.blog_id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Read article: ${blog.name}`}
+                  onPress={() => navigation.navigate('Blog', { blog })}
+                  style={[
+                    styles.blogCard,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.border,
+                    },
+                  ]}
+                >
+                  {blog.banner?.url ? (
+                    <Image
+                      accessibilityLabel={blog.banner.alt || blog.name}
+                      source={{ uri: blog.banner.url }}
+                      resizeMode="cover"
+                      style={styles.blogImage}
+                    />
+                  ) : (
+                    <View
+                      style={[
+                        styles.blogImage,
+                        { backgroundColor: theme.colors.primarySoft },
+                      ]}
+                    />
+                  )}
+                  <View style={styles.blogCopy}>
+                    <AppText
+                      color={theme.colors.primary}
+                      style={styles.blogCategory}
+                      weight="800"
+                      numberOfLines={1}
+                    >
+                      {(blog.tags?.[0]?.tag_name || 'HEALTHCARE').toUpperCase()}
+                    </AppText>
+                    <AppText
+                      style={styles.blogTitle}
+                      weight="700"
+                      numberOfLines={2}
+                    >
+                      {blog.name}
+                    </AppText>
+                    {blog.meta?.description ? (
+                      <AppText
+                        color={theme.colors.textMuted}
+                        style={styles.blogDescription}
+                        numberOfLines={2}
+                      >
+                        {blog.meta.description}
+                      </AppText>
+                    ) : null}
+                    <View style={styles.blogReadButton}>
+                      <AppText
+                        color={theme.colors.primary}
+                        style={styles.blogReadText}
+                        weight="700"
+                      >
+                        Read article →
+                      </AppText>
+                    </View>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
           ) : null}
 
-          <AppText
-            style={[styles.sectionTitle, styles.wellnessHeading]}
-            weight="600"
-          >
-            Make time for you
-          </AppText>
-          <Pressable
-            accessibilityHint="Opens your personalized health view"
-            accessibilityLabel="Make time for you"
-            accessibilityRole="button"
-            onPress={() => {
-              if (token) {
-                navigation.navigate('HealthView');
-                return;
-              }
-              dispatch(requestHealthViewLogin());
-              navigation
-                .getParent()
-                ?.getParent<NativeStackNavigationProp<RootStackParamList>>()
-                ?.navigate('Login');
-            }}
-            style={({ pressed }) => [
-              styles.wellnessCard,
-              {
-                backgroundColor: theme.isDark
-                  ? theme.colors.surface
-                  : theme.colors.primarySoft2,
-                borderColor: theme.isDark ? theme.colors.border : '#F7CBD1',
-                shadowColor: theme.colors.shadow,
-              },
-              pressed && styles.pressed,
-            ]}
-          >
-            <AppText
-              color={theme.colors.primary}
-              style={styles.eyebrow}
-              weight="800"
-            >
-              A 60-SECOND CHECK-IN
-            </AppText>
-            <AppText style={styles.wellnessTitle} weight="800">
-              How are you feeling{`\n`}today?
-            </AppText>
-            <AppText color={theme.colors.textMuted} style={styles.wellnessBody}>
-              Share a little about your energy, sleep and stress for a gentler
-              next step.
-            </AppText>
-            <View style={styles.checkinRow}>
-              <View
-                style={[
-                  styles.checkinIcon,
-                  { backgroundColor: theme.colors.primary },
+          {!unserviceableLocation && (
+            <>
+              <AppText
+                style={[styles.sectionTitle, styles.wellnessHeading]}
+                weight="600"
+              >
+                Make time for you
+              </AppText>
+              <Pressable
+                accessibilityHint="Opens your personalized health view"
+                accessibilityLabel="Make time for you"
+                accessibilityRole="button"
+                onPress={() => {
+                  if (token) {
+                    navigation.navigate('HealthView');
+                    return;
+                  }
+                  dispatch(requestHealthViewLogin());
+                  navigation
+                    .getParent()
+                    ?.getParent<NativeStackNavigationProp<RootStackParamList>>()
+                    ?.navigate('Login');
+                }}
+                style={({ pressed }) => [
+                  styles.wellnessCard,
+                  {
+                    backgroundColor: theme.isDark
+                      ? theme.colors.surface
+                      : theme.colors.primarySoft2,
+                    borderColor: theme.isDark ? theme.colors.border : '#F7CBD1',
+                    shadowColor: theme.colors.shadow,
+                  },
+                  pressed && styles.pressed,
                 ]}
               >
-                <ArrowRight color="#FFFFFF" size={18} />
-              </View>
-              <AppText style={styles.checkinText} weight="800">
-                Build my health view
-              </AppText>
-            </View>
-            <View style={styles.ringOuter}>
-              <View style={styles.ringInner} />
-            </View>
-          </Pressable>
+                <AppText
+                  color={theme.colors.primary}
+                  style={styles.eyebrow}
+                  weight="800"
+                >
+                  A 60-SECOND CHECK-IN
+                </AppText>
+                <AppText style={styles.wellnessTitle} weight="800">
+                  How are you feeling{`\n`}today?
+                </AppText>
+                <AppText
+                  color={theme.colors.textMuted}
+                  style={styles.wellnessBody}
+                >
+                  Share a little about your energy, sleep and stress for a
+                  gentler next step.
+                </AppText>
+                <View style={styles.checkinRow}>
+                  <View
+                    style={[
+                      styles.checkinIcon,
+                      { backgroundColor: theme.colors.primary },
+                    ]}
+                  >
+                    <ArrowRight color="#FFFFFF" size={18} />
+                  </View>
+                  <AppText style={styles.checkinText} weight="800">
+                    Build my health view
+                  </AppText>
+                </View>
+                <View style={styles.ringOuter}>
+                  <View style={styles.ringInner} />
+                </View>
+              </Pressable>
+            </>
+          )}
         </Screen>
       </LinearGradient>
 
@@ -994,6 +1071,55 @@ const styles = StyleSheet.create({
   addressTitle: { fontSize: 14, lineHeight: 18 },
   addressDetail: { fontSize: 9, lineHeight: 12 },
   pressed: { opacity: 0.65 },
+  unserviceableState: {
+    alignItems: 'center',
+    marginTop: 18,
+    borderWidth: 1,
+    borderRadius: 22,
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 26,
+  },
+  unserviceableIllustration: {
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unserviceableIndicator: {
+    position: 'absolute',
+    right: 9,
+    bottom: 8,
+    width: 23,
+    height: 23,
+    borderRadius: 12,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unserviceableTitle: {
+    marginTop: 20,
+    textAlign: 'center',
+    fontSize: 21,
+    lineHeight: 28,
+  },
+  unserviceableBody: {
+    marginTop: 10,
+    textAlign: 'center',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  changeLocationButton: {
+    width: '100%',
+    minHeight: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 24,
+    borderRadius: 12,
+    paddingHorizontal: 18,
+  },
+  changeLocationText: { fontSize: 13, lineHeight: 18 },
   searchBar: {
     height: 48,
     flexDirection: 'row',
@@ -1149,7 +1275,6 @@ const styles = StyleSheet.create({
   },
   blogHeaderCopy: { flex: 1 },
   blogSubtitle: { marginTop: 3, fontSize: 11, lineHeight: 15 },
-  blogViewAll: { marginLeft: 8, fontSize: 11, lineHeight: 16 },
   blogCard: {
     flexDirection: 'row',
     minHeight: 146,

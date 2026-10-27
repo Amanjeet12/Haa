@@ -5,9 +5,12 @@ import {
   Image,
   Pressable,
   StyleSheet,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import RenderHtml from 'react-native-render-html';
 
 import { Blog, getBlog } from '../api/blogs';
 import { AppText, Screen } from '../components';
@@ -31,6 +34,8 @@ function plainText(value: string) {
 
 export function BlogScreen({ navigation, route }: Props) {
   const { theme } = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const [blog, setBlog] = useState<Blog>(route.params.blog);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -38,7 +43,7 @@ export function BlogScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     let active = true;
-    getBlog(route.params.blog.slug)
+    getBlog(route.params.blog.blog_id)
       .then(item => {
         if (active) setBlog(item);
       })
@@ -51,7 +56,7 @@ export function BlogScreen({ navigation, route }: Props) {
     return () => {
       active = false;
     };
-  }, [route.params.blog.slug]);
+  }, [route.params.blog.blog_id]);
 
   useEffect(() => {
     if (!blog.banner?.url) return;
@@ -68,11 +73,16 @@ export function BlogScreen({ navigation, route }: Props) {
     };
   }, [blog.banner?.url]);
 
-  const article = blog.content || blog.body;
+  const article = blog.contentHtml || blog.content || blog.body;
   const date = blog.createdAt ? new Date(blog.createdAt) : null;
 
   return (
-    <Screen contentContainerStyle={styles.content}>
+    <Screen
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: 48 + insets.bottom },
+      ]}
+    >
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Back to home"
@@ -122,7 +132,40 @@ export function BlogScreen({ navigation, route }: Props) {
           style={styles.loading}
         />
       ) : null}
-      {article ? (
+      {blog.contentHtml ? (
+        <View style={styles.body}>
+          <RenderHtml
+            contentWidth={width - 40}
+            source={{ html: blog.contentHtml }}
+            baseStyle={{
+              color: theme.colors.text,
+              fontFamily: theme.typography.fontFamily.regular,
+              fontSize: 14,
+              lineHeight: 23,
+            }}
+            systemFonts={Object.values(theme.typography.fontFamily)}
+            tagsStyles={{
+              h2: {
+                color: theme.colors.text,
+                fontFamily: theme.typography.fontFamily.bold,
+                fontSize: 21,
+                lineHeight: 28,
+                marginTop: 22,
+                marginBottom: 10,
+              },
+              h3: {
+                color: theme.colors.text,
+                fontFamily: theme.typography.fontFamily.semibold,
+                fontSize: 17,
+                lineHeight: 24,
+                marginTop: 18,
+                marginBottom: 8,
+              },
+              p: { marginTop: 0, marginBottom: 14 },
+            }}
+          />
+        </View>
+      ) : article ? (
         <AppText color={theme.colors.text} style={styles.body}>
           {plainText(article)}
         </AppText>
