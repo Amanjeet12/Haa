@@ -52,6 +52,12 @@ export type CustomerBooking = {
   payment_method: string;
   payment_status: string;
   booking_status: string;
+  cancellation_request_status?: string | null;
+  cancellation_requested_at?: string | null;
+  cancellation_reason?: string | null;
+  cancellation_charge_amount?: string | number | null;
+  refund_amount?: string | number | null;
+  refund_status?: string | null;
   customer_otp: string;
   lab: {
     lab_id: number;
@@ -71,6 +77,7 @@ export type CustomerBooking = {
     result_pdf: string | null;
     report_status: string | null;
     tests: Array<{
+      booking_id: number;
       lab_test_id: number;
       booking_status: string;
       result_pdf: string | null;
@@ -93,6 +100,115 @@ export type CustomerBooking = {
   total_members: number;
   total_tests: number;
 };
+
+export function canRequestBookingCancellation(booking: CustomerBooking) {
+  if (
+    booking.booking_status.toLowerCase() !== 'accepted' ||
+    Boolean(bookingCancellationStatus(booking))
+  ) {
+    return false;
+  }
+
+  const slotEnd = booking.members[0]?.tests[0]?.slot?.end_time;
+  const dateTime = new Date(`${booking.booking_date}T${slotEnd ?? '23:59:59'}`);
+  return !Number.isNaN(dateTime.getTime()) && dateTime.getTime() > Date.now();
+}
+
+export const canRescheduleBooking = canRequestBookingCancellation;
+
+export function bookingCancellationStatus(booking: CustomerBooking) {
+  const status = booking.cancellation_request_status?.trim().toLowerCase();
+  if (status && status !== 'none' && status !== 'null') return status;
+  return booking.cancellation_requested_at ? 'requested' : null;
+}
+
+export function isPastBooking(booking: CustomerBooking) {
+  return (
+    ['completed', 'cancelled', 'canceled', 'rejected'].includes(
+      booking.booking_status.toLowerCase(),
+    ) || bookingCancellationStatus(booking) === 'approved'
+  );
+}
+
+export function cancellationStatusLabel(status?: string | null) {
+  switch (status?.toLowerCase()) {
+    case 'requested':
+      return 'Cancellation requested';
+    case 'approved':
+      return 'Cancellation approved';
+    case 'rejected':
+      return 'Cancellation rejected';
+    default:
+      return null;
+  }
+}
+
+type CancellationRequestResponse = {
+  success: number | string;
+  msg: string;
+  data?: {
+    booking_order_id: number;
+    cancellation_request_status: string;
+    cancellation_charge_amount: number;
+    refund_amount: number;
+    refund_status: string;
+  };
+};
+
+export async function requestBookingCancellation(
+  token: string,
+  bookingOrderId: number,
+  reason: string,
+) {
+  const response = await apiRequest<CancellationRequestResponse>(
+    `${apiBaseUrl}/customer/test-booking-orders/${bookingOrderId}/cancellation-request`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ reason }),
+    },
+  );
+  if (Number(response.success) !== 1 || !response.data) {
+    throw new Error(response.msg || 'Unable to submit cancellation request.');
+  }
+  return response;
+}
+
+export async function rescheduleBooking(
+  token: string,
+  booking: CustomerBooking,
+  bookingDate: string,
+  slotId: number,
+) {
+  const items = booking.members.flatMap(member =>
+    member.tests.map(test => ({
+      booking_id: test.booking_id,
+      slot_id: slotId,
+    })),
+  );
+  if (
+    !items.length ||
+    items.some(
+      item => !Number.isInteger(item.booking_id) || item.booking_id <= 0,
+    )
+  ) {
+    throw new Error(
+      'Booking items are missing. Refresh the booking and try again.',
+    );
+  }
+  const response = await apiRequest<{ success: number | string; msg?: string }>(
+    `${apiBaseUrl}/customer/test-booking-orders/${booking.booking_order_id}/reschedule`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ booking_date: bookingDate, items }),
+    },
+  );
+  if (Number(response.success) !== 1) {
+    throw new Error(response.msg || 'Unable to reschedule booking.');
+  }
+  return response;
+}
 
 export type FamilyMemberTestBooking = {
   booking_id: number;

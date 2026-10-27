@@ -4,6 +4,7 @@ import CalendarDays from 'lucide-react-native/icons/calendar-days';
 import ChevronLeft from 'lucide-react-native/icons/chevron-left';
 import CircleCheck from 'lucide-react-native/icons/circle-check';
 import CircleQuestionMark from 'lucide-react-native/icons/circle-question-mark';
+import Clock3 from 'lucide-react-native/icons/clock-3';
 import Download from 'lucide-react-native/icons/download';
 import FlaskConical from 'lucide-react-native/icons/flask-conical';
 import MapPin from 'lucide-react-native/icons/map-pin';
@@ -23,6 +24,15 @@ import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '../components';
+import { BookingCancellationModal } from '../components/BookingCancellationModal';
+import {
+  canRequestBookingCancellation,
+  canRescheduleBooking,
+  bookingCancellationStatus,
+  cancellationStatusLabel,
+} from '../api/bookings';
+import { useAppSelector } from '../store';
+import { BookingRescheduleModal } from '../components/BookingRescheduleModal';
 import {
   screenGradientColors,
   screenGradientLocations,
@@ -58,6 +68,31 @@ function timeLabel(value?: string) {
 export function BookingDetailsScreen({ navigation, route }: Props) {
   const { theme } = useAppTheme();
   const { booking } = route.params;
+  const token = useAppSelector(state => state.auth.session?.token);
+  const [showCancellation, setShowCancellation] = React.useState(false);
+  const [showReschedule, setShowReschedule] = React.useState(false);
+  const [cancellationStatusOverride, setCancellationStatusOverride] =
+    React.useState<string | null>(null);
+  const cancellationStatus = (
+    cancellationStatusOverride ?? bookingCancellationStatus(booking)
+  )?.toLowerCase();
+  const cancellationLabel = cancellationStatusLabel(cancellationStatus);
+  const statusColor = cancellationLabel
+    ? cancellationStatus === 'rejected'
+      ? theme.colors.danger
+      : cancellationStatus === 'requested'
+      ? theme.isDark
+        ? '#FBBF24'
+        : '#9A5B00'
+      : '#078A73'
+    : '#078A73';
+  const cancellationBackground = theme.isDark
+    ? theme.colors.surfaceMuted
+    : cancellationStatus === 'requested'
+    ? '#FFF4DF'
+    : cancellationStatus === 'rejected'
+    ? '#FDEBEC'
+    : '#E8F8F2';
   const slot = booking.members[0]?.tests[0]?.slot;
   const [downloadingMemberId, setDownloadingMemberId] = React.useState<
     number | null
@@ -157,12 +192,18 @@ export function BookingDetailsScreen({ navigation, route }: Props) {
                   {booking.booking_no}
                 </AppText>
               </View>
-              <View style={styles.status}>
-                <CircleCheck color="#078A73" size={13} />
-                <AppText color="#078A73" style={styles.statusText} weight="800">
-                  {label(booking.booking_status)}
-                </AppText>
-              </View>
+              {!cancellationStatus && (
+                <View style={styles.status}>
+                  <CircleCheck color={statusColor} size={13} />
+                  <AppText
+                    color={statusColor}
+                    style={styles.statusText}
+                    weight="800"
+                  >
+                    {label(booking.booking_status)}
+                  </AppText>
+                </View>
+              )}
             </View>
             <AppText style={styles.labName} weight="800">
               {booking.lab.lab_name}
@@ -170,6 +211,41 @@ export function BookingDetailsScreen({ navigation, route }: Props) {
             <AppText color={theme.colors.textMuted} style={styles.labAddress}>
               {booking.lab.address?.address_line_1 ?? booking.lab.address?.city}
             </AppText>
+            {cancellationStatus && (
+              <View
+                style={[
+                  styles.cancellationStatusPanel,
+                  { backgroundColor: cancellationBackground },
+                ]}
+              >
+                <View style={styles.cancellationStatusIcon}>
+                  {cancellationStatus === 'requested' ? (
+                    <Clock3 color={statusColor} size={18} />
+                  ) : (
+                    <CircleCheck color={statusColor} size={18} />
+                  )}
+                </View>
+                <View style={styles.grow}>
+                  <AppText
+                    color={statusColor}
+                    style={styles.cancellationStatusTitle}
+                    weight="800"
+                  >
+                    {cancellationLabel ?? label(cancellationStatus)}
+                  </AppText>
+                  <AppText
+                    color={theme.colors.textMuted}
+                    style={styles.cancellationStatusMessage}
+                  >
+                    {cancellationStatus === 'requested'
+                      ? 'Your request is awaiting approval.'
+                      : cancellationStatus === 'approved'
+                      ? 'Your booking cancellation has been approved.'
+                      : 'Check the cancellation details below.'}
+                  </AppText>
+                </View>
+              </View>
+            )}
           </View>
 
           <Pressable
@@ -388,7 +464,89 @@ export function BookingDetailsScreen({ navigation, route }: Props) {
               green={booking.payment_status === 'paid'}
             />
           </DetailCard>
+          {cancellationStatus ? (
+            <DetailCard
+              title="Cancellation"
+              icon={<CircleCheck color={statusColor} size={17} />}
+            >
+              <InfoRow
+                label="Status"
+                value={cancellationLabel ?? label(cancellationStatus)}
+              />
+              {booking.cancellation_reason ? (
+                <InfoRow label="Reason" value={booking.cancellation_reason} />
+              ) : null}
+              {booking.cancellation_charge_amount != null ? (
+                <InfoRow
+                  label="Cancellation charge"
+                  value={formatINR(Number(booking.cancellation_charge_amount))}
+                />
+              ) : null}
+              {booking.refund_amount != null ? (
+                <InfoRow
+                  label="Refund"
+                  value={formatINR(Number(booking.refund_amount))}
+                />
+              ) : null}
+            </DetailCard>
+          ) : token && canRequestBookingCancellation(booking) ? (
+            <View style={styles.bookingActions}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setShowCancellation(true)}
+                style={[
+                  styles.cancelBooking,
+                  { borderColor: theme.colors.border },
+                ]}
+              >
+                <AppText
+                  color={theme.colors.danger}
+                  style={styles.bookingActionText}
+                  weight="800"
+                >
+                  Cancel booking
+                </AppText>
+              </Pressable>
+              {canRescheduleBooking(booking) && (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setShowReschedule(true)}
+                  style={[
+                    styles.cancelBooking,
+                    {
+                      backgroundColor: theme.colors.primary,
+                      borderColor: theme.colors.primary,
+                    },
+                  ]}
+                >
+                  <AppText
+                    color={theme.colors.onPrimary}
+                    style={styles.bookingActionText}
+                    weight="800"
+                  >
+                    Reschedule
+                  </AppText>
+                </Pressable>
+              )}
+            </View>
+          ) : null}
         </ScrollView>
+        {token && (
+          <>
+            <BookingCancellationModal
+              booking={showCancellation ? booking : null}
+              token={token}
+              onClose={() => setShowCancellation(false)}
+              onSubmitted={() => setCancellationStatusOverride('requested')}
+            />
+            <BookingRescheduleModal
+              booking={showReschedule ? booking : null}
+              token={token}
+              onClose={() => setShowReschedule(false)}
+              onSubmitted={navigation.goBack}
+            />
+          </>
+        )}
       </SafeAreaView>
     </LinearGradient>
   );
@@ -459,6 +617,16 @@ function InfoRow({
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  bookingActions: { flexDirection: 'row', gap: 8, marginTop: 14 },
+  bookingActionText: { fontSize: 12, lineHeight: 16 },
+  cancelBooking: {
+    flex: 1,
+    minHeight: 48,
+    borderWidth: 1,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   header: {
     height: 54,
     flexDirection: 'row',
@@ -480,6 +648,8 @@ const styles = StyleSheet.create({
   hero: { borderWidth: 1, borderRadius: 20, padding: 15 },
   heroTop: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     justifyContent: 'space-between',
     alignItems: 'center',
   },
@@ -495,6 +665,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statusText: { fontSize: 9, lineHeight: 12 },
+  cancellationStatusPanel: {
+    marginTop: 14,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  cancellationStatusIcon: {
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancellationStatusTitle: { fontSize: 12, lineHeight: 16 },
+  cancellationStatusMessage: { marginTop: 2, fontSize: 10, lineHeight: 14 },
   labName: { marginTop: 16, fontSize: 19, lineHeight: 23 },
   labAddress: { marginTop: 4, fontSize: 11, lineHeight: 15 },
   card: { borderWidth: 1, borderRadius: 17, padding: 13, marginTop: 11 },

@@ -3,8 +3,11 @@ import ArrowRight from 'lucide-react-native/icons/arrow-right';
 import LockKeyhole from 'lucide-react-native/icons/lock-keyhole';
 import ShoppingBag from 'lucide-react-native/icons/shopping-bag';
 import React, { useRef, useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { Keyboard, StyleSheet, TextInput, View } from 'react-native';
+import Toast from 'react-native-toast-message';
 
+import { sendLoginOtp } from '../api/auth';
+import { ApiError } from '../api/client';
 import { AppButton, AppText, AuthScaffold, HaaLogo } from '../components';
 import { useAppTheme } from '../theme';
 import { RootStackParamList } from '../types/navigation';
@@ -22,14 +25,51 @@ export function LoginScreen({ navigation }: Props) {
   const { theme } = useAppTheme();
   const phoneInputRef = useRef<React.ElementRef<typeof TextInput>>(null);
   const [phone, setPhone] = useState('');
+  const [sendingOtp, setSendingOtp] = useState(false);
   const phoneDigits = phone.replace(/\D/g, '');
   const isValid = phoneDigits.length === 10;
 
-  const continueSecurely = () => {
-    if (isValid) {
-      navigation.navigate('Pin', { phone: phoneDigits });
-    } else {
+  const showError = (message: string) => {
+    Toast.show({ type: 'error', text1: 'Unable to send OTP', text2: message });
+  };
+
+  const continueSecurely = async () => {
+    if (sendingOtp) return;
+    if (!isValid) {
       phoneInputRef.current?.focus();
+      showError('Enter a valid 10-digit phone number.');
+      return;
+    }
+
+    setSendingOtp(true);
+    Keyboard.dismiss();
+    try {
+      const response = await sendLoginOtp(phoneDigits);
+      if (Number(response.success) !== 1 || response.otp_sent === false) {
+        showError(
+          response.payload?.Details ||
+            response.msg ||
+            'Unable to send OTP. Please try again.',
+        );
+        return;
+      }
+      navigation.navigate('Pin', { phone: phoneDigits });
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 0) return;
+      const payload = error instanceof ApiError ? error.payload : undefined;
+      const details =
+        payload && typeof payload === 'object'
+          ? (payload as { msg?: string; payload?: { Details?: string } })
+          : undefined;
+      showError(
+        details?.payload?.Details ||
+          details?.msg ||
+          (error instanceof Error && error.name === 'AbortError'
+            ? 'The request timed out. Please try again.'
+            : 'Unable to send OTP. Please try again.'),
+      );
+    } finally {
+      setSendingOtp(false);
     }
   };
 
@@ -117,8 +157,7 @@ export function LoginScreen({ navigation }: Props) {
             color={theme.colors.textMuted}
             style={{ fontSize: 11 }}
           >
-            We will verify this number before asking for your four-digit HAA
-            PIN.
+            We will send a six-digit code to verify this number.
           </AppText>
         </View>
       </View>
@@ -131,6 +170,7 @@ export function LoginScreen({ navigation }: Props) {
           icon={<ArrowRight color={theme.colors.onPrimary} size={17} />}
           iconPosition="end"
           label="Continue securely"
+          loading={sendingOtp}
           onPress={continueSecurely}
         />
         <AppButton

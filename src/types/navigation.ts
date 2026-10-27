@@ -5,6 +5,7 @@ export type RootStackParamList = {
   Location: undefined;
   Login: undefined;
   Pin: { phone: string };
+  FirstFamilyMember: undefined;
   Home: NavigatorScreenParams<MainTabParamList> | undefined;
   OrderStatus: { success: boolean; orderNumber?: string; reason?: string };
   OrderTracking: { order: import('../api/orders').CustomerOrder };
@@ -33,6 +34,7 @@ export type RootStackParamList = {
 export type MainTabParamList = {
   Home: undefined;
   Bookings: undefined;
+  Reports: undefined;
   Cart: undefined;
   Orders: undefined;
   Profile: undefined;
@@ -43,20 +45,37 @@ export type HomeStackParamList = {
   Blog: { blog: import('../api/blogs').Blog };
   Blogs: { blogs: import('../api/blogs').Blog[] };
   HealthView: { bookingId?: number } | undefined;
+  HealthReportSelection: { memberId: number; bookingId?: number };
   HealthBookingPicker: { memberId: number; selectedBookingId?: number };
   HealthCheckIn: {
     bookingId: number;
     memberId: number;
     outsideReports: Array<{ uri: string; name: string }>;
+    memberName?: string;
+    reportCount?: number;
+    reportDate?: string;
+    reportTitle?: string;
   };
   HealthTrends: {
+    focusTab?: 'steps';
     bookingId: number;
     memberId: number;
     outsideReports: Array<{ uri: string; name: string }>;
+    memberName?: string;
+    reportCount?: number;
+    reportDate?: string;
+    reportTitle?: string;
     answers: Array<{
       ai_analysis_question_id: number;
       answer: string | string[];
     }>;
+  };
+  HealthResultDetail: {
+    finding: import('../api/reportAnalyses').ReportFinding;
+    report: import('../api/reportAnalyses').ReportAnalysis;
+    memberName?: string;
+    reportTitle?: string;
+    analysisRoute: HomeStackParamList['HealthTrends'];
   };
   HealthRecommendations: {
     analysis: import('../api/reportAnalyses').ReportAnalysis;

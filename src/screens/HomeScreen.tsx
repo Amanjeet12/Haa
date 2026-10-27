@@ -10,6 +10,7 @@ import Zap from 'lucide-react-native/icons/zap';
 import X from 'lucide-react-native/icons/x';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   ImageBackground,
   Image,
@@ -30,8 +31,9 @@ import {
   screenGradientLocations,
   useAppTheme,
 } from '../theme';
-import { HomeStackParamList } from '../types/navigation';
+import { HomeStackParamList, RootStackParamList } from '../types/navigation';
 import { useAppDispatch, useAppSelector } from '../store';
+import { requestHealthViewLogin } from '../store/authSlice';
 import { fetchZones, setSelectedZone } from '../store/zonesSlice';
 import { zoneAvailabilityLabel } from '../api/zones';
 import { ApiLab, getLabsByZone } from '../api/labs';
@@ -55,6 +57,7 @@ type HomeScreenProps = NativeStackScreenProps<
 export function HomeScreen({ navigation }: HomeScreenProps) {
   const { theme } = useAppTheme();
   const dispatch = useAppDispatch();
+  const token = useAppSelector(state => state.auth.session?.token);
   const zones = useAppSelector(state => state.zones.items);
   const selectedZone = useAppSelector(state => state.zones.selected);
   const zonesStatus = useAppSelector(state => state.zones.status);
@@ -631,7 +634,17 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             accessibilityHint="Opens your personalized health view"
             accessibilityLabel="Make time for you"
             accessibilityRole="button"
-            onPress={() => navigation.navigate('HealthView')}
+            onPress={() => {
+              if (token) {
+                navigation.navigate('HealthView');
+                return;
+              }
+              dispatch(requestHealthViewLogin());
+              navigation
+                .getParent()
+                ?.getParent<NativeStackNavigationProp<RootStackParamList>>()
+                ?.navigate('Login');
+            }}
             style={({ pressed }) => [
               styles.wellnessCard,
               {

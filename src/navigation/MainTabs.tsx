@@ -1,6 +1,7 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import CalendarDays from 'lucide-react-native/icons/calendar-days';
+import FileChartColumn from 'lucide-react-native/icons/file-chart-column';
 import Package from 'lucide-react-native/icons/package';
 import House from 'lucide-react-native/icons/house';
 import ShoppingCart from 'lucide-react-native/icons/shopping-cart';
@@ -16,6 +17,8 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { AppTheme, useAppTheme } from '../theme';
 import { MainTabParamList } from '../types/navigation';
 import { HomeNavigator } from './HomeNavigator';
+import { useAppSelector } from '../store';
+import { ReportsScreen } from '../screens/ReportsScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -32,7 +35,10 @@ function TabIcon({ color, focused, name, theme }: TabIconProps) {
 
   switch (name) {
     case 'Bookings':
-      icon = <CalendarDays color={iconColor} size={19} />;
+      icon = <CalendarDays color={iconColor} size={20} strokeWidth={2} />;
+      break;
+    case 'Reports':
+      icon = <FileChartColumn color={iconColor} size={20} strokeWidth={2} />;
       break;
     case 'Cart':
       return (
@@ -53,10 +59,10 @@ function TabIcon({ color, focused, name, theme }: TabIconProps) {
       icon = <Package color={iconColor} size={19} />;
       break;
     case 'Profile':
-      icon = <UserRound color={iconColor} size={19} />;
+      icon = <UserRound color={iconColor} size={20} strokeWidth={2} />;
       break;
     default:
-      icon = <House color={iconColor} size={19} />;
+      icon = <House color={iconColor} size={20} strokeWidth={2} />;
   }
 
   return focused ? (
@@ -72,6 +78,9 @@ function TabIcon({ color, focused, name, theme }: TabIconProps) {
 
 export function MainTabs() {
   const { theme } = useAppTheme();
+  const returnToHealthView = useAppSelector(
+    state => state.auth.returnToHealthView,
+  );
   const insets = useSafeAreaInsets();
   const tabBarBottomPadding = Math.max(insets.bottom, 8);
 
@@ -84,46 +93,51 @@ export function MainTabs() {
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textMuted,
         tabBarHideOnKeyboard: true,
+        tabBarItemStyle: { width: '25%' },
         tabBarLabelStyle: {
           fontFamily: theme.typography.fontFamily.medium,
-          fontSize: 10,
-          marginTop: 3,
+          fontSize: 9,
+          marginTop: 2,
           transform: route.name === 'Cart' ? [{ translateY: 4 }] : undefined,
         },
         tabBarStyle: {
           display:
             route.name === 'Home' &&
-            [
-              'Blog',
-              'Blogs',
-              'Labs',
-              'HealthView',
-              'HealthCheckIn',
-              'HealthTrends',
-              'HealthRecommendations',
-              'HaaPlus',
-              'QuickCommerce',
-              'FrequentlyBought',
-              'FirstAid',
-              'ProductDetails',
-              'GlobalStore',
-              'CategoryProducts',
-              'WomensHealth',
-              'Search',
-              'ProductSearch',
-              'CitySearch',
-              'LabDetails',
-              'AddPatientTests',
-              'ReviewBooking',
-              'BookingSuccess',
-              'BookingFailed',
-            ].includes(getFocusedRouteNameFromRoute(route) ?? '')
+            (returnToHealthView ||
+              [
+                'Blog',
+                'Blogs',
+                'Labs',
+                'HealthView',
+                'HealthReportSelection',
+                'HealthBookingPicker',
+                'HealthCheckIn',
+                'HealthTrends',
+                'HealthResultDetail',
+                'HealthRecommendations',
+                'HaaPlus',
+                'QuickCommerce',
+                'FrequentlyBought',
+                'FirstAid',
+                'ProductDetails',
+                'GlobalStore',
+                'CategoryProducts',
+                'WomensHealth',
+                'Search',
+                'ProductSearch',
+                'CitySearch',
+                'LabDetails',
+                'AddPatientTests',
+                'ReviewBooking',
+                'BookingSuccess',
+                'BookingFailed',
+              ].includes(getFocusedRouteNameFromRoute(route) ?? ''))
               ? 'none'
               : 'flex',
           // Keep the labels above Android's navigation buttons/gesture area.
           // A fixed height gets covered when edge-to-edge mode is enabled.
-          height: 64 + tabBarBottomPadding,
-          paddingTop: 8,
+          height: 56 + tabBarBottomPadding,
+          paddingTop: 6,
           paddingBottom: tabBarBottomPadding,
           backgroundColor: theme.colors.surface,
           borderTopWidth: 0,
@@ -142,8 +156,8 @@ export function MainTabs() {
     >
       <Tab.Screen name="Home" component={HomeNavigator} />
       <Tab.Screen name="Bookings" component={BookingsScreen} />
-      <Tab.Screen name="Cart" component={CartScreen} />
-      <Tab.Screen name="Orders" component={OrdersScreen} />
+      {/* <Tab.Screen name="Cart" component={CartScreen} /> */}
+      <Tab.Screen name="Reports" component={ReportsScreen} />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
@@ -155,12 +169,11 @@ export function MainTabs() {
 
 const styles = StyleSheet.create({
   activeIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingBottom: 2,
   },
   cartButton: {
     width: 40,

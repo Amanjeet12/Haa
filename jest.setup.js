@@ -1,5 +1,12 @@
 /* global jest */
 
+jest.mock('react-native-toast-message', () => {
+  return {
+    __esModule: true,
+    default: Object.assign(() => null, { show: jest.fn(), hide: jest.fn() }),
+  };
+});
+
 jest.mock('react-native-purchases', () => ({
   __esModule: true,
   LOG_LEVEL: { DEBUG: 'DEBUG' },

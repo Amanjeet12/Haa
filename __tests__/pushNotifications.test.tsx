@@ -45,7 +45,7 @@ test('prompts guests, waits for restoration, and tracks login, logout and accoun
     store.dispatch(restoreSession.fulfilled(null, 'restore'));
   });
   expect(OneSignal.logout).toHaveBeenCalledTimes(1);
-  const credentials = { phone: '1234567890', pin: '1234' };
+  const credentials = { phone: '1234567890', otp: '123456' };
   await act(async () => {
     store.dispatch(signIn.fulfilled(session(42), 'login', credentials));
   });

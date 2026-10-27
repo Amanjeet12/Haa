@@ -1,5 +1,7 @@
 import BookOpen from 'lucide-react-native/icons/book-open';
 import CalendarDays from 'lucide-react-native/icons/calendar-days';
+import Check from 'lucide-react-native/icons/check';
+import CircleIcon from 'lucide-react-native/icons/circle';
 import FileText from 'lucide-react-native/icons/file-text';
 import Pause from 'lucide-react-native/icons/pause';
 import Play from 'lucide-react-native/icons/play';
@@ -11,6 +13,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
@@ -23,11 +26,12 @@ import Svg, {
   Line,
   LinearGradient as SvgLinearGradient,
   Path,
+  Rect,
   Stop,
 } from 'react-native-svg';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { AppText, HealthFlowHeader } from '../components';
+import { AppText, HaaLogo, HealthFlowHeader } from '../components';
 import {
   analyzeReport,
   ReportTrend,
@@ -60,16 +64,47 @@ function statusColor(status: string) {
   return status.toLowerCase() === 'normal' ? '#078B76' : '#DF1F2D';
 }
 
-function chartPoints(trend: ReportTrend): Array<[number, number]> {
-  const points = [...trend.points].sort((a, b) => a.date.localeCompare(b.date));
-  if (!points.length) return [];
-  const values = points.map(point => point.value);
+function parseReferenceRange(range?: string) {
+  if (!range) return null;
+  const between = range.match(
+    /^\s*(-?\d+(?:\.\d+)?)\s*[-–]\s*(-?\d+(?:\.\d+)?)\s*$/,
+  );
+  if (between) return { lower: Number(between[1]), upper: Number(between[2]) };
+  const limit = range.match(/^\s*(<=|<|>=|>)\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if (!limit) return null;
+  const value = Number(limit[2]);
+  return limit[1].startsWith('<')
+    ? { lower: null, upper: value }
+    : { lower: value, upper: null };
+}
+
+function chartScale(
+  trend: ReportTrend,
+  range?: ReturnType<typeof parseReferenceRange>,
+) {
+  const values = trend.points.map(point => point.value);
+  if (range?.lower !== null && range?.lower !== undefined)
+    values.push(range.lower);
+  if (range?.upper !== null && range?.upper !== undefined)
+    values.push(range.upper);
   const min = Math.min(...values);
   const max = Math.max(...values);
-  const spread = max - min || Math.max(Math.abs(max) * 0.2, 1);
+  const padding = Math.max((max - min) * 0.15, Math.abs(max) * 0.1, 1);
+  const bottom = min - padding;
+  const top = max + padding;
+  return (value: number) => 145 - ((value - bottom) / (top - bottom)) * 120;
+}
+
+function chartPoints(
+  trend: ReportTrend,
+  range?: ReturnType<typeof parseReferenceRange>,
+): Array<[number, number]> {
+  const points = [...trend.points].sort((a, b) => a.date.localeCompare(b.date));
+  if (!points.length) return [];
+  const y = chartScale(trend, range);
   return points.map((point, index) => [
     points.length === 1 ? 170 : 18 + (index * 302) / (points.length - 1),
-    130 - ((point.value - min) / spread) * 95,
+    y(point.value),
   ]);
 }
 
@@ -83,10 +118,15 @@ function sparklinePath(trend: ReportTrend) {
 }
 
 export function HealthTrendsScreen({ navigation, route }: Props) {
+  const { width, fontScale } = useWindowDimensions();
+  const stackFooter = width < 390 * fontScale;
   const { theme } = useAppTheme();
   const token = useAppSelector(state => state.auth.session?.token);
   const [report, setReport] = useState<ReportAnalysis | null>(null);
   const [reportLoading, setReportLoading] = useState(true);
+  const [analysisPhase, setAnalysisPhase] = useState<'upload' | 'analyze'>(
+    route.params.outsideReports.length ? 'upload' : 'analyze',
+  );
   const [reportError, setReportError] = useState<string | null>(null);
   const started = useRef(false);
   const uploadedUrls = useRef<Record<string, string>>({});
@@ -97,6 +137,7 @@ export function HealthTrendsScreen({ navigation, route }: Props) {
       return;
     }
     setReportLoading(true);
+    setAnalysisPhase(route.params.outsideReports.length ? 'upload' : 'analyze');
     setReportError(null);
     try {
       const pdfUrls: string[] = [];
@@ -107,6 +148,9 @@ export function HealthTrendsScreen({ navigation, route }: Props) {
         uploadedUrls.current[file.uri] = url;
         pdfUrls.push(url);
       }
+
+      setAnalysisPhase('analyze');
+
       setReport(
         await analyzeReport(token, route.params.bookingId, {
           ...(pdfUrls.length ? { pdf_urls: pdfUrls } : {}),
@@ -133,7 +177,17 @@ export function HealthTrendsScreen({ navigation, route }: Props) {
   const findings = report?.analysis.findings ?? [];
   const trends = report?.trends ?? [];
   const selectedTrend = trends[selectedTrendIndex] ?? trends[0];
-  const selectedPoints = selectedTrend ? chartPoints(selectedTrend) : [];
+  const selectedFinding = findings.find(
+    finding =>
+      finding.marker.toLowerCase() === selectedTrend?.marker.toLowerCase(),
+  );
+  const referenceRange = parseReferenceRange(selectedFinding?.reference_range);
+  const selectedPoints = selectedTrend
+    ? chartPoints(selectedTrend, referenceRange)
+    : [];
+  const rangeY = selectedTrend
+    ? chartScale(selectedTrend, referenceRange)
+    : null;
   const chartPath = selectedPoints
     .map(([x, y], index) => `${index ? 'L' : 'M'}${x} ${y}`)
     .join(' ');
@@ -164,36 +218,113 @@ export function HealthTrendsScreen({ navigation, route }: Props) {
         edges={['top', 'left', 'right', 'bottom']}
         style={styles.flex}
       >
-        <HealthFlowHeader
-          title="My health trends"
-          subtitle="Reports + questionnaire"
-          onBack={navigation.goBack}
-          rightIcon={<FileText color="#078B76" size={17} />}
-        />
+        {!reportLoading ? (
+          <HealthFlowHeader
+            title="My health trends"
+            subtitle="Reports + questionnaire"
+            onBack={navigation.goBack}
+            rightIcon={<FileText color="#078B76" size={17} />}
+          />
+        ) : null}
 
-        {reportLoading || reportError ? (
-          <View style={styles.analysisState}>
-            {reportLoading ? (
-              <ActivityIndicator color={theme.colors.primary} size="large" />
-            ) : null}
-            <AppText style={styles.analysisStateText} weight="700">
-              {reportLoading
-                ? 'Analyzing your report and answers…'
-                : reportError}
-            </AppText>
-            {reportError ? (
-              <Pressable
-                onPress={runAnalysis}
+        {reportLoading ? (
+          <View style={styles.preparingScreen}>
+            <View style={styles.preparingGroup}>
+              <HaaLogo style={styles.preparingLogo} />
+              <AppText style={styles.preparingTitle} weight="800">
+                Making things clearer.
+              </AppText>
+              <AppText
+                color={theme.colors.textMuted}
+                style={styles.preparingSubtitle}
+              >
+                Preparing your report overview
+              </AppText>
+              <View
                 style={[
-                  styles.retryButton,
-                  { backgroundColor: theme.colors.primary },
+                  styles.preparingPanel,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                  },
                 ]}
               >
-                <AppText color="#FFFFFF" weight="700">
-                  Try again
-                </AppText>
-              </Pressable>
-            ) : null}
+                <View style={styles.preparingStep}>
+                  <View style={styles.preparingIcon}>
+                    {analysisPhase === 'upload' ? (
+                      <ActivityIndicator
+                        color={theme.colors.success}
+                        size="small"
+                      />
+                    ) : (
+                      <Check color={theme.colors.success} size={17} />
+                    )}
+                  </View>
+                  <AppText
+                    color={theme.colors.success}
+                    style={styles.preparingStepText}
+                  >
+                    Organizing selected reports
+                  </AppText>
+                </View>
+                <View style={styles.preparingStep}>
+                  <View style={styles.preparingIcon}>
+                    {analysisPhase === 'analyze' ? (
+                      <ActivityIndicator
+                        color={theme.colors.primary}
+                        size="small"
+                      />
+                    ) : (
+                        <CircleIcon color={theme.colors.textMuted} size={14} />
+                    )}
+                  </View>
+                  <AppText
+                    color={
+                      analysisPhase === 'analyze'
+                        ? theme.colors.text
+                        : theme.colors.textMuted
+                    }
+                    style={styles.preparingStepText}
+                  >
+                    Matching shared parameters
+                  </AppText>
+                </View>
+                <View style={styles.preparingStep}>
+                  <View style={styles.preparingIcon}>
+                    <CircleIcon color={theme.colors.textMuted} size={14} />
+                  </View>
+                  <AppText
+                    color={theme.colors.textMuted}
+                    style={styles.preparingStepText}
+                  >
+                    Preparing your explanation
+                  </AppText>
+                </View>
+              </View>
+              <AppText
+                color={theme.colors.textMuted}
+                style={styles.preparingFootnote}
+              >
+                This may take a moment.
+              </AppText>
+            </View>
+          </View>
+        ) : reportError ? (
+          <View style={styles.analysisState}>
+            <AppText style={styles.analysisStateText} weight="700">
+              {reportError}
+            </AppText>
+            <Pressable
+              onPress={runAnalysis}
+              style={[
+                styles.retryButton,
+                { backgroundColor: theme.colors.primary },
+              ]}
+            >
+              <AppText color="#FFFFFF" weight="700">
+                Try again
+              </AppText>
+            </Pressable>
           </View>
         ) : (
           <ScrollView
@@ -413,7 +544,7 @@ export function HealthTrendsScreen({ navigation, route }: Props) {
                 ]}
               >
                 <View style={styles.chartHeading}>
-                  <View>
+                  <View style={styles.chartHeadingCopy}>
                     <AppText style={styles.chartTitle} weight="700">
                       {selectedTrend.marker}
                     </AppText>
@@ -434,8 +565,21 @@ export function HealthTrendsScreen({ navigation, route }: Props) {
                       '—'}{' '}
                     {selectedTrend.unit}
                   </AppText>
+                  {selectedFinding?.reference_range ? (
+                    <AppText
+                      color={theme.colors.textMuted}
+                      style={styles.chartRange}
+                    >
+                      Reference range: {selectedFinding.reference_range}{' '}
+                      {selectedTrend.unit}
+                    </AppText>
+                  ) : null}
                 </View>
-                <View style={styles.chartTabs}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.chartTabs}
+                >
                   {trends.map((trend, index) => {
                     const active = index === selectedTrendIndex;
                     return (
@@ -468,7 +612,7 @@ export function HealthTrendsScreen({ navigation, route }: Props) {
                       </Pressable>
                     );
                   })}
-                </View>
+                </ScrollView>
                 <View style={styles.chart}>
                   <View style={styles.chartCallout}>
                     <AppText color="#FFFFFF" style={styles.calloutText}>
@@ -524,6 +668,27 @@ export function HealthTrendsScreen({ navigation, route }: Props) {
                         stroke={theme.colors.border}
                       />
                     ))}
+                    {referenceRange && rangeY ? (
+                      <Rect
+                        x="8"
+                        y={
+                          referenceRange.upper === null
+                            ? 8
+                            : rangeY(referenceRange.upper)
+                        }
+                        width="324"
+                        height={
+                          (referenceRange.lower === null
+                            ? 148
+                            : rangeY(referenceRange.lower)) -
+                          (referenceRange.upper === null
+                            ? 8
+                            : rangeY(referenceRange.upper))
+                        }
+                        fill="#078B76"
+                        opacity="0.1"
+                      />
+                    ) : null}
                     {selectedPoints.length > 1 ? (
                       <Path
                         d={`${chartPath} L${selectedPoints.at(-1)?.[0]} 150 L${
@@ -562,21 +727,27 @@ export function HealthTrendsScreen({ navigation, route }: Props) {
                     ))}
                   </Svg>
                 </View>
-                <Pressable
+                <View
                   style={[
                     styles.detailButton,
                     { backgroundColor: theme.colors.primary },
                   ]}
                 >
-                  <AppText
-                    color="#FFFFFF"
-                    style={styles.detailText}
-                    weight="700"
-                  >
+                  {selectedFinding?.reference_range ? (
+                    <AppText
+                      color="#FFFFFF"
+                      style={styles.detailText}
+                      weight="700"
+                    >
+                      Reference range: {selectedFinding.reference_range}{' '}
+                      {selectedTrend.unit}
+                    </AppText>
+                  ) : null}
+                  <AppText color="#FFFFFF" style={styles.detailCount}>
                     {selectedTrend.points.length} report{' '}
                     {selectedTrend.points.length === 1 ? 'result' : 'results'}
                   </AppText>
-                </Pressable>
+                </View>
               </View>
             ) : (
               <AppText color={theme.colors.textMuted}>
@@ -626,13 +797,19 @@ export function HealthTrendsScreen({ navigation, route }: Props) {
           <View
             style={[
               styles.footer,
+              stackFooter && styles.footerStacked,
               {
                 backgroundColor: theme.colors.surface,
                 borderTopColor: theme.colors.border,
               },
             ]}
           >
-            <View>
+            <View
+              style={[
+                styles.footerCopy,
+                stackFooter && styles.footerCopyStacked,
+              ]}
+            >
               <AppText
                 color={theme.colors.textMuted}
                 style={styles.footerEyebrow}
@@ -653,6 +830,7 @@ export function HealthTrendsScreen({ navigation, route }: Props) {
               }}
               style={[
                 styles.recommendButton,
+                stackFooter && styles.recommendButtonStacked,
                 { backgroundColor: theme.colors.primary },
               ]}
             >
@@ -680,12 +858,20 @@ function SectionHeader({
   aside: string;
   asideColor: string;
 }) {
+  const { width, fontScale } = useWindowDimensions();
+  const stackHeader = width < 390 * fontScale;
   return (
-    <View style={styles.sectionHeader}>
+    <View
+      style={[styles.sectionHeader, stackHeader && styles.sectionHeaderStacked]}
+    >
       <AppText style={styles.sectionTitle} weight="800">
         {title}
       </AppText>
-      <AppText color={asideColor} style={styles.sectionAside} weight="700">
+      <AppText
+        color={asideColor}
+        style={[styles.sectionAside, stackHeader && styles.sectionAsideStacked]}
+        weight="700"
+      >
         {aside}
       </AppText>
     </View>
@@ -736,6 +922,52 @@ function FocusCard({
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  preparingScreen: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  preparingGroup: { width: '100%', maxWidth: 360, alignItems: 'center' },
+  preparingLogo: { width: 190, height: 106 },
+  preparingTitle: {
+    marginTop: 16,
+    fontSize: 26,
+    lineHeight: 32,
+    letterSpacing: -0.7,
+    textAlign: 'center',
+  },
+  preparingSubtitle: {
+    marginTop: 7,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+  },
+  preparingPanel: {
+    alignSelf: 'stretch',
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    marginTop: 30,
+  },
+  preparingStep: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 40,
+  },
+  preparingIcon: {
+    width: 27,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  preparingStepText: { fontSize: 13, lineHeight: 19 },
+  preparingFootnote: {
+    marginTop: 17,
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: 'center',
+  },
   analysisState: {
     flex: 1,
     alignItems: 'center',
@@ -785,23 +1017,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: { fontSize: 16, lineHeight: 19 },
-  headerSub: { marginTop: 2, fontSize: 9, lineHeight: 11 },
+  headerSub: { marginTop: 2, fontSize: 10, lineHeight: 13 },
   content: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 22 },
   topMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  eyebrow: { fontSize: 9, lineHeight: 12, letterSpacing: 0.6 },
+  eyebrow: { fontSize: 10, lineHeight: 14, letterSpacing: 0.6 },
   statusPill: {
     borderRadius: 7,
     backgroundColor: '#DDF7F0',
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  statusText: { fontSize: 7, lineHeight: 9 },
-  title: { marginTop: 8, fontSize: 23, lineHeight: 23, letterSpacing: -0.7 },
-  subtitle: { marginTop: 9, fontSize: 9, lineHeight: 13 },
+  statusText: { fontSize: 9, lineHeight: 12 },
+  title: { marginTop: 8, fontSize: 23, lineHeight: 27, letterSpacing: -0.7 },
+  subtitle: { marginTop: 9, fontSize: 11, lineHeight: 15 },
   audioCard: {
     minHeight: 80,
     marginTop: 17,
@@ -825,9 +1057,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   audioCopy: { flex: 1, marginLeft: 12 },
-  audioLabel: { fontSize: 9, lineHeight: 11, letterSpacing: 0.55 },
-  audioTitle: { marginTop: 2, fontSize: 13, lineHeight: 16 },
-  audioDetail: { marginTop: 3, fontSize: 9, lineHeight: 11 },
+  audioLabel: { fontSize: 10, lineHeight: 13, letterSpacing: 0.55 },
+  audioTitle: { marginTop: 2, fontSize: 14, lineHeight: 18 },
+  audioDetail: { marginTop: 3, fontSize: 10, lineHeight: 14 },
   languagePill: {
     width: 91,
     height: 46,
@@ -860,9 +1092,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
   },
-  markerName: { fontSize: 10, lineHeight: 13 },
+  markerName: { fontSize: 11, lineHeight: 15 },
   markerValue: { marginTop: 7, fontSize: 22, lineHeight: 24 },
-  markerStatus: { marginTop: 6, fontSize: 9, lineHeight: 12 },
+  markerStatus: { marginTop: 6, fontSize: 10, lineHeight: 14 },
   sparkLine: {
     height: 24,
     marginTop: 'auto',
@@ -874,8 +1106,10 @@ const styles = StyleSheet.create({
     marginTop: 21,
     marginBottom: 8,
   },
-  sectionTitle: { fontSize: 13, lineHeight: 17 },
-  sectionAside: { fontSize: 9, lineHeight: 10 },
+  sectionHeaderStacked: { flexDirection: 'column', alignItems: 'flex-start' },
+  sectionTitle: { fontSize: 18, lineHeight: 22, letterSpacing: -0.4 },
+  sectionAside: { fontSize: 9, lineHeight: 12 },
+  sectionAsideStacked: { marginTop: 3 },
   chartCard: {
     borderWidth: 1,
     borderRadius: 20,
@@ -885,20 +1119,24 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
   },
-  chartHeading: { flexDirection: 'row', justifyContent: 'space-between' },
-  chartTitle: { fontSize: 12, lineHeight: 15 },
-  chartSub: { marginTop: 2, fontSize: 9, lineHeight: 12 },
-  chartValue: { fontSize: 11, lineHeight: 14 },
-  chartTabs: { flexDirection: 'row', gap: 7, marginTop: 14 },
+  chartHeading: { alignItems: 'flex-start' },
+  chartHeadingCopy: { alignSelf: 'stretch' },
+  chartTitle: { fontSize: 13, lineHeight: 17 },
+  chartSub: { marginTop: 2, fontSize: 10, lineHeight: 14 },
+  chartValue: { marginTop: 5, fontSize: 12, lineHeight: 16 },
+  chartRange: { marginTop: 3, fontSize: 10, lineHeight: 14 },
+  chartTabs: { flexDirection: 'row', gap: 7, paddingTop: 14, paddingBottom: 2 },
   chartTab: {
-    flex: 1,
-    height: 42,
+    minHeight: 42,
+    maxWidth: 120,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
     borderWidth: 1,
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabText: { fontSize: 9, lineHeight: 12 },
+  tabText: { fontSize: 10, lineHeight: 14, textAlign: 'center' },
   chart: { marginTop: 12, overflow: 'hidden' },
   chartCallout: {
     position: 'absolute',
@@ -910,15 +1148,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 6,
   },
-  calloutText: { fontSize: 8, lineHeight: 10 },
+  calloutText: { fontSize: 9, lineHeight: 12 },
   detailButton: {
-    height: 48,
+    minHeight: 48,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
-  detailText: { fontSize: 11, lineHeight: 14 },
+  detailText: { fontSize: 11, lineHeight: 15, textAlign: 'center' },
+  detailCount: { fontSize: 10, lineHeight: 14, textAlign: 'center' },
   focusCard: {
     minHeight: 65,
     marginBottom: 7,
@@ -941,11 +1182,11 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
   },
-  focusTitle: { fontSize: 11, lineHeight: 14, textAlign: 'start'},
+  focusTitle: { fontSize: 12, lineHeight: 16, textAlign: 'start' },
   focusDetail: {
     marginTop: 2,
-    fontSize: 9,
-    lineHeight: 11,
+    fontSize: 10,
+    lineHeight: 14,
     textAlign: 'center',
   },
   footer: {
@@ -957,8 +1198,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  footerEyebrow: { fontSize: 8, lineHeight: 10 },
-  footerTitle: { marginTop: 2, fontSize: 12, lineHeight: 15 },
+  footerStacked: { flexDirection: 'column', alignItems: 'stretch', gap: 10 },
+  footerCopy: { flex: 1, minWidth: 0 },
+  footerCopyStacked: { flex: 0 },
+  footerEyebrow: { fontSize: 9, lineHeight: 12 },
+  footerTitle: { marginTop: 2, fontSize: 14, lineHeight: 18 },
   recommendButton: {
     height: 47,
     borderRadius: 14,
@@ -966,5 +1210,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 18,
   },
-  recommendText: { fontSize: 9, lineHeight: 12 },
+  recommendButtonStacked: { alignSelf: 'stretch' },
+  recommendText: { fontSize: 11, lineHeight: 15 },
 });

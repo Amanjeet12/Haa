@@ -19,11 +19,10 @@ import { AppText } from '../components';
 import {
   createPlacesSessionToken,
   getPlaceSuggestions,
-  getPlaceDetails,
   PlaceSuggestion,
 } from '../services/places';
 import { useAppDispatch, useAppSelector } from '../store';
-import { fetchZones, setSelectedZone } from '../store/zonesSlice';
+import { setSelectedZone } from '../store/zonesSlice';
 import { useAppTheme } from '../theme';
 import { HomeStackParamList } from '../types/navigation';
 
@@ -37,7 +36,6 @@ export function CitySearchScreen({ navigation }: Props) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
-  const [checking, setChecking] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const matchingZones = useMemo(() => {
     const value = query.trim().toLowerCase();
@@ -78,43 +76,6 @@ export function CitySearchScreen({ navigation }: Props) {
       controller.abort();
     };
   }, [query]);
-
-  const selectSuggestion = async (suggestion: PlaceSuggestion) => {
-    setChecking(suggestion.placeId);
-    setMessage(null);
-    try {
-      const place = await getPlaceDetails(
-        suggestion.placeId,
-        sessionToken.current,
-      );
-      const result = await dispatch(
-        fetchZones({ lat: place.latitude, lng: place.longitude }),
-      );
-      const matchedZone = fetchZones.fulfilled.match(result)
-        ? result.payload.items.find(zone => zone.is_coordinate_in_zone)
-        : undefined;
-
-      dispatch(
-        setSelectedZone(
-          matchedZone ?? {
-            zone_id: 0,
-            zone_name: suggestion.primaryText,
-            createdAt: '',
-            updatedAt: '',
-            has_active_labs: false,
-            has_zone_based_quick_delivery_vendor: false,
-            is_custom_location: true,
-          },
-        ),
-      );
-      navigation.goBack();
-    } catch {
-      setMessage('Unable to select this location. Please try again.');
-    } finally {
-      setChecking(null);
-      sessionToken.current = createPlacesSessionToken();
-    }
-  };
 
   return (
     <SafeAreaView
@@ -178,7 +139,7 @@ export function CitySearchScreen({ navigation }: Props) {
             style={styles.sectionLabel}
             weight="700"
           >
-            AVAILABLE ZONES
+            SERVICEABLE AREA
           </AppText>
         )}
         {matchingZones.map(zone => (
@@ -235,7 +196,8 @@ export function CitySearchScreen({ navigation }: Props) {
           .map(item => (
             <Pressable
               key={item.placeId}
-              onPress={() => selectSuggestion(item)}
+              disabled
+              accessibilityState={{ disabled: true }}
               style={[styles.row, { borderBottomColor: theme.colors.border }]}
             >
               <View
@@ -258,21 +220,16 @@ export function CitySearchScreen({ navigation }: Props) {
                   {item.secondaryText}
                 </AppText>
                 <View style={styles.status}>
-                  <Clock3 color="#078A73" size={11} />
+                  <Clock3 color={theme.colors.textMuted} size={11} />
                   <AppText
-                    color="#078A73"
+                    color={theme.colors.textMuted}
                     style={styles.statusText}
                     weight="600"
                   >
-                    Global Store available
+                    Global Store closed for now
                   </AppText>
                 </View>
               </View>
-              {checking === item.placeId ? (
-                <ActivityIndicator color={theme.colors.primary} size="small" />
-              ) : (
-                <ChevronRight color={theme.colors.textMuted} size={18} />
-              )}
             </Pressable>
           ))}
         {message && (

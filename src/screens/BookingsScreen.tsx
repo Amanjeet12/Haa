@@ -18,8 +18,18 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { CustomerBooking, getCustomerBookings } from '../api/bookings';
+import {
+  canRequestBookingCancellation,
+  canRescheduleBooking,
+  bookingCancellationStatus,
+  cancellationStatusLabel,
+  CustomerBooking,
+  getCustomerBookings,
+  isPastBooking,
+} from '../api/bookings';
 import { AppText, BottomTabHeader } from '../components';
+import { BookingCancellationModal } from '../components/BookingCancellationModal';
+import { BookingRescheduleModal } from '../components/BookingRescheduleModal';
 import { useAppSelector } from '../store';
 import {
   screenGradientColors,
@@ -50,6 +60,25 @@ function statusLabel(value: string) {
     .replace(/\b\w/g, letter => letter.toUpperCase());
 }
 
+function bookingProgressIndex(status: string) {
+  switch (status.trim().toLowerCase()) {
+    case 'accepted':
+    case 'confirmed':
+      return 0;
+    case 'phlebo_assigned':
+    case 'phlebotomist_assigned':
+      return 1;
+    case 'sample_collected':
+    case 'sample_collection':
+      return 2;
+    case 'completed':
+    case 'report_ready':
+      return 3;
+    default:
+      return -1;
+  }
+}
+
 export function BookingsScreen() {
   const { theme } = useAppTheme();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
@@ -57,7 +86,13 @@ export function BookingsScreen() {
   const [bookings, setBookings] = useState<CustomerBooking[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cancellationBooking, setCancellationBooking] =
+    useState<CustomerBooking | null>(null);
+  const [rescheduleBooking, setRescheduleBooking] =
+    useState<CustomerBooking | null>(null);
+  const [requestedIds, setRequestedIds] = useState<number[]>([]);
 
+  console.log('token', token);
   const loadBookings = useCallback(async () => {
     if (!token) return;
     setLoading(true);
@@ -81,15 +116,8 @@ export function BookingsScreen() {
     }, [loadBookings]),
   );
 
-  const activeBookings = bookings.filter(
-    booking =>
-      !['completed', 'cancelled', 'rejected'].includes(
-        booking.booking_status.toLowerCase(),
-      ),
-  );
-  const pastBookings = bookings.filter(
-    booking => !activeBookings.includes(booking),
-  );
+  const activeBookings = bookings.filter(booking => !isPastBooking(booking));
+  const pastBookings = bookings.filter(isPastBooking);
 
   return (
     <LinearGradient
@@ -222,6 +250,9 @@ export function BookingsScreen() {
                   onView={booking =>
                     navigation.navigate('BookingDetails', { booking })
                   }
+                  onCancel={setCancellationBooking}
+                  onReschedule={setRescheduleBooking}
+                  requestedIds={requestedIds}
                 />
               )}
               {!!pastBookings.length && (
@@ -236,6 +267,25 @@ export function BookingsScreen() {
             </>
           )}
         </ScrollView>
+        {token && (
+          <>
+            <BookingCancellationModal
+              booking={cancellationBooking}
+              token={token}
+              onClose={() => setCancellationBooking(null)}
+              onSubmitted={id => {
+                setRequestedIds(current => [...current, id]);
+                loadBookings();
+              }}
+            />
+            <BookingRescheduleModal
+              booking={rescheduleBooking}
+              token={token}
+              onClose={() => setRescheduleBooking(null)}
+              onSubmitted={loadBookings}
+            />
+          </>
+        )}
       </SafeAreaView>
     </LinearGradient>
   );
@@ -245,10 +295,16 @@ function BookingSection({
   title,
   bookings,
   onView,
+  onCancel,
+  onReschedule,
+  requestedIds = [],
 }: {
   title: string;
   bookings: CustomerBooking[];
   onView: (booking: CustomerBooking) => void;
+  onCancel?: (booking: CustomerBooking) => void;
+  onReschedule?: (booking: CustomerBooking) => void;
+  requestedIds?: number[];
 }) {
   const { theme } = useAppTheme();
   return (
@@ -266,6 +322,11 @@ function BookingSection({
           key={booking.booking_order_id}
           booking={booking}
           onView={() => onView(booking)}
+          onCancel={onCancel ? () => onCancel(booking) : undefined}
+          onReschedule={onReschedule ? () => onReschedule(booking) : undefined}
+          cancellationRequested={requestedIds.includes(
+            booking.booking_order_id,
+          )}
         />
       ))}
     </View>
@@ -275,16 +336,38 @@ function BookingSection({
 function BookingCard({
   booking,
   onView,
+  onCancel,
+  onReschedule,
+  cancellationRequested,
 }: {
   booking: CustomerBooking;
   onView: () => void;
+  onCancel?: () => void;
+  onReschedule?: () => void;
+  cancellationRequested: boolean;
 }) {
   const { theme } = useAppTheme();
   const firstTest = booking.members[0]?.tests[0];
   const slot = firstTest?.slot;
-  const confirmed = ['accepted', 'confirmed', 'completed'].includes(
-    booking.booking_status.toLowerCase(),
-  );
+  const progressIndex = bookingProgressIndex(booking.booking_status);
+  const confirmed = progressIndex >= 0;
+  const cancellationStatus =
+    bookingCancellationStatus(booking) ??
+    (cancellationRequested ? 'requested' : null);
+  const cancellationLabel = cancellationStatusLabel(cancellationStatus);
+  const canManageBooking =
+    !cancellationRequested &&
+    canRescheduleBooking(booking) &&
+    Boolean(onCancel);
+  const statusColor = cancellationLabel
+    ? cancellationStatus === 'rejected'
+      ? theme.colors.danger
+      : cancellationStatus === 'requested'
+      ? theme.colors.warning
+      : theme.colors.success
+    : confirmed
+    ? '#078A73'
+    : theme.colors.primary;
   const memberNames = booking.members.map(item => item.member.name).join(', ');
   return (
     <View
@@ -309,20 +392,20 @@ function BookingCard({
           style={[
             styles.status,
             {
-              backgroundColor: confirmed ? '#DCF7EF' : theme.colors.primarySoft,
+              backgroundColor: cancellationLabel
+                ? theme.colors.surfaceMuted
+                : confirmed
+                ? '#DCF7EF'
+                : theme.colors.primarySoft,
             },
           ]}
         >
-          <CircleCheck
-            color={confirmed ? '#078A73' : theme.colors.primary}
-            size={11}
-          />
-          <AppText
-            color={confirmed ? '#078A73' : theme.colors.primary}
-            style={styles.statusText}
-            weight="800"
-          >
-            {statusLabel(booking.booking_status)}
+          <CircleCheck color={statusColor} size={11} />
+          <AppText color={statusColor} style={styles.statusText} weight="800">
+            {cancellationLabel ??
+              (cancellationStatus
+                ? statusLabel(cancellationStatus)
+                : statusLabel(booking.booking_status))}
           </AppText>
         </View>
       </View>
@@ -366,6 +449,32 @@ function BookingCard({
           {formatINR(Number(booking.total_final_amount))}
         </AppText>
       </View>
+      {cancellationStatus && (
+        <View
+          style={[
+            styles.cancellationBanner,
+            { backgroundColor: theme.colors.surfaceMuted },
+          ]}
+        >
+          <AppText
+            color={statusColor}
+            style={styles.cancellationBannerTitle}
+            weight="800"
+          >
+            {cancellationLabel ?? statusLabel(cancellationStatus)}
+          </AppText>
+          <AppText
+            color={theme.colors.textMuted}
+            style={styles.cancellationBannerText}
+          >
+            {cancellationStatus === 'requested'
+              ? 'Your request is awaiting approval.'
+              : cancellationStatus === 'approved'
+              ? 'Your booking cancellation has been approved.'
+              : 'See booking details for the latest update.'}
+          </AppText>
+        </View>
+      )}
       <View style={styles.progressRow}>
         {[
           'Confirmed',
@@ -373,28 +482,34 @@ function BookingCard({
           'Sample collection',
           'Report ready',
         ].map((label, index) => {
-          const active = index === 0 && confirmed;
+          const complete = index < progressIndex;
+          const active = index === progressIndex;
+          const reached = complete || active;
           return (
             <React.Fragment key={label}>
               {index > 0 && (
                 <View
                   style={[
                     styles.progressLine,
-                    active && styles.progressLineActive,
+                    reached && styles.progressLineActive,
                   ]}
                 />
               )}
               <View style={styles.progressStep}>
-                <View
-                  style={[
-                    styles.progressDot,
-                    active && styles.progressDotActive,
-                  ]}
-                />
+                {complete ? (
+                  <CircleCheck color="#078A73" size={10} fill="#DCF7EF" />
+                ) : (
+                  <View
+                    style={[
+                      styles.progressDot,
+                      active && styles.progressDotActive,
+                    ]}
+                  />
+                )}
                 <AppText
-                  color={active ? '#078A73' : theme.colors.textMuted}
+                  color={reached ? '#078A73' : theme.colors.textMuted}
                   style={styles.progressLabel}
-                  weight={active ? '700' : '400'}
+                  weight={reached ? '700' : '400'}
                 >
                   {label}
                 </AppText>
@@ -432,21 +547,55 @@ function BookingCard({
         </AppText>
       </View>
       <View style={styles.actions}>
-        <Pressable
-          disabled
-          style={[styles.cancelButton, { borderColor: theme.colors.border }]}
-        >
-          <AppText
-            color={theme.colors.textMuted}
-            style={styles.buttonText}
-            weight="800"
-          >
-            Cancel
-          </AppText>
-        </Pressable>
+        {onCancel &&
+          !cancellationRequested &&
+          canRequestBookingCancellation(booking) && (
+            <Pressable
+              accessibilityRole="button"
+              onPress={onCancel}
+              style={[
+                styles.cancelButton,
+                styles.manageButton,
+                { borderColor: theme.colors.border },
+              ]}
+            >
+              <AppText
+                color={theme.colors.text}
+                style={styles.buttonText}
+                weight="800"
+              >
+                Cancel
+              </AppText>
+            </Pressable>
+          )}
+        {onReschedule &&
+          !cancellationRequested &&
+          canRescheduleBooking(booking) && (
+            <Pressable
+              accessibilityRole="button"
+              onPress={onReschedule}
+              style={[
+                styles.cancelButton,
+                styles.manageButton,
+                { borderColor: theme.colors.border },
+              ]}
+            >
+              <AppText
+                color={theme.colors.text}
+                style={styles.buttonText}
+                weight="800"
+              >
+                Reschedule
+              </AppText>
+            </Pressable>
+          )}
         <Pressable
           onPress={onView}
-          style={[styles.viewButton, { backgroundColor: theme.colors.primary }]}
+          style={[
+            styles.viewButton,
+            canManageBooking && styles.viewButtonFull,
+            { backgroundColor: theme.colors.primary },
+          ]}
         >
           <AppText color="#FFFFFF" style={styles.buttonText} weight="800">
             View booking
@@ -459,6 +608,14 @@ function BookingCard({
 }
 
 const styles = StyleSheet.create({
+  cancellationBanner: {
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginTop: 10,
+  },
+  cancellationBannerTitle: { fontSize: 10, lineHeight: 13 },
+  cancellationBannerText: { fontSize: 9, lineHeight: 12, marginTop: 2 },
   flex: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 110 },
   eyebrow: { fontSize: 9, lineHeight: 12, letterSpacing: 0.8, marginBottom: 4 },
@@ -485,6 +642,8 @@ const styles = StyleSheet.create({
   },
   cardTop: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
     alignItems: 'center',
     justifyContent: 'space-between',
   },
@@ -566,7 +725,8 @@ const styles = StyleSheet.create({
   reportTitle: { fontSize: 11, lineHeight: 14 },
   reportMeta: { marginTop: 2, fontSize: 8, lineHeight: 10 },
   paid: { fontSize: 9, lineHeight: 12 },
-  actions: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  manageButton: { flexBasis: '45%' },
   cancelButton: {
     flex: 1,
     minHeight: 38,
@@ -584,6 +744,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
   },
+  viewButtonFull: { flexBasis: '100%' },
   viewArrow: { transform: [{ rotate: '-90deg' }] },
   stateCard: {
     borderWidth: 1,

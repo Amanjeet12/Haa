@@ -1,7 +1,7 @@
 import Bookmark from 'lucide-react-native/icons/bookmark';
 import Leaf from 'lucide-react-native/icons/leaf';
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -21,6 +21,8 @@ type Props = NativeStackScreenProps<
 
 export function HealthRecommendationsScreen({ navigation, route }: Props) {
   const { theme } = useAppTheme();
+  const { width, fontScale } = useWindowDimensions();
+  const stackActions = width < 390 * fontScale;
   const { analysis } = route.params;
 
   return (
@@ -34,7 +36,7 @@ export function HealthRecommendationsScreen({ navigation, route }: Props) {
         style={styles.flex}
       >
         <HealthFlowHeader
-          title="For your health view"
+          title="For health view"
           subtitle="From your report analysis"
           onBack={navigation.goBack}
           rightIcon={<Bookmark color="#078B76" size={17} />}
@@ -73,7 +75,7 @@ export function HealthRecommendationsScreen({ navigation, route }: Props) {
             </AppText>
           </View>
 
-          <View style={styles.sectionHeader}>
+          <View style={[styles.sectionHeader, stackActions && styles.sectionHeaderStacked]}>
             <View>
               <AppText style={styles.sectionTitle} weight="800">
                 Recommended next steps
@@ -82,7 +84,10 @@ export function HealthRecommendationsScreen({ navigation, route }: Props) {
                 Discuss these suggestions with your clinician.
               </AppText>
             </View>
-            <AppText color={theme.colors.textMuted} style={styles.available}>
+            <AppText
+              color={theme.colors.textMuted}
+              style={[styles.available, stackActions && styles.availableStacked]}
+            >
               {analysis.analysis.recommendations.length} suggestions
             </AppText>
           </View>
@@ -141,13 +146,14 @@ export function HealthRecommendationsScreen({ navigation, route }: Props) {
         <View
           style={[
             styles.footer,
+            stackActions && styles.footerStacked,
             {
               backgroundColor: theme.colors.surface,
               borderTopColor: theme.colors.border,
             },
           ]}
         >
-          <View>
+          <View style={[styles.footerCopy, stackActions && styles.footerCopyStacked]}>
             <AppText
               color={theme.colors.textMuted}
               style={styles.footerEyebrow}
@@ -162,6 +168,7 @@ export function HealthRecommendationsScreen({ navigation, route }: Props) {
             onPress={navigation.goBack}
             style={[
               styles.backButton,
+              stackActions && styles.backButtonStacked,
               { backgroundColor: theme.colors.primary },
             ]}
           >
@@ -200,11 +207,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { fontSize: 14, lineHeight: 17 },
-  headerSub: { marginTop: 1, fontSize: 8, lineHeight: 10 },
+  headerTitle: { fontSize: 16, lineHeight: 19 },
+  headerSub: { marginTop: 1, fontSize: 10, lineHeight: 13 },
   content: { paddingHorizontal: 16, paddingTop: 18, paddingBottom: 22 },
-  eyebrow: { fontSize: 9, lineHeight: 12, letterSpacing: 0.65 },
-  title: { marginTop: 7, fontSize: 23, lineHeight: 23, letterSpacing: -0.7 },
+  eyebrow: { fontSize: 10, lineHeight: 14, letterSpacing: 0.65 },
+  title: { marginTop: 7, fontSize: 23, lineHeight: 27, letterSpacing: -0.7 },
   whyCard: {
     marginTop: 16,
     minHeight: 101,
@@ -217,8 +224,8 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
   },
-  whyTitle: { fontSize: 12, lineHeight: 15 },
-  whyBody: { marginTop: 7, fontSize: 10, lineHeight: 15 },
+  whyTitle: { fontSize: 13, lineHeight: 17 },
+  whyBody: { marginTop: 7, fontSize: 11, lineHeight: 15 },
   tabs: { flexDirection: 'row', gap: 7, marginTop: 20 },
   tab: {
     flex: 1,
@@ -228,17 +235,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabText: { fontSize: 10, lineHeight: 13 },
+  tabText: { fontSize: 11, lineHeight: 15 },
   sectionHeader: { marginTop: 19, marginBottom: 9, paddingRight: 2 },
-  sectionTitle: { fontSize: 15, lineHeight: 19 },
-  sectionSub: { width: '78%', marginTop: 5, fontSize: 9, lineHeight: 13 },
+  sectionHeaderStacked: { paddingRight: 0 },
+  sectionTitle: { fontSize: 18, lineHeight: 22, letterSpacing: -0.4 },
+  sectionSub: { width: '78%', marginTop: 5, fontSize: 10, lineHeight: 14 },
   available: {
     position: 'absolute',
     top: 3,
     right: 0,
-    fontSize: 8,
-    lineHeight: 10,
+    fontSize: 9,
+    lineHeight: 12,
   },
+  availableStacked: { position: 'relative', top: 0, right: 0, marginTop: 5 },
   recommendationCard: {
     marginBottom: 12,
     borderWidth: 1,
@@ -264,11 +273,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   testCopy: { flex: 1, marginLeft: 12 },
-  testName: { fontSize: 12, lineHeight: 15 },
-  testDetail: { marginTop: 4, fontSize: 9, lineHeight: 12 },
+  testName: { fontSize: 13, lineHeight: 17 },
+  testDetail: { marginTop: 4, fontSize: 10, lineHeight: 14 },
   priceCopy: { alignItems: 'flex-end' },
   price: { fontSize: 14, lineHeight: 17 },
-  priceLabel: { marginTop: 2, fontSize: 9, lineHeight: 11 },
+  priceLabel: { marginTop: 2, fontSize: 10, lineHeight: 14 },
   reasonRow: {
     minHeight: 52,
     flexDirection: 'row',
@@ -284,7 +293,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#28C58B',
     transform: [{ rotate: '45deg' }],
   },
-  reason: { flex: 1, fontSize: 9, lineHeight: 13 },
+  reason: { flex: 1, fontSize: 10, lineHeight: 14 },
   cardActions: {
     borderTopWidth: StyleSheet.hairlineWidth,
     padding: 11,
@@ -306,7 +315,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionText: { fontSize: 10, lineHeight: 13 },
+  actionText: { fontSize: 11, lineHeight: 15 },
   footer: {
     minHeight: 76,
     paddingHorizontal: 16,
@@ -316,8 +325,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  footerEyebrow: { fontSize: 8, lineHeight: 10 },
-  footerTitle: { marginTop: 2, fontSize: 12, lineHeight: 15 },
+  footerStacked: { flexDirection: 'column', alignItems: 'stretch', gap: 10 },
+  footerCopy: { flex: 1, minWidth: 0 },
+  footerCopyStacked: { flex: 0 },
+  footerEyebrow: { fontSize: 9, lineHeight: 12 },
+  footerTitle: { marginTop: 2, fontSize: 14, lineHeight: 18 },
   backButton: {
     height: 47,
     borderRadius: 14,
@@ -325,5 +337,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backText: { fontSize: 9, lineHeight: 12 },
+  backButtonStacked: { alignSelf: 'stretch' },
+  backText: { fontSize: 11, lineHeight: 15 },
 });

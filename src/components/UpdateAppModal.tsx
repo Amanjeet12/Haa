@@ -46,6 +46,8 @@ export function UpdateAppModal() {
     )?.versionCode;
     if (typeof currentVersion !== 'number') return;
 
+    console.log('Current Android version code:', currentVersion);
+
     let active = true;
     getVersionControl()
       .then(response => {

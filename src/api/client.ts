@@ -1,7 +1,8 @@
 import NetInfo from '@react-native-community/netinfo';
-import { Alert, Platform, ToastAndroid } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 import { appConfig } from '../config/app';
+import { notifySessionExpired } from './sessionExpiry';
 
 let lastOfflineNoticeAt = 0;
 
@@ -12,14 +13,11 @@ function showOfflineNotice() {
 
   const message =
     'No internet connection. Please check your network and try again.';
-  if (Platform.OS === 'android') {
-    ToastAndroid.show(message, ToastAndroid.SHORT);
-  } else {
-    Alert.alert(
-      'No internet connection',
-      'Please check your network and try again.',
-    );
-  }
+  Toast.show({
+    type: 'error',
+    text1: 'No internet connection',
+    text2: message,
+  });
 }
 
 export class ApiError extends Error {
@@ -92,6 +90,7 @@ export async function apiRequest<T>(
     }
 
     if (!response.ok) {
+      notifySessionExpired(response.status, payload);
       throw new ApiError(
         'The request could not be completed.',
         response.status,

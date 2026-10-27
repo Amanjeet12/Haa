@@ -11,6 +11,7 @@ import { LocationScreen } from '../screens/LocationScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { PinScreen } from '../screens/PinScreen';
+import { FirstFamilyMemberScreen } from '../screens/FirstFamilyMemberScreen';
 import { useAppTheme } from '../theme';
 import { RootStackParamList } from '../types/navigation';
 import { restoreSession } from '../store/authSlice';
@@ -68,7 +69,9 @@ export function RootNavigator() {
   }
 
   const initialRouteName = session
-    ? 'Home'
+    ? session.needsFirstFamilyMember
+      ? 'FirstFamilyMember'
+      : 'Home'
     : loggedOut
     ? 'Login'
     : 'Onboarding';
@@ -84,7 +87,15 @@ export function RootNavigator() {
   return (
     <NavigationContainer theme={navigationTheme}>
       <Stack.Navigator
-        key={session ? 'authenticated' : loggedOut ? 'logged-out' : 'guest'}
+        key={
+          session
+            ? session.needsFirstFamilyMember
+              ? 'first-family-member'
+              : 'authenticated'
+            : loggedOut
+            ? 'logged-out'
+            : 'guest'
+        }
         initialRouteName={initialRouteName}
         screenOptions={{
           headerShadowVisible: false,
@@ -98,6 +109,13 @@ export function RootNavigator() {
       >
         {session ? (
           <>
+            {session.needsFirstFamilyMember && (
+              <Stack.Screen
+                name="FirstFamilyMember"
+                component={FirstFamilyMemberScreen}
+                options={{ headerShown: false }}
+              />
+            )}
             <Stack.Screen
               name="Home"
               component={MainTabs}

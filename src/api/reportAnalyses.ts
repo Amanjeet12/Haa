@@ -43,6 +43,44 @@ export type ReportAnalysis = {
   trends: ReportTrend[];
 };
 
+export type FamilyReportAnalysis = {
+  report_analysis_id: number;
+  booking_id: number;
+  report_date: string;
+  source_pdf_urls: string[];
+  status: string;
+  headline: string | null;
+  summary: string | null;
+  error_message: string | null;
+  analyzed_at: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function getFamilyMemberReportAnalyses(
+  token: string,
+  memberId: number,
+  start = 0,
+  limit = 20,
+) {
+  const response = await apiRequest<{
+    success: number | string;
+    msg: string;
+    data: { report_analyses: FamilyReportAnalysis[] };
+    meta: { hasMore: boolean; nextStart: number | null; total: number };
+  }>(
+    `${apiBaseUrl}/customer/report-analyses/family-members/${memberId}?start=${start}&limit=${limit}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (
+    Number(response.success) !== 1 ||
+    !Array.isArray(response.data?.report_analyses)
+  ) {
+    throw new Error(response.msg || 'Unable to fetch previous analyses.');
+  }
+  return { analyses: response.data.report_analyses, meta: response.meta };
+}
+
 type UploadResponse = {
   success?: number | string;
   msg?: string;

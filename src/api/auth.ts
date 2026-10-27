@@ -1,5 +1,3 @@
-import { Platform } from 'react-native';
-
 import { apiBaseUrl } from '../config/environment';
 import { apiRequest } from './client';
 
@@ -26,13 +24,32 @@ export type LoginResponse = {
   jwt_token: string;
 };
 
-export async function loginCustomer(phone: string, pin: string) {
-  return apiRequest<LoginResponse>(`${apiBaseUrl}/customer/login`, {
+export type SendOtpResponse = {
+  success: number | string;
+  msg?: string;
+  customer_id?: number;
+  firstTimeLogin?: boolean;
+  otp_sent?: boolean;
+  test_mode?: boolean;
+  otpResponse?: { Status?: string; Details?: string };
+  payload?: { Status?: string; Details?: string };
+};
+
+export async function sendLoginOtp(phone: string) {
+  return apiRequest<SendOtpResponse>(`${apiBaseUrl}/customer/login`, {
     method: 'POST',
-    body: JSON.stringify({
-      phone: phone.startsWith('+') ? phone : `+91${phone}`,
-      pin,
-      device_info: { platform: Platform.OS },
-    }),
+    body: JSON.stringify({ phone }),
+  });
+}
+
+export type VerifyOtpResponse = LoginResponse & {
+  isOTPVerified?: boolean;
+  firstTimeLogin?: boolean;
+};
+
+export async function verifyLoginOtp(phone: string, otp: string) {
+  return apiRequest<VerifyOtpResponse>(`${apiBaseUrl}/customer/otp_verify`, {
+    method: 'POST',
+    body: JSON.stringify({ phone, otp }),
   });
 }

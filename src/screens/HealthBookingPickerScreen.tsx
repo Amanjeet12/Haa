@@ -108,7 +108,8 @@ export function HealthBookingPickerScreen({ navigation, route }: Props) {
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
                 onPress={() =>
-                  navigation.popTo('HealthView', {
+                  navigation.popTo('HealthReportSelection', {
+                    memberId,
                     bookingId: booking.booking_id,
                   })
                 }

@@ -4,6 +4,7 @@ import ArrowRight from 'lucide-react-native/icons/arrow-right';
 import LockKeyhole from 'lucide-react-native/icons/lock-keyhole';
 import React, { useRef, useState } from 'react';
 import { Keyboard, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 import { AppButton, AppText, AuthScaffold, HaaLogo } from '../components';
 import { useAppTheme } from '../theme';
@@ -17,23 +18,34 @@ export function PinScreen({ navigation, route }: Props) {
   const { theme } = useAppTheme();
   const dispatch = useAppDispatch();
   const { error, status } = useAppSelector(state => state.auth);
-  const pinInputRef = useRef<React.ElementRef<typeof TextInput>>(null);
-  const [pin, setPin] = useState('');
+  const otpInputRef = useRef<React.ElementRef<typeof TextInput>>(null);
+  const [otp, setOtp] = useState('');
 
-  const continueWithPin = async () => {
+  const continueWithOtp = async () => {
     if (status === 'loading') {
       return;
     }
 
-    if (pin.length === 4) {
+    if (otp.length === 6) {
       Keyboard.dismiss();
       try {
-        await dispatch(signIn({ phone: route.params.phone, pin })).unwrap();
-      } catch {
-        pinInputRef.current?.focus();
+        await dispatch(signIn({ phone: route.params.phone, otp })).unwrap();
+      } catch (verificationError) {
+        const message =
+          typeof verificationError === 'string'
+            ? verificationError
+            : 'Unable to verify OTP. Please try again.';
+        if (message !== 'No internet connection.') {
+          Toast.show({
+            type: 'error',
+            text1: 'Unable to verify OTP',
+            text2: message,
+          });
+        }
+        otpInputRef.current?.focus();
       }
     } else {
-      pinInputRef.current?.focus();
+      otpInputRef.current?.focus();
     }
   };
 
@@ -52,7 +64,7 @@ export function PinScreen({ navigation, route }: Props) {
           color={theme.colors.primary}
           style={styles.badgeText}
         >
-          Phone verified · +91 {route.params.phone.slice(0, 5)}{' '}
+          OTP sent to +91 {route.params.phone.slice(0, 5)}{' '}
           {route.params.phone.slice(5)}
         </AppText>
         <LockKeyhole color={theme.colors.primary} size={13} />
@@ -66,26 +78,26 @@ export function PinScreen({ navigation, route }: Props) {
           color={theme.colors.primary}
           style={{ fontSize: 36 }}
         >
-          HAA PIN.
+          OTP.
         </AppText>
       </AppText>
       <AppText variant="caption" color={theme.colors.textMuted}>
-        Your four-digit PIN keeps bookings, orders, and reports private on this
-        device.
+        Enter the code sent to your phone to access your bookings, orders, and
+        reports.
       </AppText>
 
       <Pressable
         accessibilityRole="button"
-        onPress={() => pinInputRef.current?.focus()}
+        onPress={() => otpInputRef.current?.focus()}
         style={styles.pinInputArea}
       >
         <View
-          accessibilityLabel={`${pin.length} of 4 PIN digits entered`}
+          accessibilityLabel={`${otp.length} of 6 OTP digits entered`}
           style={styles.pinRow}
         >
-          {[0, 1, 2, 3].map(index => {
-            const isFilled = index < pin.length;
-            const isActive = index === pin.length;
+          {[0, 1, 2, 3, 4, 5].map(index => {
+            const isFilled = index < otp.length;
+            const isActive = index === otp.length;
 
             return (
               <View
@@ -103,38 +115,40 @@ export function PinScreen({ navigation, route }: Props) {
                 ]}
               >
                 {isFilled ? (
+                  <AppText weight="700" style={styles.otpDigit}>
+                    {otp[index]}
+                  </AppText>
+                ) : (
                   <View
                     style={[
                       styles.pinDot,
                       { backgroundColor: theme.colors.text },
                     ]}
                   />
-                ) : null}
+                )}
               </View>
             );
           })}
         </View>
         <TextInput
-          ref={pinInputRef}
-          accessibilityLabel="Four-digit HAA PIN"
-          caretHidden
+          ref={otpInputRef}
+          accessibilityLabel="Six-digit OTP"
           keyboardType="number-pad"
-          maxLength={4}
+          maxLength={6}
           onChangeText={value => {
             dispatch(clearAuthError());
-            setPin(value.replace(/\D/g, '').slice(0, 4));
+            setOtp(value.replace(/\D/g, '').slice(0, 6));
           }}
-          onSubmitEditing={continueWithPin}
-          secureTextEntry
+          onSubmitEditing={continueWithOtp}
           style={styles.hiddenInput}
-          value={pin}
+          value={otp}
         />
       </Pressable>
 
       <View style={styles.pinNote}>
         <LockKeyhole color={theme.colors.textMuted} size={13} />
         <AppText variant="caption" color={theme.colors.textMuted}>
-          Your PIN is encrypted and never shown to support staff.
+          Keep this one-time code private.
         </AppText>
       </View>
 
@@ -158,7 +172,7 @@ export function PinScreen({ navigation, route }: Props) {
           iconPosition="end"
           label="Continue securely"
           loading={status === 'loading'}
-          onPress={continueWithPin}
+          onPress={continueWithOtp}
         />
         <AppButton
           fullWidth
@@ -192,7 +206,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 36,
-    lineHeight: 40,
+    lineHeight: 44,
     letterSpacing: -1.2,
     marginBottom: 8,
   },
@@ -205,8 +219,8 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   pinBox: {
-    width: 56,
-    height: 62,
+    width: 44,
+    height: 56,
     borderRadius: 14,
     borderWidth: 1.5,
     alignItems: 'center',
@@ -217,9 +231,13 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   pinDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
+    width: 15,
+    height: 3,
+    borderRadius: 3,
+  },
+  otpDigit: {
+    fontSize: 22,
+    lineHeight: 28,
   },
   hiddenInput: {
     position: 'absolute',

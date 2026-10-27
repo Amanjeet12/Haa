@@ -1,10 +1,12 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React, { useEffect } from 'react';
 
-import { HealthViewScreen } from '../screens/HealthViewScreen';
+import { HealthReportSelectionScreen } from '../screens/HealthReportSelectionScreen';
+import { HealthViewLandingScreen } from '../screens/HealthViewLandingScreen';
 import { HealthBookingPickerScreen } from '../screens/HealthBookingPickerScreen';
-import { HealthCheckInScreen } from '../screens/HealthCheckInScreen';
-import { HealthTrendsScreen } from '../screens/HealthTrendsScreen';
+import { HealthContextScreen } from '../screens/HealthContextScreen';
+import { HealthAnalysisScreen } from '../screens/HealthAnalysisScreen';
+import { HealthResultDetailScreen } from '../screens/HealthResultDetailScreen';
 import { HealthRecommendationsScreen } from '../screens/HealthRecommendationsScreen';
 import { HaaPlusScreen } from '../screens/HaaPlusScreen';
 import { HomeScreen } from '../screens/HomeScreen';
@@ -36,29 +38,48 @@ const Stack = createNativeStackNavigator<HomeStackParamList>();
 
 export function HomeNavigator() {
   const dispatch = useAppDispatch();
+  const isAuthenticated = useAppSelector(state => Boolean(state.auth.session));
   const returnToReviewBooking = useAppSelector(
     state => state.auth.returnToReviewBooking,
   );
+  const returnToHealthView = useAppSelector(
+    state => state.auth.returnToHealthView,
+  );
 
   useEffect(() => {
-    if (returnToReviewBooking) dispatch(clearBookingLoginReturn());
-  }, [dispatch, returnToReviewBooking]);
+    if (isAuthenticated && returnToReviewBooking)
+      dispatch(clearBookingLoginReturn());
+  }, [dispatch, isAuthenticated, returnToReviewBooking]);
 
   return (
     <Stack.Navigator
-      initialRouteName={returnToReviewBooking ? 'ReviewBooking' : 'HomeLanding'}
+      initialRouteName={
+        returnToReviewBooking
+          ? 'ReviewBooking'
+          : returnToHealthView
+          ? 'HealthView'
+          : 'HomeLanding'
+      }
       screenOptions={{ headerShown: false }}
     >
       <Stack.Screen name="HomeLanding" component={HomeScreen} />
       <Stack.Screen name="Blog" component={BlogScreen} />
       <Stack.Screen name="Blogs" component={BlogsScreen} />
-      <Stack.Screen name="HealthView" component={HealthViewScreen} />
+      <Stack.Screen name="HealthView" component={HealthViewLandingScreen} />
+      <Stack.Screen
+        name="HealthReportSelection"
+        component={HealthReportSelectionScreen}
+      />
       <Stack.Screen
         name="HealthBookingPicker"
         component={HealthBookingPickerScreen}
       />
-      <Stack.Screen name="HealthCheckIn" component={HealthCheckInScreen} />
-      <Stack.Screen name="HealthTrends" component={HealthTrendsScreen} />
+      <Stack.Screen name="HealthCheckIn" component={HealthContextScreen} />
+      <Stack.Screen name="HealthTrends" component={HealthAnalysisScreen} />
+      <Stack.Screen
+        name="HealthResultDetail"
+        component={HealthResultDetailScreen}
+      />
       <Stack.Screen
         name="HealthRecommendations"
         component={HealthRecommendationsScreen}

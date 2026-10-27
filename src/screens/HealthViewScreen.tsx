@@ -13,6 +13,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -32,7 +33,8 @@ import {
   reportReadyFamilyBookings,
 } from '../api/bookings';
 import { FamilyMember, getFamilyMembers } from '../api/familyMembers';
-import { useAppSelector } from '../store';
+import { useAppDispatch, useAppSelector } from '../store';
+import { clearHealthViewLoginReturn } from '../store/authSlice';
 import {
   screenGradientColors,
   screenGradientLocations,
@@ -43,7 +45,7 @@ import type {
   RootStackParamList,
 } from '../types/navigation';
 
-type Props = NativeStackScreenProps<HomeStackParamList, 'HealthView'>;
+type Props = NativeStackScreenProps<HomeStackParamList, 'HealthReportSelection'>;
 
 const pilotItems = [
   ['Reports trends', 'See how the same markers move across connected reports.'],
@@ -59,6 +61,9 @@ const pilotItems = [
 
 export function HealthViewScreen({ navigation, route }: Props) {
   const { theme } = useAppTheme();
+  const { width, fontScale } = useWindowDimensions();
+  const stackFooter = width < 390 * fontScale;
+  const dispatch = useAppDispatch();
   const token = useAppSelector(state => state.auth.session?.token);
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
@@ -87,6 +92,7 @@ export function HealthViewScreen({ navigation, route }: Props) {
         family.some(member => member.member_id === current)
           ? current
           : (
+              family.find(member => member.member_id === route.params.memberId) ??
               family.find(
                 member =>
                   member.isDefault || member.relation.toLowerCase() === 'self',
@@ -98,7 +104,7 @@ export function HealthViewScreen({ navigation, route }: Props) {
     } finally {
       setMembersLoading(false);
     }
-  }, [token]);
+  }, [token, route.params.memberId]);
 
   const loadBookings = useCallback(async () => {
     if (!token || selectedMemberId === null) {
@@ -200,7 +206,14 @@ export function HealthViewScreen({ navigation, route }: Props) {
         <HealthFlowHeader
           title="HAA Health View"
           subtitle="AI pilot"
-          onBack={navigation.goBack}
+          onBack={() => {
+            dispatch(clearHealthViewLoginReturn());
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.replace('HomeLanding');
+            }
+          }}
           rightIcon={<ShieldCheck color="#0A8B77" size={18} />}
         />
 
@@ -409,12 +422,14 @@ export function HealthViewScreen({ navigation, route }: Props) {
                 style={styles.pickerDetail}
               >
                 {selectedBooking
-                  ? `Booking ${selectedBooking.order.booking_no} · ${selectedBooking.lab.lab_name} · ${selectedBooking.booking_date}`
+                  ? `${selectedBooking.lab.lab_name} · ${selectedBooking.booking_date}`
                   : 'Choose one booking with a generated report'}
               </AppText>
             </View>
             {selectedBooking ? (
-              <Check color="#078B76" size={17} />
+              <View style={styles.checkCircle}>
+                <Check color="#FFFFFF" size={13} strokeWidth={3} />
+              </View>
             ) : (
               <ArrowRight color={theme.colors.primary} size={17} />
             )}
@@ -542,13 +557,14 @@ export function HealthViewScreen({ navigation, route }: Props) {
         <View
           style={[
             styles.footer,
+            stackFooter && styles.footerStacked,
             {
               backgroundColor: theme.colors.surface,
               borderTopColor: theme.colors.border,
             },
           ]}
         >
-          <View>
+          <View style={[styles.footerCopy, stackFooter && styles.footerCopyStacked]}>
             <AppText
               color={theme.colors.textMuted}
               style={styles.footerEyebrow}
@@ -578,6 +594,7 @@ export function HealthViewScreen({ navigation, route }: Props) {
             }}
             style={[
               styles.continueButton,
+              stackFooter && styles.continueButtonStacked,
               {
                 backgroundColor: selectedBooking
                   ? theme.colors.primary
@@ -598,13 +615,18 @@ export function HealthViewScreen({ navigation, route }: Props) {
 
 function SectionHeader({ title, aside }: { title: string; aside?: string }) {
   const { theme } = useAppTheme();
+  const { width, fontScale } = useWindowDimensions();
+  const stackAside = Boolean(aside) && width < 390 * fontScale;
   return (
-    <View style={styles.sectionHeader}>
+    <View style={[styles.sectionHeader, stackAside && styles.sectionHeaderStacked]}>
       <AppText style={styles.sectionTitle} weight="800">
         {title}
       </AppText>
       {aside ? (
-        <AppText color={theme.colors.textMuted} style={styles.sectionAside}>
+        <AppText
+          color={theme.colors.textMuted}
+          style={[styles.sectionAside, stackAside && styles.sectionAsideStacked]}
+        >
           {aside}
         </AppText>
       ) : null}
@@ -647,8 +669,8 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 22, paddingBottom: 20 },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
   titleCopy: { flex: 1 },
-  title: { fontSize: 23, lineHeight: 25, letterSpacing: -0.7 },
-  subtitle: { marginTop: 9, fontSize: 10, lineHeight: 14 },
+  title: { fontSize: 23, lineHeight: 27, letterSpacing: -0.7 },
+  subtitle: { marginTop: 9, fontSize: 11, lineHeight: 15 },
   familyIcon: {
     width: 43,
     height: 43,
@@ -682,8 +704,8 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontSize: 11 },
   personCopy: { flex: 1, marginLeft: 9 },
-  personName: { fontSize: 10, lineHeight: 13 },
-  personDetail: { marginTop: 2, fontSize: 8, lineHeight: 10 },
+  personName: { fontSize: 11, lineHeight: 15 },
+  personDetail: { marginTop: 2, fontSize: 9, lineHeight: 12 },
   selectedDot: {
     position: 'absolute',
     right: 6,
@@ -704,16 +726,18 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 10,
   },
-  privacyText: { fontSize: 10, lineHeight: 11 },
+  privacyText: { fontSize: 10, lineHeight: 14 },
   sectionHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'baseline',
     justifyContent: 'space-between',
     marginTop: 24,
     marginBottom: 8,
   },
-  sectionTitle: { fontSize: 14, lineHeight: 18 },
-  sectionAside: { fontSize: 8, lineHeight: 11 },
+  sectionHeaderStacked: { flexDirection: 'column', alignItems: 'flex-start' },
+  sectionTitle: { fontSize: 18, lineHeight: 22, letterSpacing: -0.4 },
+  sectionAside: { fontSize: 9, lineHeight: 12 },
+  sectionAsideStacked: { marginTop: 3 },
   reportPanel: { borderWidth: 1, borderRadius: 15, overflow: 'hidden' },
   bookingPickerRow: {
     minHeight: 65,
@@ -732,8 +756,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 10,
   },
-  pickerTitle: { fontSize: 11, lineHeight: 15 },
-  pickerDetail: { marginTop: 3, fontSize: 9, lineHeight: 12 },
+  pickerTitle: { fontSize: 12, lineHeight: 16 },
+  pickerDetail: { marginTop: 3, fontSize: 10, lineHeight: 14 },
   pdfPanel: { marginTop: 18, gap: 8 },
   attachedPdfRow: {
     minHeight: 48,
@@ -765,8 +789,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   reportCopy: { flex: 1, marginLeft: 10 },
-  reportTitle: { fontSize: 10, lineHeight: 13 },
-  reportDetail: { marginTop: 2, fontSize: 8, lineHeight: 10 },
+  reportTitle: { fontSize: 11, lineHeight: 15 },
+  reportDetail: { marginTop: 2, fontSize: 9, lineHeight: 12 },
   checkCircle: {
     width: 20,
     height: 20,
@@ -794,8 +818,8 @@ const styles = StyleSheet.create({
   },
   number: { fontSize: 10 },
   pilotCopy: { flex: 1, marginLeft: 10 },
-  pilotTitle: { fontSize: 11, lineHeight: 13 },
-  pilotDetail: { marginTop: 1, fontSize: 9, lineHeight: 11 },
+  pilotTitle: { fontSize: 12, lineHeight: 16 },
+  pilotDetail: { marginTop: 1, fontSize: 10, lineHeight: 14 },
   disclaimer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -803,7 +827,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingHorizontal: 3,
   },
-  disclaimerText: { flex: 1, fontSize: 9, lineHeight: 11 },
+  disclaimerText: { flex: 1, fontSize: 10, lineHeight: 14 },
   footer: {
     minHeight: 76,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -813,8 +837,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  footerEyebrow: { fontSize: 8, lineHeight: 10 },
-  footerTitle: { marginTop: 2, fontSize: 13, lineHeight: 16 },
+  footerStacked: { flexDirection: 'column', alignItems: 'stretch', gap: 10 },
+  footerCopy: { flex: 1, minWidth: 0 },
+  footerCopyStacked: { flex: 0 },
+  footerEyebrow: { fontSize: 9, lineHeight: 12 },
+  footerTitle: { marginTop: 2, fontSize: 14, lineHeight: 18 },
   continueButton: {
     height: 48,
     borderRadius: 15,
@@ -823,5 +850,6 @@ const styles = StyleSheet.create({
     gap: 7,
     paddingHorizontal: 20,
   },
-  continueText: { fontSize: 10, lineHeight: 13 },
+  continueButtonStacked: { alignSelf: 'stretch', justifyContent: 'center' },
+  continueText: { fontSize: 11, lineHeight: 15 },
 });
