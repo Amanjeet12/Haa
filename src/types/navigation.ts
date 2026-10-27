@@ -47,7 +47,7 @@ export type HomeStackParamList = {
   HealthReportSelection: { memberId: number; bookingId?: number };
   HealthBookingPicker: { memberId: number; selectedBookingId?: number };
   HealthCheckIn: {
-    bookingId: number;
+    bookingId?: number;
     memberId: number;
     outsideReports: Array<{ uri: string; name: string }>;
     memberName?: string;
@@ -57,7 +57,7 @@ export type HomeStackParamList = {
   };
   HealthTrends: {
     focusTab?: 'steps';
-    bookingId: number;
+    bookingId?: number;
     memberId: number;
     outsideReports: Array<{ uri: string; name: string }>;
     memberName?: string;

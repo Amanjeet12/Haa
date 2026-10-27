@@ -1,5 +1,6 @@
 import { apiRequest } from '../src/api/client';
 import {
+  getCustomerBookings,
   getFamilyMemberTestBookings,
   reportReadyFamilyBookings,
   type FamilyMemberTestBooking,
@@ -21,6 +22,14 @@ const booking: FamilyMemberTestBooking = {
 };
 
 beforeEach(() => request.mockReset());
+
+test('filters completed customer bookings by family member', async () => {
+  request.mockResolvedValue({ success: 1, msg: 'ok', data: [] });
+  await getCustomerBookings('token', 'completed', 36);
+  expect(request.mock.calls[0][0]).toContain(
+    '/customer/bookings?booking_status=completed&family_member_id=36',
+  );
+});
 
 test('fetches test bookings for the selected family member', async () => {
   request.mockResolvedValue({

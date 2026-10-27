@@ -1,4 +1,3 @@
-import ArrowRight from 'lucide-react-native/icons/arrow-right';
 import Check from 'lucide-react-native/icons/check';
 import CircleIcon from 'lucide-react-native/icons/circle';
 import FileText from 'lucide-react-native/icons/file-text';
@@ -596,6 +595,13 @@ export function HealthAnalysisScreen({ navigation, route }: Props) {
       }
       setPhase('analyze');
       const result = await analyzeReport(token, route.params.bookingId, {
+        ...(!route.params.bookingId
+          ? {
+              family_member_id: route.params.memberId,
+              report_date:
+                route.params.reportDate ?? new Date().toLocaleDateString('en-CA'),
+            }
+          : {}),
         ...(pdfUrls.length ? { pdf_urls: pdfUrls } : {}),
         questionnaire_answers: route.params.answers,
       });
@@ -624,7 +630,8 @@ export function HealthAnalysisScreen({ navigation, route }: Props) {
   const shownFindings = filter === 'review' ? reviewFindings : findings;
   const reportDate = formatDate(report?.report_date ?? route.params.reportDate);
   const reportCount =
-    route.params.reportCount ?? 1 + route.params.outsideReports.length;
+    route.params.reportCount ??
+    (route.params.bookingId ? 1 : 0) + route.params.outsideReports.length;
   const reportLabel = reportCount === 1 ? 'report' : 'reports';
   const allTrendDates = [
     ...new Set(
@@ -1419,23 +1426,6 @@ export function HealthAnalysisScreen({ navigation, route }: Props) {
                         <AppText style={styles.stepCopy}>{item}</AppText>
                       </View>
                     ))}
-                    <Pressable
-                      accessibilityRole="button"
-                      onPress={() =>
-                        navigation.navigate('HealthRecommendations', {
-                          analysis: report,
-                        })
-                      }
-                      style={[
-                        styles.optionsButton,
-                        { backgroundColor: theme.colors.primary },
-                      ]}
-                    >
-                      <AppText color="#FFFFFF" weight="800">
-                        See relevant HAA options
-                      </AppText>
-                      <ArrowRight color="#FFFFFF" size={16} />
-                    </Pressable>
                   </>
                 )}
                 <AppText
@@ -1857,15 +1847,6 @@ const styles = StyleSheet.create({
   },
   stepNumber: { fontSize: 16, lineHeight: 20 },
   stepCopy: { flex: 1, fontSize: 12, lineHeight: 19 },
-  optionsButton: {
-    minHeight: 48,
-    borderRadius: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 17,
-  },
   footer: {
     borderTopWidth: StyleSheet.hairlineWidth,
     minHeight: 76,

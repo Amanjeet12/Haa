@@ -153,6 +153,14 @@ export function HealthTrendsScreen({ navigation, route }: Props) {
 
       setReport(
         await analyzeReport(token, route.params.bookingId, {
+          ...(!route.params.bookingId
+            ? {
+                family_member_id: route.params.memberId,
+                report_date:
+                  route.params.reportDate ??
+                  new Date().toLocaleDateString('en-CA'),
+              }
+            : {}),
           ...(pdfUrls.length ? { pdf_urls: pdfUrls } : {}),
           questionnaire_answers: route.params.answers,
         }),

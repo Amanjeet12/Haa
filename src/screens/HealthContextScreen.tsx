@@ -57,7 +57,8 @@ export function HealthContextScreen({ navigation, route }: Props) {
   const questionOffsets = useRef<Record<number, number>>({});
   const focusedQuestionId = useRef<number | null>(null);
   const reportCount =
-    route.params.reportCount ?? 1 + route.params.outsideReports.length;
+    route.params.reportCount ??
+    (route.params.bookingId ? 1 : 0) + route.params.outsideReports.length;
 
   useEffect(() => {
     const shown = Keyboard.addListener('keyboardDidShow', event => {

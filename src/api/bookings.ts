@@ -268,10 +268,17 @@ type CustomerBookingsResponse = {
 export async function getCustomerBookings(
   token: string,
   bookingStatus?: string,
+  familyMemberId?: number,
 ) {
-  const query = bookingStatus
-    ? `?booking_status=${encodeURIComponent(bookingStatus)}`
-    : '';
+  const params = [
+    ...(bookingStatus
+      ? [`booking_status=${encodeURIComponent(bookingStatus)}`]
+      : []),
+    ...(familyMemberId !== undefined
+      ? [`family_member_id=${encodeURIComponent(familyMemberId)}`]
+      : []),
+  ];
+  const query = params.length ? `?${params.join('&')}` : '';
   const response = await apiRequest<CustomerBookingsResponse>(
     `${apiBaseUrl}/customer/bookings${query}`,
     { headers: { Authorization: `Bearer ${token}` } },

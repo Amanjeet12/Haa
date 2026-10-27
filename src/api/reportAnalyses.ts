@@ -124,8 +124,10 @@ export async function uploadReportPdf(
 
 export async function analyzeReport(
   token: string,
-  bookingId: number,
+  bookingId: number | undefined,
   input: {
+    family_member_id?: number;
+    report_date?: string;
     pdf_urls?: string[];
     questionnaire_answers: Array<{
       ai_analysis_question_id: number;
@@ -133,19 +135,27 @@ export async function analyzeReport(
     }>;
   },
 ) {
+  const body = {
+    consent_to_ai_processing: true,
+    ...(bookingId
+      ? { force: false }
+      : {
+          family_member_id: input.family_member_id,
+          report_date: input.report_date,
+        }),
+    ...(input.pdf_urls?.length ? { pdf_urls: input.pdf_urls } : {}),
+    questionnaire_answers: input.questionnaire_answers,
+  };
+  if (__DEV__)
+    console.log('[Report analysis request body]', JSON.stringify(body, null, 2));
   const response = await apiRequest<{
     success: number | string;
     msg: string;
     data: ReportAnalysis;
-  }>(`${apiBaseUrl}/customer/report-analyses/${bookingId}`, {
+  }>(`${apiBaseUrl}/customer/report-analyses${bookingId ? `/${bookingId}` : ''}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
-    body: JSON.stringify({
-      consent_to_ai_processing: true,
-      force: false,
-      ...(input.pdf_urls?.length ? { pdf_urls: input.pdf_urls } : {}),
-      questionnaire_answers: input.questionnaire_answers,
-    }),
+    body: JSON.stringify(body),
     timeoutMs: 120_000,
   });
   if (Number(response.success) !== 1 || !response.data?.analysis) {

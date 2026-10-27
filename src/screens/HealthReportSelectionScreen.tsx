@@ -442,21 +442,14 @@ export function HealthReportSelectionScreen({ navigation, route }: Props) {
             accessibilityState={{ disabled: selectedCount === 0 }}
             disabled={selectedCount === 0}
             onPress={() => {
-              if (!selectedBooking) {
-                Alert.alert(
-                  'PDF-only analysis is not available yet',
-                  'The analysis service currently requires a booking. Your selected PDF remains on this screen.',
-                );
-                return;
-              }
               navigation.navigate('HealthCheckIn', {
-                bookingId: selectedBooking.booking_id,
+                bookingId: selectedBooking?.booking_id,
                 memberId: route.params.memberId,
                 outsideReports: pdfs,
                 memberName: member?.name,
                 reportCount: selectedCount,
-                reportDate: selectedBooking.booking_date,
-                reportTitle: selectedBooking.test.test_name,
+                reportDate: selectedBooking?.booking_date,
+                reportTitle: selectedBooking?.test.test_name,
               });
             }}
             style={[

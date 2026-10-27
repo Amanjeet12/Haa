@@ -39,6 +39,25 @@ test('includes uploaded PDF URLs when supplied', async () => {
   ]);
 });
 
+test('submits PDF-only analysis without a booking ID', async () => {
+  request.mockResolvedValue({ success: 1, msg: 'ok', data: { analysis: {} } });
+  await analyzeReport('token', undefined, {
+    family_member_id: 19,
+    report_date: '2026-10-24',
+    pdf_urls: ['https://example.com/report.pdf'],
+    questionnaire_answers: [{ ai_analysis_question_id: 1, answer: 'Yes' }],
+  });
+  const [url, options] = request.mock.calls[0];
+  expect(url).toMatch(/\/customer\/report-analyses$/);
+  expect(JSON.parse(options.body)).toEqual({
+    consent_to_ai_processing: true,
+    family_member_id: 19,
+    report_date: '2026-10-24',
+    pdf_urls: ['https://example.com/report.pdf'],
+    questionnaire_answers: [{ ai_analysis_question_id: 1, answer: 'Yes' }],
+  });
+});
+
 test('uploads a PDF as multipart form data and returns its URL', async () => {
   request.mockResolvedValue({
     success: 1,
@@ -47,6 +66,6 @@ test('uploads a PDF as multipart form data and returns its URL', async () => {
   await expect(
     uploadReportPdf('token', { uri: 'content://report', name: 'report.pdf' }),
   ).resolves.toBe('https://example.com/report.pdf');
-  expect(request.mock.calls[0][0]).toContain('/upload');
+  expect(request.mock.calls[0][0]).toMatch(/\/upload$/);
   expect(request.mock.calls[0][1].body).toBeInstanceOf(FormData);
 });

@@ -2,7 +2,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import ArrowRight from 'lucide-react-native/icons/arrow-right';
 import FileText from 'lucide-react-native/icons/file-text';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -15,6 +15,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CustomerBooking, getCustomerBookings } from '../api/bookings';
+import { FamilyMember, getFamilyMembers } from '../api/familyMembers';
 import { AppText, BottomTabHeader } from '../components';
 import { useAppSelector } from '../store';
 import {
@@ -29,25 +30,68 @@ export function ReportsScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const token = useAppSelector(state => state.auth.session?.token);
   const [bookings, setBookings] = useState<CustomerBooking[]>([]);
+  const [members, setMembers] = useState<FamilyMember[]>([]);
+  const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [membersError, setMembersError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const reportRequestId = useRef(0);
 
-  const loadReports = useCallback(async () => {
+  const loadMembers = useCallback(async () => {
     if (!token) return;
-    setLoading(true);
-    setError(null);
+    setMembersLoading(true);
+    setMembersError(null);
     try {
-      setBookings(await getCustomerBookings(token, 'completed'));
+      const family = await getFamilyMembers(token);
+      setMembers(family);
+      setSelectedMemberId(current =>
+        family.some(member => member.member_id === current)
+          ? current
+          : (family.find(member => member.isDefault) ?? family[0])?.member_id ??
+            null,
+      );
     } catch (loadError) {
-      setError(
+      setMembersError(
         loadError instanceof Error
           ? loadError.message
-          : 'Unable to load reports.',
+          : 'Unable to load family members.',
       );
     } finally {
-      setLoading(false);
+      setMembersLoading(false);
     }
   }, [token]);
+
+  const loadReports = useCallback(async () => {
+    if (!token || selectedMemberId === null) return;
+    const requestId = ++reportRequestId.current;
+    setLoading(true);
+    setError(null);
+    setBookings([]);
+    try {
+      const memberBookings = await getCustomerBookings(
+        token,
+        'completed',
+        selectedMemberId,
+      );
+      if (requestId === reportRequestId.current) setBookings(memberBookings);
+    } catch (loadError) {
+      if (requestId === reportRequestId.current)
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : 'Unable to load reports.',
+        );
+    } finally {
+      if (requestId === reportRequestId.current) setLoading(false);
+    }
+  }, [token, selectedMemberId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadMembers();
+    }, [loadMembers]),
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -97,6 +141,58 @@ export function ReportsScreen() {
             Download completed lab reports securely for every family member.
           </AppText>
 
+          {token ? (
+            <View style={styles.memberSection}>
+              <AppText style={styles.memberTitle} weight="700">
+                Family member
+              </AppText>
+              {membersLoading && !members.length ? (
+                <ActivityIndicator color={theme.colors.primary} />
+              ) : membersError ? (
+                <Pressable onPress={loadMembers}>
+                  <AppText color={theme.colors.primary}>
+                    {membersError} Tap to retry.
+                  </AppText>
+                </Pressable>
+              ) : (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.memberList}>
+                    {members.map(member => {
+                      const selected = member.member_id === selectedMemberId;
+                      return (
+                        <Pressable
+                          key={member.member_id}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected }}
+                          onPress={() => setSelectedMemberId(member.member_id)}
+                          style={[
+                            styles.memberChip,
+                            {
+                              backgroundColor: selected
+                                ? theme.colors.primary
+                                : theme.colors.surface,
+                              borderColor: selected
+                                ? theme.colors.primary
+                                : theme.colors.border,
+                            },
+                          ]}
+                        >
+                          <AppText
+                            color={selected ? '#FFFFFF' : theme.colors.text}
+                            style={styles.memberName}
+                            weight={selected ? '700' : '500'}
+                          >
+                            {member.name}
+                          </AppText>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </ScrollView>
+              )}
+            </View>
+          ) : null}
+
           {!token ? (
             <StateCard
               title="Log in to view reports"
@@ -104,7 +200,7 @@ export function ReportsScreen() {
               action="Login"
               onPress={() => navigation.navigate('Login')}
             />
-          ) : loading && !bookings.length ? (
+          ) : (loading || membersLoading) && !bookings.length ? (
             <View style={styles.loading}>
               <ActivityIndicator color={theme.colors.primary} />
             </View>
@@ -115,6 +211,11 @@ export function ReportsScreen() {
               action="Try again"
               onPress={loadReports}
             />
+          ) : selectedMemberId === null ? (
+            <StateCard
+              title="No family members yet"
+              message="Add a family member to view their completed reports."
+            />
           ) : !bookings.length ? (
             <StateCard
               title="No reports yet"
@@ -124,7 +225,7 @@ export function ReportsScreen() {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <AppText style={styles.sectionTitle} weight="600">
-                  Previous bookings
+                  Your bookings
                 </AppText>
                 <AppText color={theme.colors.textMuted} style={styles.count}>
                   {bookings.length} total
@@ -281,6 +382,16 @@ const styles = StyleSheet.create({
   eyebrow: { fontSize: 9, lineHeight: 12, letterSpacing: 0.8, marginBottom: 4 },
   title: { fontSize: 25, lineHeight: 29, letterSpacing: -0.8 },
   subtitle: { marginTop: 4, maxWidth: 310, fontSize: 10, lineHeight: 14 },
+  memberSection: { marginTop: 20 },
+  memberTitle: { fontSize: 11, lineHeight: 16, marginBottom: 10 },
+  memberName: { fontSize: 12, lineHeight: 17 },
+  memberList: { flexDirection: 'row', gap: 8, paddingRight: 16 },
+  memberChip: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
   section: { marginTop: 20 },
   sectionHeader: {
     flexDirection: 'row',

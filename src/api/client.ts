@@ -91,8 +91,14 @@ export async function apiRequest<T>(
 
     if (!response.ok) {
       notifySessionExpired(response.status, payload);
+      const responseMessage =
+        typeof payload === 'object' && payload !== null && 'msg' in payload
+          ? payload.msg
+          : undefined;
       throw new ApiError(
-        'The request could not be completed.',
+        typeof responseMessage === 'string' && responseMessage.trim()
+          ? responseMessage
+          : 'The request could not be completed.',
         response.status,
         payload,
       );
