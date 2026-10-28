@@ -19,17 +19,19 @@ export function PinScreen({ navigation, route }: Props) {
   const dispatch = useAppDispatch();
   const { error, status } = useAppSelector(state => state.auth);
   const otpInputRef = useRef<React.ElementRef<typeof TextInput>>(null);
+  const submittingRef = useRef(false);
   const [otp, setOtp] = useState('');
 
-  const continueWithOtp = async () => {
-    if (status === 'loading') {
+  const continueWithOtp = async (code = otp) => {
+    if (submittingRef.current || status === 'loading') {
       return;
     }
 
-    if (otp.length === 6) {
+    if (code.length === 6) {
+      submittingRef.current = true;
       Keyboard.dismiss();
       try {
-        await dispatch(signIn({ phone: route.params.phone, otp })).unwrap();
+        await dispatch(signIn({ phone: route.params.phone, otp: code })).unwrap();
       } catch (verificationError) {
         const message =
           typeof verificationError === 'string'
@@ -43,6 +45,8 @@ export function PinScreen({ navigation, route }: Props) {
           });
         }
         otpInputRef.current?.focus();
+      } finally {
+        submittingRef.current = false;
       }
     } else {
       otpInputRef.current?.focus();
@@ -136,10 +140,14 @@ export function PinScreen({ navigation, route }: Props) {
           keyboardType="number-pad"
           maxLength={6}
           onChangeText={value => {
+            const code = value.replace(/\D/g, '').slice(0, 6);
             dispatch(clearAuthError());
-            setOtp(value.replace(/\D/g, '').slice(0, 6));
+            setOtp(code);
+            if (code.length === 6 && otp.length < 6) {
+              void continueWithOtp(code);
+            }
           }}
-          onSubmitEditing={continueWithOtp}
+          onSubmitEditing={() => void continueWithOtp()}
           style={styles.hiddenInput}
           value={otp}
         />
@@ -172,7 +180,7 @@ export function PinScreen({ navigation, route }: Props) {
           iconPosition="end"
           label="Continue securely"
           loading={status === 'loading'}
-          onPress={continueWithOtp}
+          onPress={() => void continueWithOtp()}
         />
         <AppButton
           fullWidth

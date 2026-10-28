@@ -13,40 +13,51 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Onboarding'>;
 export function OnboardingScreen({ navigation }: Props) {
   const { theme } = useAppTheme();
   const { width } = useWindowDimensions();
-  const artworkWidth = Math.min(width, 410);
-  const artworkHeight = artworkWidth * (1555 / 1608);
+  const cardHeight = Math.min(width - 40, 420) * 0.82;
 
   return (
     <AuthScaffold contentContainerStyle={styles.content}>
-      <HaaLogo />
+      <HaaLogo style={styles.logo} />
 
-      <Image
-        accessibilityLabel="At-home labs, quick commerce, and global store"
-        resizeMode="contain"
-        source={images.onboardingCards}
-        style={[styles.artwork, { height: artworkHeight, width: artworkWidth }]}
-      />
-
-      <View style={styles.copy}>
-        <AppText variant="title" weight="500" style={styles.title}>
-          Three ways to care.{`\n`}
+      <View style={styles.intro}>
+        <AppText
+          color={theme.colors.primary}
+          style={styles.eyebrow}
+          weight="800"
+        >
+          CARE BEGINS WITH CLARITY
+        </AppText>
+        <AppText style={styles.title} weight="500">
+          Find the right lab{'\n'}test for{' '}
           <AppText
-            variant="title"
-            weight="500"
             color={theme.colors.primary}
-            style={{ fontSize: 36 }}
+            style={styles.title}
+            weight="500"
           >
-            One HAA Health.
+            you.
           </AppText>
         </AppText>
-        <AppText
-          variant="caption"
-          color={theme.colors.textMuted}
-          style={{ fontSize: 12 }}
-        >
-          Browse freely, choose what fits, and sign in only when you are ready
-          to book or buy.
+        <AppText color={theme.colors.textMuted} style={styles.description}>
+          Compare trusted labs, individual tests and health packages—all in one
+          place.
         </AppText>
+      </View>
+
+      <View style={[styles.photoCard, { height: cardHeight }]}>
+        <Image
+          accessibilityLabel="Blood sample tubes and a lab test on a counter"
+          resizeMode="cover"
+          source={images.onboardingLabPhoto}
+          style={styles.photo}
+        />
+        <View style={styles.photoCaption}>
+          <AppText style={styles.photoEyebrow} weight="800">
+            HAA HEALTH LABS
+          </AppText>
+          <AppText style={styles.photoTitle} weight="800">
+            Clear choices. Confident care.
+          </AppText>
+        </View>
       </View>
 
       <View style={styles.spacer} />
@@ -61,7 +72,7 @@ export function OnboardingScreen({ navigation }: Props) {
         />
         <AppButton
           fullWidth
-          label="Browse as guest"
+          label="Browse labs as guest"
           onPress={() => navigation.replace('Home')}
           variant="secondary"
         />
@@ -72,45 +83,45 @@ export function OnboardingScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 20,
     paddingTop: 10,
+    paddingBottom: 20,
   },
-  artwork: {
-    alignSelf: 'center',
-    marginTop: 0,
-    marginBottom: -6,
-  },
-  copy: {
-    gap: 8,
-  },
+  logo: { width: 82, height: 43 },
+  intro: { marginTop: 28 },
+  eyebrow: { fontSize: 9, lineHeight: 13, letterSpacing: 1.2 },
   title: {
-    fontSize: 36,
-    lineHeight: 45,
-    letterSpacing: -1.1,
+    marginTop: 12,
+    fontSize: 30,
+    lineHeight: 33,
+    letterSpacing: -0.9,
   },
-  dots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 18,
+  description: { marginTop: 11, fontSize: 12, lineHeight: 17, maxWidth: 310 },
+  photoCard: {
+    marginTop: 22,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: '#071D39',
+    shadowColor: '#071D39',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 18,
+    elevation: 6,
   },
-  activeDot: {
-    width: 18,
-    height: 5,
-    borderRadius: 3,
+  photo: { width: '100%', height: '100%' },
+  photoCaption: { position: 'absolute', left: 16, right: 16, bottom: 16 },
+  photoEyebrow: {
+    color: '#FFBFC7',
+    fontSize: 8,
+    lineHeight: 11,
+    letterSpacing: 0.7,
   },
-  dot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-  },
+  photoTitle: { color: '#FFFFFF', fontSize: 13, lineHeight: 17 },
   spacer: {
-    flex: 1,
-    minHeight: 24,
+    flexGrow: 1,
+    minHeight: 28,
   },
   actions: {
     gap: 10,
-    marginBottom: 36,
   },
 });

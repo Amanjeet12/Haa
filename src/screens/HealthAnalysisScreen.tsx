@@ -2,14 +2,14 @@ import Check from 'lucide-react-native/icons/check';
 import CircleIcon from 'lucide-react-native/icons/circle';
 import FileText from 'lucide-react-native/icons/file-text';
 import Sparkles from 'lucide-react-native/icons/sparkles';
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
+  BackHandler,
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
   View,
 } from 'react-native';
@@ -558,6 +558,28 @@ function FeaturedTrend({
 }
 
 export function HealthAnalysisScreen({ navigation, route }: Props) {
+  const backToHealthView = useCallback(() => {
+    if (
+      navigation.getState().routes.some(screen => screen.name === 'HealthView')
+    ) {
+      navigation.popTo('HealthView');
+    } else {
+      navigation.replace('HealthView');
+    }
+  }, [navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => {
+          backToHealthView();
+          return true;
+        },
+      );
+      return () => subscription.remove();
+    }, [backToHealthView]),
+  );
   const { theme } = useAppTheme();
   const token = useAppSelector(state => state.auth.session?.token);
   const [report, setReport] = useState<ReportAnalysis | null>(null);
@@ -675,37 +697,6 @@ export function HealthAnalysisScreen({ navigation, route }: Props) {
     setTab(next);
     scrollRef.current?.scrollTo({ y: tabOffset.current, animated: true });
   };
-  const editReports = () => {
-    const params = {
-      memberId: route.params.memberId,
-      bookingId: route.params.bookingId,
-    };
-    if (route.params.analysisId) {
-      navigation.navigate('HealthReportSelection', params);
-    } else {
-      navigation.popTo('HealthReportSelection', params);
-    }
-  };
-  const shareSummary = async () => {
-    if (!report) return;
-    try {
-      await Share.share({
-        message: [
-          'HAA Health View',
-          `${route.params.memberName ?? 'Profile'} · ${reportDate}`,
-          report.analysis.headline,
-          report.analysis.summary,
-          ...findings.map(
-            finding =>
-              `${finding.marker}: ${finding.value} ${finding.unit} (${finding.status})`,
-          ),
-          report.analysis.disclaimer,
-        ].join('\n'),
-      });
-    } catch {
-      Alert.alert('Could not share', 'Please try again.');
-    }
-  };
 
   return (
     <LinearGradient
@@ -804,7 +795,7 @@ export function HealthAnalysisScreen({ navigation, route }: Props) {
             <HealthFlowHeader
               title="My health trends"
               subtitle="Report analysis"
-              onBack={navigation.goBack}
+              onBack={backToHealthView}
             />
             <View style={styles.errorState}>
               <AppText style={styles.errorText} weight="700">
@@ -828,7 +819,7 @@ export function HealthAnalysisScreen({ navigation, route }: Props) {
             <HealthFlowHeader
               title="My health trends"
               subtitle="Report overview"
-              onBack={navigation.goBack}
+              onBack={backToHealthView}
             />
             <ScrollView
               ref={scrollRef}
@@ -1448,40 +1439,6 @@ export function HealthAnalysisScreen({ navigation, route }: Props) {
                 </AppText>
               </View>
             </ScrollView>
-            <View
-              style={[
-                styles.footer,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderTopColor: theme.colors.border,
-                },
-              ]}
-            >
-              <Pressable
-                accessibilityRole="button"
-                onPress={editReports}
-                style={[
-                  styles.editButton,
-                  { borderColor: theme.colors.border },
-                ]}
-              >
-                <AppText style={styles.editText} weight="700">
-                  Edit reports
-                </AppText>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                onPress={shareSummary}
-                style={[
-                  styles.shareButton,
-                  { backgroundColor: theme.colors.primary },
-                ]}
-              >
-                <AppText color="#FFFFFF" style={styles.shareText} weight="800">
-                  Save / share view ↗
-                </AppText>
-              </Pressable>
-            </View>
           </>
         ) : null}
       </SafeAreaView>
@@ -1859,32 +1816,6 @@ const styles = StyleSheet.create({
   },
   stepNumber: { fontSize: 16, lineHeight: 20 },
   stepCopy: { flex: 1, fontSize: 12, lineHeight: 19 },
-  footer: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    minHeight: 76,
-    paddingHorizontal: 17,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  editButton: {
-    minHeight: 48,
-    borderWidth: 1,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 14,
-  },
-  editText: { fontSize: 11 },
-  shareButton: {
-    flex: 1,
-    minHeight: 50,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shareText: { fontSize: 12 },
   modalBackdrop: {
     flex: 1,
     justifyContent: 'flex-end',

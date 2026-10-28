@@ -38,12 +38,19 @@ function paymentFailureReason(value?: string): string {
 
 export function BookingSuccessScreen({ navigation, route }: SuccessProps) {
   const { theme } = useAppTheme();
+  const [year, month, day] = route.params.bookingDate.split('-').map(Number);
+  const bookingDate = new Date(year, month - 1, day).toLocaleDateString(
+    'en-IN',
+    { day: 'numeric', month: 'long', year: 'numeric' },
+  );
   const openBookings = () => {
     navigation.popToTop();
     navigation
       .getParent<NavigationProp<MainTabParamList>>()
       ?.navigate('Bookings');
   };
+
+  console.log('BookingSuccessScreen route.params:', route.params);
 
   return (
     <SafeAreaView
@@ -69,6 +76,9 @@ export function BookingSuccessScreen({ navigation, route }: SuccessProps) {
         </AppText>
         <AppText style={styles.referenceValue} weight="800">
           {route.params.bookingNo}
+        </AppText>
+        <AppText color={theme.colors.textMuted} style={styles.bookingDate}>
+          Collection date: {bookingDate}
         </AppText>
       </View>
       <Pressable
@@ -154,6 +164,7 @@ const styles = StyleSheet.create({
   },
   referenceLabel: { fontSize: 8, lineHeight: 10, letterSpacing: 1 },
   referenceValue: { marginTop: 6, fontSize: 15, lineHeight: 19 },
+  bookingDate: { marginTop: 8, fontSize: 11, lineHeight: 16 },
   button: {
     width: '100%',
     minHeight: 50,

@@ -129,7 +129,7 @@ export type HomeStackParamList = {
   };
   AddPatientTests: { beneficiaryId: string };
   ReviewBooking: undefined;
-  BookingSuccess: { bookingNo: string };
+  BookingSuccess: { bookingNo: string; bookingDate: string };
   BookingFailed: { bookingNo: string; reason?: string };
 };
 import type { Lab } from '../components/labs';

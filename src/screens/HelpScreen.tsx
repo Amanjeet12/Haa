@@ -4,11 +4,9 @@ import ChevronLeft from 'lucide-react-native/icons/chevron-left';
 import ChevronRight from 'lucide-react-native/icons/chevron-right';
 import Ellipsis from 'lucide-react-native/icons/ellipsis';
 import FileText from 'lucide-react-native/icons/file-text';
-import FlaskConical from 'lucide-react-native/icons/flask-conical';
 import Mail from 'lucide-react-native/icons/mail';
 import MessageCircle from 'lucide-react-native/icons/message-circle';
 import Phone from 'lucide-react-native/icons/phone';
-import CreditCard from 'lucide-react-native/icons/credit-card';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -26,21 +24,32 @@ import { useAppTheme } from '../theme';
 import { RootStackParamList } from '../types/navigation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Support'>;
-const topics = [
+const faqs = [
   {
-    title: 'Lab bookings',
-    description: 'Collection, preparation and rescheduling',
-    icon: FlaskConical,
+    question: 'How do I book a lab test on HAA Health?',
+    answer:
+      'Enter your location to see the labs serving your area. You can search for an individual test or a health package, compare the available options, then choose a date, time slot, and collection address before reviewing your booking.',
   },
   {
-    title: 'Reports & privacy',
-    description: 'Access, download and secure health data',
-    icon: FileText,
+    question:
+      'What is the difference between an individual test and a health package?',
+    answer:
+      'An individual test checks a specific health marker, such as a CBC or thyroid test. A health package brings several tests together for a broader checkup. Each listing shows what’s included so you can choose what fits your needs.',
   },
   {
-    title: 'Payments & refunds',
-    description: 'Charges, payment status and refund timelines',
-    icon: CreditCard,
+    question: 'Can I use HAA Health without signing in?',
+    answer:
+      'Yes. You can browse labs, tests, and packages as a guest. When you’re ready to make a booking, you’ll be asked to sign in so your booking and reports can be linked to your profile.',
+  },
+  {
+    question: 'Can I book tests for my family?',
+    answer:
+      'Yes. During booking, you can add a family member, assign tests to them, and add another test for the same person if needed. This helps keep each person’s bookings and reports under the right profile.',
+  },
+  {
+    question: 'How do I find my booking and report afterward?',
+    answer:
+      'The Bookings section lets you check your current and previous bookings, including their status. When a lab report is available, you can find it under the patient’s profile in the Reports section.',
   },
 ];
 
@@ -50,6 +59,7 @@ export function HelpScreen({ navigation }: Props) {
   const [requests, setRequests] = useState<SupportTicket[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [requestsError, setRequestsError] = useState(false);
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const loadRequests = useCallback(async () => {
     if (!token) return;
     setRequestsLoading(true);
@@ -338,37 +348,43 @@ export function HelpScreen({ navigation }: Props) {
           </View>
         ) : null}
         <AppText weight="800" style={styles.section}>
-          Help by topic
+          Frequently asked questions
         </AppText>
         <View style={[styles.topics, panel]}>
-          {topics.map(({ title, description, icon: Icon }, index) => (
+          {faqs.map(({ question, answer }, index) => (
             <Pressable
-              key={title}
+              key={question}
               accessibilityRole="button"
-              onPress={() => guarded(createTicket)}
+              accessibilityState={{ expanded: expandedFaq === index }}
+              onPress={() =>
+                setExpandedFaq(current => (current === index ? null : index))
+              }
               style={[
                 styles.topic,
                 index > 0 && styles.topicDivider,
                 { borderTopColor: theme.colors.border },
               ]}
             >
-              <View
-                style={[
-                  styles.icon,
-                  { backgroundColor: theme.colors.primarySoft },
-                ]}
-              >
-                <Icon size={18} color={theme.colors.primary} />
-              </View>
               <View style={styles.copy}>
-                <AppText weight="700" style={styles.topicTitle}>
-                  {title}
-                </AppText>
-                <AppText color={theme.colors.textMuted} style={styles.caption}>
-                  {description}
-                </AppText>
+                <View style={styles.faqQuestionRow}>
+                  <AppText weight="700" style={styles.faqQuestion}>
+                    {question}
+                  </AppText>
+                  <ChevronRight
+                    size={15}
+                    color={theme.colors.textMuted}
+                    style={expandedFaq === index && styles.faqChevronOpen}
+                  />
+                </View>
+                {expandedFaq === index ? (
+                  <AppText
+                    color={theme.colors.textMuted}
+                    style={styles.faqAnswer}
+                  >
+                    {answer}
+                  </AppText>
+                ) : null}
               </View>
-              <ChevronRight size={15} color={theme.colors.textMuted} />
             </Pressable>
           ))}
         </View>
@@ -450,6 +466,10 @@ const styles = StyleSheet.create({
   },
   topicDivider: { borderTopWidth: StyleSheet.hairlineWidth },
   topicTitle: { fontSize: 11, lineHeight: 15 },
+  faqQuestionRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  faqQuestion: { flex: 1, fontSize: 11, lineHeight: 16 },
+  faqChevronOpen: { transform: [{ rotate: '90deg' }] },
+  faqAnswer: { marginTop: 9, fontSize: 10, lineHeight: 16 },
   copy: { flex: 1 },
   care: {
     marginTop: 20,

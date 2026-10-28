@@ -23,6 +23,7 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import RazorpayCheckout, { PaymentFailure } from 'react-native-razorpay';
+import Toast from 'react-native-toast-message';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -130,7 +131,6 @@ export function ReviewBookingScreen({ navigation }: Props) {
     null,
   );
   const [bookingLoading, setBookingLoading] = useState(false);
-  const [bookingError, setBookingError] = useState<string | null>(null);
   const total = cart.items.reduce(
     (sum, item) =>
       sum +
@@ -270,6 +270,32 @@ export function ReviewBookingScreen({ navigation }: Props) {
 
   const selectedAddress =
     addresses.find(item => item.address_id === selectedAddressId) ?? null;
+  const selectedLocation = selectedAddress?.billing_address?.location;
+  const canProceedToPayment = Boolean(
+    authToken &&
+      customer &&
+      cart.labId &&
+      cart.items.length &&
+      selectedBookingDate &&
+      !slotsLoading &&
+      !addressesLoading &&
+      slots.some(
+        slot =>
+          slot.slot_id === selectedSlotId &&
+          slot.booking_date === selectedBookingDate &&
+          isSlotBookable(slot),
+      ) &&
+      selectedAddress?.billing_address &&
+      (selectedLocation?.latitude ?? selectedLocation?.lat) !== undefined &&
+      (selectedLocation?.longitude ?? selectedLocation?.lng) !== undefined &&
+      cart.items.every(
+        item =>
+          item.beneficiaryIds.length > 0 &&
+          item.beneficiaryIds.every(id => /^member-\d+$/.test(id)),
+      ),
+  );
+  const showBookingError = (message: string) =>
+    Toast.show({ type: 'error', text1: 'Unable to proceed', text2: message });
 
   const goToLogin = () => {
     dispatch(requestBookingLogin());
@@ -293,11 +319,11 @@ export function ReviewBookingScreen({ navigation }: Props) {
       return;
     }
     if (!selectedSlotId) {
-      setBookingError('Select an available collection slot.');
+      showBookingError('Select an available collection slot.');
       return;
     }
     if (!selectedAddress?.billing_address) {
-      setBookingError('Select a collection address.');
+      showBookingError('Select a collection address.');
       return;
     }
 
@@ -311,7 +337,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
       })),
     );
     if (!items.length || items.some(item => !item.family_member_id)) {
-      setBookingError('Select a saved patient for every test.');
+      showBookingError('Select a saved patient for every test.');
       return;
     }
 
@@ -320,12 +346,11 @@ export function ReviewBookingScreen({ navigation }: Props) {
     const lat = location?.latitude ?? location?.lat;
     const lng = location?.longitude ?? location?.lng;
     if (lat === undefined || lng === undefined) {
-      setBookingError('The selected address is missing map coordinates.');
+      showBookingError('The selected address is missing map coordinates.');
       return;
     }
 
     setBookingLoading(true);
-    setBookingError(null);
     try {
       const payment = await createBooking(authToken, {
         booking_date: selectedBookingDate,
@@ -363,6 +388,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
         dispatch(clearCart());
         navigation.replace('BookingSuccess', {
           bookingNo: payment.booking_order.booking_no,
+          bookingDate: selectedBookingDate,
         });
       } catch (error) {
         const failure = error as PaymentFailure;
@@ -372,7 +398,7 @@ export function ReviewBookingScreen({ navigation }: Props) {
         });
       }
     } catch (error) {
-      setBookingError(
+      showBookingError(
         error instanceof Error ? error.message : 'Unable to create booking.',
       );
     } finally {
@@ -1173,23 +1199,18 @@ export function ReviewBookingScreen({ navigation }: Props) {
             <AppText style={styles.total} weight="800">
               {formatINR(total)}
             </AppText>
-            <AppText
-              color={bookingError ? theme.colors.danger : '#078A73'}
-              numberOfLines={2}
-              style={bookingError ? styles.bookingError : styles.noFees}
-              weight="700"
-            >
-              {bookingError ?? 'No collection fee'}
+            <AppText color="#078A73" style={styles.noFees} weight="700">
+              No collection fee
             </AppText>
           </View>
           <Pressable
-            disabled={!cart.items.length || bookingLoading}
+            disabled={!canProceedToPayment || bookingLoading}
             onPress={proceedToPayment}
             style={[
               styles.pay,
               {
                 backgroundColor:
-                  cart.items.length && !bookingLoading
+                  canProceedToPayment && !bookingLoading
                     ? theme.colors.primary
                     : theme.colors.border,
               },
@@ -2000,7 +2021,6 @@ const styles = StyleSheet.create({
   totalLabel: { fontSize: 7, lineHeight: 9 },
   total: { fontSize: 17, lineHeight: 20 },
   noFees: { fontSize: 6, lineHeight: 8 },
-  bookingError: { maxWidth: 150, marginTop: 2, fontSize: 7, lineHeight: 9 },
   pay: {
     height: 43,
     borderRadius: 12,

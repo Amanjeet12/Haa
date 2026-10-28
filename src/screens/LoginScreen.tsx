@@ -23,6 +23,9 @@ function formatPhoneNumber(value: string) {
 
 export function LoginScreen({ navigation }: Props) {
   const { theme } = useAppTheme();
+  const openedFromApp = navigation.getState().routes.some(
+    screen => screen.name === 'Home',
+  );
   const phoneInputRef = useRef<React.ElementRef<typeof TextInput>>(null);
   const [phone, setPhone] = useState('');
   const [sendingOtp, setSendingOtp] = useState(false);
@@ -173,12 +176,14 @@ export function LoginScreen({ navigation }: Props) {
           loading={sendingOtp}
           onPress={continueSecurely}
         />
-        <AppButton
-          fullWidth
-          label="Keep browsing as guest"
-          onPress={() => navigation.replace('Home')}
-          variant="secondary"
-        />
+        {!openedFromApp && (
+          <AppButton
+            fullWidth
+            label="Keep browsing as guest"
+            onPress={() => navigation.replace('Home')}
+            variant="secondary"
+          />
+        )}
         <AppText
           variant="caption"
           color={theme.colors.textMuted}

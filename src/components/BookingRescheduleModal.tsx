@@ -74,7 +74,19 @@ export function BookingRescheduleModal({
     getLabSlots(booking.lab.lab_id, bookingDate)
       .then(result => {
         if (!active) return;
-        const available = result.filter(slot => slot.isActive);
+        const bookedSlotIds = new Set(
+          booking.members.flatMap(member =>
+            member.tests.map(test => test.slot.slot_id),
+          ),
+        );
+        const available = result.filter(
+          slot =>
+            slot.isActive &&
+            !(
+              bookingDate === booking.booking_date &&
+              bookedSlotIds.has(slot.slot_id)
+            ),
+        );
         setSlots(available);
         setSelectedSlotId(available.find(isBookable)?.slot_id ?? null);
       })
@@ -102,7 +114,13 @@ export function BookingRescheduleModal({
   };
 
   const submit = async () => {
-    if (!booking || !selectedSlotId || submitting) return;
+    if (
+      !booking ||
+      !selectedSlotId ||
+      submitting ||
+      !slots.some(slot => slot.slot_id === selectedSlotId && isBookable(slot))
+    )
+      return;
     setSubmitting(true);
     setError(null);
     try {
