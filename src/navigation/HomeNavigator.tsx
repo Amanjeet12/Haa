@@ -10,6 +10,7 @@ import { HealthResultDetailScreen } from '../screens/HealthResultDetailScreen';
 import { HealthRecommendationsScreen } from '../screens/HealthRecommendationsScreen';
 import { HaaPlusScreen } from '../screens/HaaPlusScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { BookingReviewScreen } from '../screens/BookingReviewScreen';
 import { BlogScreen } from '../screens/BlogScreen';
 import { SearchScreen } from '../screens/SearchScreen';
 import { ProductSearchScreen } from '../screens/ProductSearchScreen';
@@ -62,6 +63,7 @@ export function HomeNavigator() {
       screenOptions={{ headerShown: false }}
     >
       <Stack.Screen name="HomeLanding" component={HomeScreen} />
+      <Stack.Screen name="BookingReview" component={BookingReviewScreen} />
       <Stack.Screen name="Blog" component={BlogScreen} />
       <Stack.Screen name="HealthView" component={HealthViewLandingScreen} />
       <Stack.Screen

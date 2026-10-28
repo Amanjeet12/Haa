@@ -36,6 +36,115 @@ export type BookingPaymentData = {
   key_id: string;
 };
 
+export type PendingBookingReview = {
+  booking_order_id: number;
+  booking_no: string;
+  booking_date: string;
+  booking_status: string;
+  total_final_amount: string;
+  collection_address?: { address?: string; city?: string };
+  lab: { lab_id: number; lab_name: string; image?: string | null };
+  pending_overall_review: boolean;
+  pending_phlebo_review?: boolean;
+  phlebo_id?: number | null;
+  overall_rating?: number | null;
+  overall_review?: string | null;
+  phlebo_rating?: number | null;
+  phlebo_review?: string | null;
+};
+
+// Keep successful submissions for this session so an older pending response
+// cannot prompt the customer again while navigating back to Home.
+const submittedReviews = new Map<string, Set<'overall' | 'phlebo'>>();
+
+function rememberSubmittedReview(
+  token: string,
+  bookingId: number,
+  kind: 'overall' | 'phlebo',
+) {
+  const key = `${token}:${bookingId}`;
+  const submitted =
+    submittedReviews.get(key) ?? new Set<'overall' | 'phlebo'>();
+  submitted.add(kind);
+  submittedReviews.set(key, submitted);
+}
+
+export function pendingBookingReviewForDisplay(
+  token: string,
+  booking: PendingBookingReview | null,
+): PendingBookingReview | null {
+  if (!booking || booking.booking_status !== 'completed') return null;
+  const submitted = submittedReviews.get(
+    `${token}:${booking.booking_order_id}`,
+  );
+  const overallPending =
+    booking.pending_overall_review === true && !submitted?.has('overall');
+  const phleboPending =
+    booking.pending_phlebo_review === true && !submitted?.has('phlebo');
+  if (!overallPending && !phleboPending) return null;
+  return {
+    ...booking,
+    pending_overall_review: overallPending,
+    pending_phlebo_review: phleboPending,
+  };
+}
+
+export async function getLastPendingBookingReview(token: string) {
+  const response = await apiRequest<{
+    success: number | string;
+    msg?: string;
+    data: PendingBookingReview | null;
+  }>(`${apiBaseUrl}/customer/test_booking_orders/last_pending_review`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (Number(response.success) !== 1) {
+    throw new Error(response.msg || 'Unable to load pending review.');
+  }
+  return pendingBookingReviewForDisplay(token, response.data);
+}
+
+export async function submitBookingOverallReview(
+  token: string,
+  bookingOrderId: number,
+  rating: number,
+  review: string,
+) {
+  const response = await apiRequest<{ success: number | string; msg?: string }>(
+    `${apiBaseUrl}/customer/test_booking_orders/overall_review/${bookingOrderId}`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ rating, review }),
+    },
+  );
+  if (Number(response.success) !== 1) {
+    throw new Error(response.msg || 'Unable to submit review.');
+  }
+  rememberSubmittedReview(token, bookingOrderId, 'overall');
+  return response;
+}
+
+export async function submitBookingPhleboReview(
+  token: string,
+  bookingOrderId: number,
+  rating: number,
+  review: string,
+) {
+  const response = await apiRequest<{ success: number | string; msg?: string }>(
+    `${apiBaseUrl}/customer/test_booking_orders/phlebo_review/${bookingOrderId}`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ rating, review }),
+    },
+  );
+  if (Number(response.success) !== 1) {
+    throw new Error(response.msg || 'Unable to submit phlebotomist review.');
+  }
+  rememberSubmittedReview(token, bookingOrderId, 'phlebo');
+  return response;
+}
+
 type CreateBookingResponse = {
   success: number | string;
   msg: string;

@@ -131,5 +131,9 @@ export type HomeStackParamList = {
   ReviewBooking: undefined;
   BookingSuccess: { bookingNo: string; bookingDate: string };
   BookingFailed: { bookingNo: string; reason?: string };
+  BookingReview: {
+    booking: import('../api/bookings').PendingBookingReview;
+    rating: number;
+  };
 };
 import type { Lab } from '../components/labs';

@@ -131,6 +131,7 @@ export function MainTabs() {
                 'ReviewBooking',
                 'BookingSuccess',
                 'BookingFailed',
+                'BookingReview',
               ].includes(getFocusedRouteNameFromRoute(route) ?? ''))
               ? 'none'
               : 'flex',

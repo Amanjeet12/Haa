@@ -10,11 +10,13 @@ import Zap from 'lucide-react-native/icons/zap';
 import X from 'lucide-react-native/icons/x';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useIsFocused } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   ImageBackground,
   Image,
   ActivityIndicator,
+  AppState,
   Modal,
   Pressable,
   ScrollView,
@@ -41,6 +43,12 @@ import { Blog, getBlogs } from '../api/blogs';
 import { getEcommerceEnabled } from '../api/ecommerceSettings';
 import { FeaturedLabs } from '../components/labs/FeaturedLabs';
 import { BookingChooser } from '../components/BookingChooser';
+import { BookingReviewSheet } from '../components/BookingReviewSheet';
+import {
+  getLastPendingBookingReview,
+  pendingBookingReviewForDisplay,
+  PendingBookingReview,
+} from '../api/bookings';
 
 type ServiceLocation = {
   id: string;
@@ -55,6 +63,7 @@ type HomeScreenProps = NativeStackScreenProps<
 >;
 
 export function HomeScreen({ navigation }: HomeScreenProps) {
+  const isFocused = useIsFocused();
   const { theme } = useAppTheme();
   const dispatch = useAppDispatch();
   const token = useAppSelector(state => state.auth.session?.token);
@@ -73,6 +82,47 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const [labCountError, setLabCountError] = useState(false);
   const [labCountZoneId, setLabCountZoneId] = useState<number | null>(null);
   const [areaLabs, setAreaLabs] = useState<ApiLab[]>([]);
+  const [pendingReview, setPendingReview] =
+    useState<PendingBookingReview | null>(null);
+  const reviewToShow = useMemo(
+    () =>
+      token && isFocused
+        ? pendingBookingReviewForDisplay(token, pendingReview)
+        : null,
+    [token, isFocused, pendingReview],
+  );
+  useEffect(() => {
+    if (!token) {
+      setPendingReview(null);
+      return;
+    }
+    let active = true;
+    let requestId = 0;
+    let wasBackgrounded = AppState.currentState === 'background';
+    const fetchPendingReview = () => {
+      const currentRequest = ++requestId;
+      getLastPendingBookingReview(token)
+        .then(booking => {
+          if (active && currentRequest === requestId) setPendingReview(booking);
+        })
+        .catch(() => {
+          if (active && currentRequest === requestId) setPendingReview(null);
+        });
+    };
+    if (!wasBackgrounded) fetchPendingReview();
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'background') {
+        wasBackgrounded = true;
+      } else if (state === 'active' && wasBackgrounded) {
+        wasBackgrounded = false;
+        fetchPendingReview();
+      }
+    });
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, [token]);
   const serviceLocations = useMemo(
     () =>
       zones.map(zone => ({
@@ -958,6 +1008,17 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
           </SafeAreaView>
         </View>
       </Modal>
+      {token ? (
+        <BookingReviewSheet
+          booking={reviewToShow}
+          token={token}
+          onClose={() => setPendingReview(null)}
+          onWriteReview={(booking, rating) => {
+            setPendingReview(null);
+            navigation.navigate('BookingReview', { booking, rating });
+          }}
+        />
+      ) : null}
     </>
   );
 }
