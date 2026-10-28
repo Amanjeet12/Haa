@@ -481,11 +481,11 @@ const styles = StyleSheet.create({
   progress: { flex: 1, height: 4, borderRadius: 3 },
   heroTitle: {
     marginTop: 24,
-    fontSize: 26,
-    lineHeight: 31,
+    fontSize: 23,
+    lineHeight: 28,
     letterSpacing: -0.8,
   },
-  heroSubtitle: { marginTop: 10, fontSize: 13, lineHeight: 20 },
+  heroSubtitle: { marginTop: 10, fontSize: 12, lineHeight: 18 },
   personBanner: {
     minHeight: 70,
     borderRadius: 15,

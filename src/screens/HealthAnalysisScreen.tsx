@@ -25,6 +25,7 @@ import Svg, {
 
 import {
   analyzeReport,
+  getReportAnalysisById,
   type ReportAnalysis,
   type ReportFinding,
   type ReportTrend,
@@ -586,7 +587,9 @@ export function HealthAnalysisScreen({ navigation, route }: Props) {
     setPhase(route.params.outsideReports.length ? 'upload' : 'analyze');
     try {
       const pdfUrls: string[] = [];
-      for (const file of route.params.outsideReports) {
+      for (const file of route.params.analysisId
+        ? []
+        : route.params.outsideReports) {
         const url =
           uploadedUrls.current[file.uri] ??
           (await uploadReportPdf(token, file));
@@ -594,17 +597,20 @@ export function HealthAnalysisScreen({ navigation, route }: Props) {
         pdfUrls.push(url);
       }
       setPhase('analyze');
-      const result = await analyzeReport(token, route.params.bookingId, {
-        ...(!route.params.bookingId
-          ? {
-              family_member_id: route.params.memberId,
-              report_date:
-                route.params.reportDate ?? new Date().toLocaleDateString('en-CA'),
-            }
-          : {}),
-        ...(pdfUrls.length ? { pdf_urls: pdfUrls } : {}),
-        questionnaire_answers: route.params.answers,
-      });
+      const result = route.params.analysisId
+        ? await getReportAnalysisById(token, route.params.analysisId)
+        : await analyzeReport(token, route.params.bookingId, {
+            ...(!route.params.bookingId
+              ? {
+                  family_member_id: route.params.memberId,
+                  report_date:
+                    route.params.reportDate ??
+                    new Date().toLocaleDateString('en-CA'),
+                }
+              : {}),
+            ...(pdfUrls.length ? { pdf_urls: pdfUrls } : {}),
+            questionnaire_answers: route.params.answers,
+          });
       setReport(result);
     } catch (analysisError) {
       setError(
@@ -669,11 +675,17 @@ export function HealthAnalysisScreen({ navigation, route }: Props) {
     setTab(next);
     scrollRef.current?.scrollTo({ y: tabOffset.current, animated: true });
   };
-  const editReports = () =>
-    navigation.popTo('HealthReportSelection', {
+  const editReports = () => {
+    const params = {
       memberId: route.params.memberId,
       bookingId: route.params.bookingId,
-    });
+    };
+    if (route.params.analysisId) {
+      navigation.navigate('HealthReportSelection', params);
+    } else {
+      navigation.popTo('HealthReportSelection', params);
+    }
+  };
   const shareSummary = async () => {
     if (!report) return;
     try {

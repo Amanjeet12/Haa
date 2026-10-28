@@ -7,7 +7,6 @@ import FileText from 'lucide-react-native/icons/file-text';
 import FlaskConical from 'lucide-react-native/icons/flask-conical';
 import Mail from 'lucide-react-native/icons/mail';
 import MessageCircle from 'lucide-react-native/icons/message-circle';
-import Package from 'lucide-react-native/icons/package';
 import Phone from 'lucide-react-native/icons/phone';
 import CreditCard from 'lucide-react-native/icons/credit-card';
 import React, { useCallback, useState } from 'react';
@@ -32,11 +31,6 @@ const topics = [
     title: 'Lab bookings',
     description: 'Collection, preparation and rescheduling',
     icon: FlaskConical,
-  },
-  {
-    title: 'Orders & delivery',
-    description: 'Quick and Global Store assistance',
-    icon: Package,
   },
   {
     title: 'Reports & privacy',

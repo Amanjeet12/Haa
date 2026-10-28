@@ -56,6 +56,7 @@ export type HomeStackParamList = {
     reportTitle?: string;
   };
   HealthTrends: {
+    analysisId?: number;
     focusTab?: 'steps';
     bookingId?: number;
     memberId: number;

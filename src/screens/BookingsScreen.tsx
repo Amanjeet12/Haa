@@ -386,7 +386,7 @@ function BookingCard({
           style={styles.bookingNo}
           weight="700"
         >
-          BOOKING {booking.booking_no}
+          BOK {booking.booking_no}
         </AppText>
         <View
           style={[
@@ -427,13 +427,18 @@ function BookingCard({
           <AppText style={styles.labName} weight="800">
             {firstTest?.test.test_name ?? booking.lab.lab_name}
           </AppText>
-          <AppText
-            color={theme.colors.textMuted}
-            style={styles.testSummary}
-            numberOfLines={1}
-          >
-            {booking.lab.lab_name} · {memberNames}
-          </AppText>
+          <View style={styles.labAndPriceRow}>
+            <AppText
+              color={theme.colors.textMuted}
+              style={styles.testSummary}
+              numberOfLines={1}
+            >
+              {booking.lab.lab_name} · {memberNames}
+            </AppText>
+            <AppText style={styles.price} weight="800">
+              {formatINR(Number(booking.total_final_amount))}
+            </AppText>
+          </View>
           <View style={styles.appointmentRow}>
             <Clock3 color={theme.colors.textMuted} size={11} />
             <AppText
@@ -445,9 +450,6 @@ function BookingCard({
             </AppText>
           </View>
         </View>
-        <AppText style={styles.price} weight="800">
-          {formatINR(Number(booking.total_final_amount))}
-        </AppText>
       </View>
       {cancellationStatus && (
         <View
@@ -659,7 +661,7 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 8, lineHeight: 11 },
   mainRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 10,
     marginTop: 12,
   },
@@ -674,17 +676,23 @@ const styles = StyleSheet.create({
   dateWeekday: { fontSize: 7, lineHeight: 9 },
   dateDay: { fontSize: 18, lineHeight: 20 },
   dateMonth: { fontSize: 7, lineHeight: 9 },
-  grow: { flex: 1 },
+  grow: { flex: 1, minWidth: 0 },
   labName: { fontSize: 14, lineHeight: 18 },
-  testSummary: { marginTop: 3, fontSize: 9, lineHeight: 12 },
+  labAndPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 3,
+  },
+  testSummary: { flex: 1, minWidth: 0, fontSize: 9, lineHeight: 12 },
   appointmentRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     marginTop: 6,
   },
-  appointmentText: { fontSize: 9, lineHeight: 12 },
-  price: { fontSize: 15, lineHeight: 19 },
+  appointmentText: { flexShrink: 1, fontSize: 9, lineHeight: 12 },
+  price: { flexShrink: 0, fontSize: 15, lineHeight: 19 },
   progressRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -739,13 +747,15 @@ const styles = StyleSheet.create({
     flex: 1.25,
     minHeight: 38,
     borderRadius: 11,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
   },
   viewButtonFull: { flexBasis: '100%' },
-  viewArrow: { transform: [{ rotate: '-90deg' }] },
+  viewArrow: {
+    position: 'absolute',
+    right: 14,
+    transform: [{ rotate: '-90deg' }],
+  },
   stateCard: {
     borderWidth: 1,
     borderRadius: 18,

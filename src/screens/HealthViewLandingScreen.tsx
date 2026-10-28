@@ -76,8 +76,6 @@ export function HealthViewLandingScreen({ navigation }: Props) {
   const [analysesError, setAnalysesError] = useState(false);
   const [nextStart, setNextStart] = useState<number | null>(null);
   const [total, setTotal] = useState(0);
-  const [openedAnalysis, setOpenedAnalysis] =
-    useState<FamilyReportAnalysis | null>(null);
   const selectedMember = members.find(
     member => member.member_id === selectedId,
   );
@@ -152,7 +150,6 @@ export function HealthViewLandingScreen({ navigation }: Props) {
   const chooseMember = (id: number) => {
     setSelectedId(id);
     setAnalyses([]);
-    setOpenedAnalysis(null);
   };
   const recent = analyses[0];
 
@@ -160,7 +157,19 @@ export function HealthViewLandingScreen({ navigation }: Props) {
     <Pressable
       key={analysis.report_analysis_id}
       accessibilityRole="button"
-      onPress={() => setOpenedAnalysis(analysis)}
+      onPress={() =>
+        selectedId !== null &&
+        navigation.navigate('HealthTrends', {
+          analysisId: analysis.report_analysis_id,
+          memberId: selectedId,
+          memberName: selectedMember ? displayName(selectedMember) : undefined,
+          outsideReports: [],
+          answers: [],
+          reportCount: analysis.source_pdf_urls.length,
+          reportDate: analysis.report_date,
+          reportTitle: analysis.headline ?? undefined,
+        })
+      }
       style={[
         styles.analysisCard,
         {
@@ -208,10 +217,6 @@ export function HealthViewLandingScreen({ navigation }: Props) {
           title="HAA Health View"
           subtitle="AI pilot"
           onBack={() => {
-            if (openedAnalysis) {
-              setOpenedAnalysis(null);
-              return;
-            }
             dispatch(clearHealthViewLoginReturn());
             if (navigation.canGoBack()) navigation.goBack();
             else navigation.replace('HomeLanding');
@@ -268,7 +273,6 @@ export function HealthViewLandingScreen({ navigation }: Props) {
                 accessibilityState={{ selected: tab === item }}
                 onPress={() => {
                   setTab(item);
-                  setOpenedAnalysis(null);
                 }}
                 style={[
                   styles.tab,
@@ -288,48 +292,7 @@ export function HealthViewLandingScreen({ navigation }: Props) {
             ))}
           </View>
 
-          {openedAnalysis ? (
-            <View style={styles.section}>
-              <Pressable
-                onPress={() => setOpenedAnalysis(null)}
-                style={styles.backLink}
-              >
-                <AppText color={theme.colors.primary} weight="700">
-                  ← Analysis history
-                </AppText>
-              </Pressable>
-              <AppText style={styles.sectionTitle} weight="800">
-                {openedAnalysis.headline || 'Report analysis'}
-              </AppText>
-              <AppText color={theme.colors.textMuted} style={styles.detailDate}>
-                Analyzed{' '}
-                {formatDate(
-                  openedAnalysis.analyzed_at ?? openedAnalysis.createdAt,
-                )}
-              </AppText>
-              <View
-                style={[
-                  styles.summaryCard,
-                  {
-                    backgroundColor: theme.colors.surface,
-                    borderColor: theme.colors.border,
-                  },
-                ]}
-              >
-                <AppText style={styles.summaryHeading} weight="800">
-                  Summary
-                </AppText>
-                <AppText
-                  color={theme.colors.textMuted}
-                  style={styles.summaryText}
-                >
-                  {openedAnalysis.summary ||
-                    openedAnalysis.error_message ||
-                    'No summary is available for this analysis.'}
-                </AppText>
-              </View>
-            </View>
-          ) : tab === 'new' ? (
+          {tab === 'new' ? (
             <>
               {recent ? (
                 <>
@@ -526,7 +489,9 @@ export function HealthViewLandingScreen({ navigation }: Props) {
                   })}
                 </ScrollView>
               </View>
-              <View style={[styles.sectionHeadingRow, styles.historyHeadingRow]}>
+              <View
+                style={[styles.sectionHeadingRow, styles.historyHeadingRow]}
+              >
                 <AppText style={styles.sectionTitle} weight="800">
                   Analysis history
                 </AppText>
@@ -540,8 +505,8 @@ export function HealthViewLandingScreen({ navigation }: Props) {
                 color={theme.colors.textMuted}
                 style={[styles.sectionSubtitle, styles.historySubtitle]}
               >
-                Previous analyses for your profile. Open one to revisit its
-                summary.
+                Previous analyses for your profile. Open one to view its results
+                and trends.
               </AppText>
               {analyses.map(analysisCard)}
               {analysesLoading ? (
@@ -580,59 +545,54 @@ export function HealthViewLandingScreen({ navigation }: Props) {
             </>
           )}
         </ScrollView>
-        {!openedAnalysis ? (
-          <View
+        <View
+          style={[
+            styles.footer,
+            {
+              backgroundColor: theme.colors.surface,
+              borderTopColor: theme.colors.border,
+            },
+          ]}
+        >
+          <View style={styles.footerCopy}>
+            <AppText color={theme.colors.textMuted} style={styles.footerLabel}>
+              Selected profile
+            </AppText>
+            <AppText style={styles.footerName} weight="800" numberOfLines={1}>
+              {selectedMember
+                ? displayName(selectedMember)
+                : 'Choose a profile'}
+            </AppText>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: selectedId === null }}
+            disabled={selectedId === null}
+            onPress={() =>
+              selectedId !== null &&
+              navigation.navigate('HealthReportSelection', {
+                memberId: selectedId,
+              })
+            }
             style={[
-              styles.footer,
+              styles.footerButton,
               {
-                backgroundColor: theme.colors.surface,
-                borderTopColor: theme.colors.border,
+                backgroundColor:
+                  selectedId === null
+                    ? theme.colors.textMuted
+                    : theme.colors.primary,
               },
             ]}
           >
-            <View style={styles.footerCopy}>
-              <AppText
-                color={theme.colors.textMuted}
-                style={styles.footerLabel}
-              >
-                Selected profile
-              </AppText>
-              <AppText style={styles.footerName} weight="800" numberOfLines={1}>
-                {selectedMember
-                  ? displayName(selectedMember)
-                  : 'Choose a profile'}
-              </AppText>
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ disabled: selectedId === null }}
-              disabled={selectedId === null}
-              onPress={() =>
-                selectedId !== null &&
-                navigation.navigate('HealthReportSelection', {
-                  memberId: selectedId,
-                })
-              }
-              style={[
-                styles.footerButton,
-                {
-                  backgroundColor:
-                    selectedId === null
-                      ? theme.colors.textMuted
-                      : theme.colors.primary,
-                },
-              ]}
+            <AppText
+              color="#FFFFFF"
+              weight="800"
+              style={styles.footerButtonText}
             >
-              <AppText
-                color="#FFFFFF"
-                weight="800"
-                style={styles.footerButtonText}
-              >
-                {tab === 'new' ? 'Select reports' : 'Start new analysis'} →
-              </AppText>
-            </Pressable>
-          </View>
-        ) : null}
+              {tab === 'new' ? 'Select reports' : 'Start new analysis'} →
+            </AppText>
+          </Pressable>
+        </View>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -647,11 +607,11 @@ const styles = StyleSheet.create({
   progress: { flex: 1, height: 4, borderRadius: 3 },
   heroTitle: {
     marginTop: 24,
-    fontSize: 26,
-    lineHeight: 31,
+    fontSize: 23,
+    lineHeight: 28,
     letterSpacing: -0.8,
   },
-  heroSubtitle: { marginTop: 10, fontSize: 13, lineHeight: 19 },
+  heroSubtitle: { marginTop: 10, fontSize: 12, lineHeight: 18 },
   tabs: { flexDirection: 'row', padding: 5, borderRadius: 15, marginTop: 22 },
   tab: {
     flex: 1,
@@ -716,8 +676,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 13,
   },
-  profileName: { fontSize: 15, lineHeight: 20 },
-  profileDetail: { fontSize: 11, lineHeight: 16, marginTop: 3 },
+  profileName: { fontSize: 14, lineHeight: 19 },
+  profileDetail: { fontSize: 10, lineHeight: 15, marginTop: 3 },
   profilePrivacy: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -758,11 +718,6 @@ const styles = StyleSheet.create({
   state: { marginVertical: 15, alignSelf: 'center' },
   empty: { marginVertical: 12, fontSize: 11, lineHeight: 16 },
   loadMore: { alignSelf: 'center', padding: 12 },
-  backLink: { marginBottom: 20 },
-  detailDate: { marginTop: 6, fontSize: 11 },
-  summaryCard: { marginTop: 20, padding: 18, borderWidth: 1, borderRadius: 16 },
-  summaryHeading: { fontSize: 14 },
-  summaryText: { fontSize: 12, lineHeight: 19, marginTop: 9 },
   footer: {
     minHeight: 78,
     borderTopWidth: StyleSheet.hairlineWidth,

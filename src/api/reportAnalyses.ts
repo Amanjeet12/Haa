@@ -17,7 +17,7 @@ export type ReportTrend = {
     date: string;
     value: number;
     status: string;
-    booking_id: number;
+    booking_id: number | null;
   }>;
   latest_value: number | null;
   previous_value: number | null;
@@ -26,7 +26,7 @@ export type ReportTrend = {
 
 export type ReportAnalysis = {
   report_analysis_id: number;
-  booking_id: number;
+  booking_id: number | null;
   report_date: string;
   source_pdf_urls: string[];
   status: string;
@@ -45,7 +45,7 @@ export type ReportAnalysis = {
 
 export type FamilyReportAnalysis = {
   report_analysis_id: number;
-  booking_id: number;
+  booking_id: number | null;
   report_date: string;
   source_pdf_urls: string[];
   status: string;
@@ -79,6 +79,20 @@ export async function getFamilyMemberReportAnalyses(
     throw new Error(response.msg || 'Unable to fetch previous analyses.');
   }
   return { analyses: response.data.report_analyses, meta: response.meta };
+}
+
+export async function getReportAnalysisById(token: string, analysisId: number) {
+  const response = await apiRequest<{
+    success: number | string;
+    msg: string;
+    data: ReportAnalysis;
+  }>(`${apiBaseUrl}/customer/report-analyses/by-id/${analysisId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (Number(response.success) !== 1 || !response.data?.analysis) {
+    throw new Error(response.msg || 'Unable to fetch report analysis.');
+  }
+  return response.data;
 }
 
 type UploadResponse = {
@@ -147,17 +161,23 @@ export async function analyzeReport(
     questionnaire_answers: input.questionnaire_answers,
   };
   if (__DEV__)
-    console.log('[Report analysis request body]', JSON.stringify(body, null, 2));
+    console.log(
+      '[Report analysis request body]',
+      JSON.stringify(body, null, 2),
+    );
   const response = await apiRequest<{
     success: number | string;
     msg: string;
     data: ReportAnalysis;
-  }>(`${apiBaseUrl}/customer/report-analyses${bookingId ? `/${bookingId}` : ''}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-    body: JSON.stringify(body),
-    timeoutMs: 120_000,
-  });
+  }>(
+    `${apiBaseUrl}/customer/report-analyses${bookingId ? `/${bookingId}` : ''}`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+      timeoutMs: 120_000,
+    },
+  );
   if (Number(response.success) !== 1 || !response.data?.analysis) {
     throw new Error(response.msg || 'Unable to analyze report.');
   }

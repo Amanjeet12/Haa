@@ -16,6 +16,26 @@ type SuccessProps = NativeStackScreenProps<
 >;
 type FailedProps = NativeStackScreenProps<HomeStackParamList, 'BookingFailed'>;
 
+function paymentFailureReason(value?: string): string {
+  if (!value) return 'The payment could not be completed.';
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (parsed && typeof parsed === 'object') {
+      const response = parsed as Record<string, unknown>;
+      const error = response.error;
+      const details =
+        error && typeof error === 'object'
+          ? (error as Record<string, unknown>)
+          : response;
+      const reason = details.description ?? details.reason ?? details.message;
+      if (typeof reason === 'string' && reason.trim()) return reason.trim();
+    }
+  } catch {
+    if (!value.trim().startsWith('{')) return value.trim();
+  }
+  return 'The payment could not be completed.';
+}
+
 export function BookingSuccessScreen({ navigation, route }: SuccessProps) {
   const { theme } = useAppTheme();
   const openBookings = () => {
@@ -76,7 +96,7 @@ export function BookingFailedScreen({ navigation, route }: FailedProps) {
         Payment unsuccessful
       </AppText>
       <AppText color={theme.colors.textMuted} style={styles.message}>
-        {route.params.reason || 'The payment could not be completed.'}
+        {paymentFailureReason(route.params.reason)}
       </AppText>
       <View
         style={[
